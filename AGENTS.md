@@ -1,4 +1,8 @@
-# 项目上下文
+# 高校智慧碳管理平台
+
+## 项目概述
+
+面向北京市重点碳排放单位中的高校，覆盖数据采集→数据质量管理→碳排放核算→排放分析→减排路径→碳管理→碳资产管理→监督考核→示范创建全链条的碳管理数字化平台。
 
 ### 版本技术栈
 
@@ -7,59 +11,89 @@
 - **Language**: TypeScript 5
 - **UI 组件**: shadcn/ui (基于 Radix UI)
 - **Styling**: Tailwind CSS 4
+- **图表库**: Recharts
 
 ## 目录结构
 
 ```
-├── public/                 # 静态资源
-├── scripts/                # 构建与启动脚本
-│   ├── build.sh            # 构建脚本
-│   ├── dev.sh              # 开发环境启动脚本
-│   ├── prepare.sh          # 预处理脚本
-│   └── start.sh            # 生产环境启动脚本
+├── public/                     # 静态资源
 ├── src/
-│   ├── app/                # 页面路由与布局
-│   ├── components/ui/      # Shadcn UI 组件库
-│   ├── hooks/              # 自定义 Hooks
-│   ├── lib/                # 工具库
-│   │   └── utils.ts        # 通用工具函数 (cn)
-│   └── server.ts           # 自定义服务端入口
-├── next.config.ts          # Next.js 配置
-├── package.json            # 项目依赖管理
-└── tsconfig.json           # TypeScript 配置
+│   ├── app/                    # 页面路由
+│   │   ├── page.tsx            # 首页（领导驾驶舱）
+│   │   ├── energy/             # 能源分析
+│   │   ├── calculation/        # 碳核算工作台
+│   │   ├── ai-suggestion/      # AI减排建议
+│   │   └── asset/              # 碳资产管理
+│   ├── components/
+│   │   ├── ui/                 # Shadcn UI 组件库
+│   │   ├── layout/             # 布局组件（侧边栏、头部）
+│   │   └── dashboard/          # 仪表盘组件（KPI卡片、图表）
+│   ├── data/
+│   │   └── mock-data.ts        # 模拟数据
+│   ├── types/
+│   │   └── index.ts            # TypeScript 类型定义
+│   └── lib/
+│       └── utils.ts            # 工具函数
+├── DESIGN.md                   # 设计规范
+├── next.config.ts              # Next.js 配置
+├── package.json                # 依赖管理
+└── tsconfig.json               # TypeScript 配置
 ```
 
-- 项目文件（如 app 目录、pages 目录、components 等）默认初始化到 `src/` 目录下。
+## 核心页面
 
-## 包管理规范
+| 页面 | 路由 | 功能描述 |
+|------|------|----------|
+| 领导驾驶舱 | `/` | 核心KPI、趋势图、风险预警、建筑排名 |
+| 能源分析 | `/energy` | 建筑排名、小时负荷热力图、异常详情 |
+| 碳核算工作台 | `/calculation` | 五步核算流程、数据追溯、质量检查 |
+| AI减排建议 | `/ai-suggestion` | 证据汇总、措施匹配、效益试算 |
+| 碳资产管理 | `/asset` | 配额台账、缺口预测、履约日历 |
 
-**仅允许使用 pnpm** 作为包管理器，**严禁使用 npm 或 yarn**。
-**常用命令**：
-- 安装依赖：`pnpm add <package>`
-- 安装开发依赖：`pnpm add -D <package>`
-- 安装所有依赖：`pnpm install`
-- 移除依赖：`pnpm remove <package>`
+## 用户角色
 
-## 开发规范
+- **校领导**: 查看全局KPI、风险状态、审批项目
+- **后勤能源管理员**: 监测能耗、定位异常、推动节能
+- **碳管理员**: 核算、报告、核查、配额与履约
+- **数据填报员**: 按责任范围填报并上传材料
 
-### 编码规范
+## 模拟数据说明
 
-- 默认按 TypeScript `strict` 心智写代码；优先复用当前作用域已声明的变量、函数、类型和导入，禁止引用未声明标识符或拼错变量名。
-- 禁止隐式 `any` 和 `as any`；函数参数、返回值、解构项、事件对象、`catch` 错误在使用前应有明确类型或先完成类型收窄，并清理未使用的变量和导入。
+- 所有数据为虚拟高校演示数据
+- 包含：主校区 + 东校区
+- 建筑类型：教学楼、实验楼、图书馆、宿舍、食堂、体育馆、行政楼
+- 能源类型：电力、天然气、热力、光伏
+- 演示异常场景：教学楼A夜间空调负荷异常
 
-### next.config 配置规范
+## 开发命令
 
-- 配置的路径不要写死绝对路径，必须使用 path.resolve(__dirname, ...)、import.meta.dirname 或 process.cwd() 动态拼接。
+```bash
+# 安装依赖
+pnpm install
 
-### Hydration 问题防范
+# 开发模式（端口5000）
+pnpm run dev
 
-1. 严禁在 JSX 渲染逻辑中直接使用 typeof window、Date.now()、Math.random() 等动态数据。**必须使用 'use client' 并配合 useEffect + useState 确保动态内容仅在客户端挂载后渲染**；同时严禁非法 HTML 嵌套（如 <p> 嵌套 <div>）。
-2. **禁止使用 head 标签**，优先使用 metadata，详见文档：https://nextjs.org/docs/app/api-reference/functions/generate-metadata
-   1. 三方 CSS、字体等资源可在 `globals.css` 中顶部通过 `@import` 引入或使用 next/font
-   2. preload, preconnect, dns-prefetch 通过 ReactDOM 的 preload、preconnect、dns-prefetch 方法引入
-   3. json-ld 可阅读 https://nextjs.org/docs/app/guides/json-ld
+# 构建生产版本
+pnpm run build
 
-## UI 设计与组件规范 (UI & Styling Standards)
+# 运行生产版本
+pnpm run start
 
-- 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
-- Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+# TypeScript 类型检查
+pnpm ts-check
+```
+
+## 编码规范
+
+- 使用 TypeScript strict 模式
+- 禁止隐式 `any` 和 `as any`
+- 所有模拟数据使用确定性的偏差值（避免 `Math.random()` 导致的 hydration 问题）
+- 组件使用 `useMemo` 缓存计算结果
+- 遵循 shadcn/ui 组件风格
+
+## 注意事项
+
+- 本 Demo 为虚拟数据演示，不用于真实申报
+- 所有预测、AI、价格数据均有"模拟"标签
+- 遵循北京市碳排放权交易相关政策规范
