@@ -500,3 +500,64 @@ export function getAuditTrail(dataId?: string) {
     { id: 'audit-005', action: '报告生成', user: '王五', time: '2026-07-15 16:00', source: '报告模板' },
   ];
 }
+
+// ========== 3D 场景建筑数据 ==========
+export interface Building3DData {
+  id: string;
+  name: string;
+  type: string;
+  dept: string;
+  emission: number;
+  area: number;
+  floors: number;
+  status: "normal" | "warning" | "danger";
+  trend: number;
+}
+
+export function getBuilding3DData(): Building3DData[] {
+  return [
+    { id: "b1", name: "教学楼 A", type: "teaching", dept: "计算机学院", emission: 450, area: 12000, floors: 6, status: "warning", trend: 5.2 },
+    { id: "b2", name: "教学楼 B", type: "teaching", dept: "机械学院", emission: 380, area: 9500, floors: 5, status: "normal", trend: -2.1 },
+    { id: "b3", name: "教学楼 C", type: "teaching", dept: "化学学院", emission: 320, area: 8000, floors: 4, status: "normal", trend: -3.5 },
+    { id: "b4", name: "教学楼 D", type: "teaching", dept: "文学院", emission: 290, area: 7500, floors: 4, status: "normal", trend: -1.8 },
+    { id: "b5", name: "宿舍 1 号楼", type: "dorm", dept: "宿舍管理中心", emission: 280, area: 8500, floors: 7, status: "normal", trend: -4.2 },
+    { id: "b6", name: "宿舍 2 号楼", type: "dorm", dept: "宿舍管理中心", emission: 260, area: 9200, floors: 7, status: "normal", trend: -2.8 },
+    { id: "b7", name: "宿舍 3 号楼", type: "dorm", dept: "宿舍管理中心", emission: 240, area: 7200, floors: 6, status: "normal", trend: -5.1 },
+    { id: "b8", name: "宿舍 4 号楼", type: "dorm", dept: "宿舍管理中心", emission: 220, area: 7000, floors: 6, status: "normal", trend: -3.3 },
+    { id: "b9", name: "宿舍 5 号楼", type: "dorm", dept: "宿舍管理中心", emission: 200, area: 6800, floors: 6, status: "normal", trend: -6.0 },
+    { id: "b10", name: "宿舍 6 号楼", type: "dorm", dept: "宿舍管理中心", emission: 180, area: 6500, floors: 6, status: "normal", trend: -4.5 },
+    { id: "b11", name: "实验楼 A", type: "lab", dept: "化学学院", emission: 520, area: 18000, floors: 8, status: "danger", trend: 8.3 },
+    { id: "b12", name: "实验楼 B", type: "lab", dept: "机械学院", emission: 480, area: 15000, floors: 6, status: "warning", trend: 3.5 },
+    { id: "b13", name: "食堂 A", type: "dining", dept: "餐饮服务中心", emission: 350, area: 4500, floors: 3, status: "normal", trend: -1.2 },
+    { id: "b14", name: "食堂 B", type: "dining", dept: "餐饮服务中心", emission: 320, area: 4000, floors: 3, status: "normal", trend: -2.5 },
+    { id: "b15", name: "行政楼", type: "admin", dept: "行政部门", emission: 180, area: 6000, floors: 5, status: "normal", trend: -8.2 },
+    { id: "b16", name: "体育馆", type: "gym", dept: "体育部", emission: 150, area: 15000, floors: 2, status: "normal", trend: -5.5 },
+    { id: "b17", name: "图书馆", type: "library", dept: "图书馆", emission: 220, area: 25000, floors: 10, status: "normal", trend: -3.8 },
+    { id: "b18", name: "光伏配电房", type: "solar", dept: "后勤能源", emission: -80, area: 2000, floors: 1, status: "normal", trend: -15.0 },
+  ];
+}
+
+// 获取建筑详情
+export function getBuildingDetail(buildingId: string) {
+  const buildings = getBuilding3DData();
+  return buildings.find((b) => b.id === buildingId) || null;
+}
+
+// 获取楼层排放数据
+export function getFloorEmissionData(buildingId: string) {
+  const building = getBuildingDetail(buildingId);
+  if (!building) return [];
+  
+  const floors = building.floors;
+  return Array.from({ length: floors }, (_, i) => ({
+    floor: i + 1,
+    emission: Math.round((building.emission / floors) * (1 + (i * 0.05))),
+    usage: i === 0 ? "大厅/设备" : i === floors ? "顶层/机房" : "办公/教学",
+  }));
+}
+
+// 获取异常建筑列表
+export function getAnomalyBuildings() {
+  const buildings = getBuilding3DData();
+  return buildings.filter((b) => b.status === "danger" || b.status === "warning");
+}
