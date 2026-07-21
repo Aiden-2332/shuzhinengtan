@@ -210,20 +210,18 @@ export function getAnomalies(status?: string): Anomaly[] {
 export function getCalculationBatch(period: string): CalculationBatch {
   return {
     id: `batch-${period}`,
+    name: `${period}核算批次`,
+    standard: 'JST303',
+    year: 2026,
     period,
-    campusId: 'all',
-    status: 'reviewing',
-    totalEmission: 16850,
-    emissionBreakdown: {
-      electricity: 11500,
-      natural_gas: 3050,
-      heat: 2020,
-      solar: 280,
-      green_electricity: 0
-    },
-    dataCompleteness: 96.5,
-    blockingIssues: 1,
+    status: 'reviewed',
     createdAt: '2026-07-01',
+    createdBy: '碳管理员',
+    totalEmission: 16850,
+    scope1Emission: 5800,
+    scope2Emission: 11050,
+    dataCompleteness: 96.5,
+    qualityScore: 92,
   };
 }
 
