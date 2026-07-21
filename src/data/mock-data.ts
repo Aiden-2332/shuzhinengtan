@@ -430,3 +430,73 @@ export function formatEmission(value: number): string {
   }
   return formatNumber(value);
 }
+// ========== 四层控制塔数据 ==========
+
+// L2 院系排名数据
+export function getDepartmentRanking(year: number = CURRENT_YEAR) {
+  return [
+    { id: 'dept-cs', name: '计算机学院', type: 'college', emission: 2850, target: 2600, progress: 78 },
+    { id: 'dept-me', name: '机械工程学院', type: 'college', emission: 3200, target: 3000, progress: 65 },
+    { id: 'dept-chem', name: '化学学院', type: 'college', emission: 4100, target: 3800, progress: 52 },
+    { id: 'dept-lib', name: '图书馆', type: 'facility', emission: 1250, target: 1200, progress: 88 },
+    { id: 'dept-dorm', name: '宿舍管理中心', type: 'facility', emission: 2800, target: 2700, progress: 72 },
+    { id: 'dept-dining', name: '餐饮服务中心', type: 'facility', emission: 1900, target: 1800, progress: 81 },
+  ];
+}
+
+// L2 部门 KPI 数据
+export function getDepartmentKPI(deptId: string) {
+  return {
+    emission: 2850,
+    target: 2600,
+    progress: 78,
+    ranking: 3,
+    totalDepts: 6,
+    yearOverYear: -5.2,
+  };
+}
+
+// L3 实时监测数据
+export function getRealtimeMonitoring(buildingId?: string) {
+  return {
+    electricity: 1250.5,
+    gas: 320.8,
+    heat: 180.2,
+    water: 450.0,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// L4 报告进度数据
+export function getReportProgress(year: number = CURRENT_YEAR) {
+  return [
+    { id: 'rpt-annual', name: '市级公共机构能耗年报', framework: 'municipal', progress: 85, status: 'in-progress' },
+    { id: 'rpt-green', name: '节约校园自评', framework: 'green-campus', progress: 92, status: 'in-progress' },
+    { id: 'rpt-esg', name: 'ESG 报告', framework: 'esg', progress: 68, status: 'in-progress' },
+    { id: 'rpt-iso', name: 'ISO 碳中和申报', framework: 'iso', progress: 45, status: 'pending' },
+    { id: 'rpt-ghg', name: 'GHG 碳盘查报告', framework: 'ghg', progress: 78, status: 'in-progress' },
+  ];
+}
+
+// L4 数据质量指标
+export function getQualityMetrics() {
+  return {
+    score: 92,
+    completeness: 95,
+    timeliness: 88,
+    accuracy: 94,
+    consistency: 91,
+    traceability: 93,
+  };
+}
+
+// L4 审计轨迹数据
+export function getAuditTrail(dataId?: string) {
+  return [
+    { id: 'audit-001', action: '数据填报', user: '张三', time: '2026-07-15 10:30', source: '表计读数' },
+    { id: 'audit-002', action: '质量校验', user: '系统', time: '2026-07-15 10:31', source: '自动校验' },
+    { id: 'audit-003', action: '数据复核', user: '李四', time: '2026-07-15 14:20', source: '人工复核' },
+    { id: 'audit-004', action: '核算计算', user: '系统', time: '2026-07-15 14:25', source: '核算引擎' },
+    { id: 'audit-005', action: '报告生成', user: '王五', time: '2026-07-15 16:00', source: '报告模板' },
+  ];
+}

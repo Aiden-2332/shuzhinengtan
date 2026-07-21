@@ -1,134 +1,161 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #0099FF;
-  --color-primary-dark: #0066CC;
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-  --color-info: #06B6D4;
+  --color-background: 222 47% 6%;
+  --color-foreground: 210 40% 98%;
 
-  --color-bg-dark: #0A1628;
-  --color-bg-card: #0D2137;
-  --color-bg-card-hover: #112D4A;
-  --color-border-glow: #1E4D8C;
+  --color-card: 222 47% 10%;
+  --color-card-foreground: 210 40% 98%;
 
-  --color-text-primary: #E2E8F0;
-  --color-text-secondary: #94A3B8;
-  --color-text-muted: #64748B;
+  --color-popover: 222 47% 10%;
+  --color-popover-foreground: 210 40% 98%;
+
+  --color-primary: 192 91% 45%;
+  --color-primary-foreground: 222 47% 6%;
+
+  --color-secondary: 217 33% 17%;
+  --color-secondary-foreground: 210 40% 98%;
+
+  --color-muted: 217 33% 17%;
+  --color-muted-foreground: 215 20% 65%;
+
+  --color-accent: 192 91% 45%;
+  --color-accent-foreground: 222 47% 6%;
+
+  --color-destructive: 0 84% 60%;
+  --color-destructive-foreground: 210 40% 98%;
+
+  --color-border: 217 33% 20%;
+  --color-input: 217 33% 20%;
+  --color-ring: 192 91% 45%;
+
+  --color-success: 142 76% 36%;
+  --color-warning: 38 92% 50%;
+  --color-danger: 0 84% 60%;
+  --color-info: 192 91% 45%;
+
+  --radius-lg: 0.5rem;
+  --radius-md: 0.375rem;
+  --radius-sm: 0.25rem;
 }
 
-/* 科技感大屏样式 */
+* {
+  border-color: hsl(var(--border));
+}
+
 body {
-  background: linear-gradient(135deg, #0A1628 0%, #0D2137 50%, #0A1628 100%);
-  color: #E2E8F0;
-  font-family: 'Inter', system-ui, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* 发光边框效果 */
-.glow-border {
-  border: 1px solid rgba(0, 153, 255, 0.3);
-  box-shadow: 0 0 10px rgba(0, 153, 255, 0.2), inset 0 0 10px rgba(0, 153, 255, 0.1);
-}
-
-.glow-border-strong {
-  border: 1px solid rgba(0, 153, 255, 0.5);
-  box-shadow: 0 0 20px rgba(0, 153, 255, 0.3), inset 0 0 15px rgba(0, 153, 255, 0.15);
-}
-
-/* 科技感卡片 */
-.tech-card {
-  background: linear-gradient(135deg, rgba(13, 33, 55, 0.9) 0%, rgba(10, 22, 40, 0.95) 100%);
-  border: 1px solid rgba(0, 153, 255, 0.3);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-}
-
-.tech-card:hover {
-  border-color: rgba(0, 153, 255, 0.5);
-  box-shadow: 0 4px 30px rgba(0, 153, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-/* 标题装饰 */
-.tech-title {
-  position: relative;
-  padding-left: 12px;
-}
-
-.tech-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 20px;
-  background: linear-gradient(180deg, #0099FF 0%, #0066CC 100%);
-  box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
-}
-
-/* 数据高亮 */
-.data-highlight {
-  background: linear-gradient(90deg, #0099FF 0%, #06B6D4 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* 进度条样式 */
-.tech-progress {
-  background: rgba(0, 153, 255, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.tech-progress-bar {
-  background: linear-gradient(90deg, #0099FF 0%, #06B6D4 100%);
-  box-shadow: 0 0 10px rgba(0, 153, 255, 0.5);
-}
-
-/* 滚动条样式 */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(10, 22, 40, 0.5);
+  background: hsl(222 47% 10%);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 153, 255, 0.3);
-  border-radius: 3px;
+  background: hsl(217 33% 25%);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 153, 255, 0.5);
+  background: hsl(217 33% 35%);
 }
 
-/* 动画效果 */
+/* Glow Effects */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+}
+
+.glow-text-cyan {
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+/* Card Styles */
+.card-dark {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  border-radius: 0.75rem;
+  backdrop-filter: blur(10px);
+}
+
+.card-dark:hover {
+  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.15);
+}
+
+/* KPI Card */
+.kpi-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.8), transparent);
+}
+
+/* Status Badges */
+.badge-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: rgb(110, 231, 183);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: rgb(253, 224, 71);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(252, 165, 165);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-info {
+  background: rgba(6, 182, 212, 0.2);
+  color: rgb(103, 232, 249);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+/* Animations */
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-/* 网格背景 */
-.grid-bg {
-  background-image:
-    linear-gradient(rgba(0, 153, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 153, 255, 0.05) 1px, transparent 1px);
-  background-size: 20px 20px;
+/* Demo Watermark */
+.demo-watermark {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  font-size: 0.75rem;
+  color: rgba(148, 163, 184, 0.8);
+  z-index: 50;
+  pointer-events: none;
 }
