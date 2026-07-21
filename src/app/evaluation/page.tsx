@@ -446,7 +446,7 @@ export default function EvaluationPage() {
                   <span className="text-sm text-green-400">申报准备就绪</span>
                 </div>
                 <p className="mt-1 text-xs text-gray-400">
-                  综合评分达到"良好"等级，具备申报条件
+                  综合评分达到&ldquo;良好&rdquo;等级，具备申报条件
                 </p>
               </div>
             </div>
