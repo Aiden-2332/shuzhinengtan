@@ -1,101 +1,94 @@
 'use client';
 
+import { cn } from '@/lib/utils';
+import { 
+  Bell, 
+  Search,
+  User,
+  Calendar,
+  MapPin,
+  Database
+} from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Bell, Search, RefreshCw } from 'lucide-react';
-import { CURRENT_YEAR, UNIVERSITY_NAME, campuses } from '@/data/mock-data';
 
 interface AppHeaderProps {
-  onFilterChange?: (key: string, value: string) => void;
-  showFilters?: boolean;
+  title?: string;
+  subtitle?: string;
 }
 
-export function AppHeader({ onFilterChange, showFilters = true }: AppHeaderProps) {
-  const [year, setYear] = useState<string>(String(CURRENT_YEAR));
-  const [campus, setCampus] = useState<string>('all');
-
-  const handleYearChange = (value: string) => {
-    setYear(value);
-    onFilterChange?.('year', value);
-  };
-
-  const handleCampusChange = (value: string) => {
-    setCampus(value);
-    onFilterChange?.('campusId', value);
-  };
+export function AppHeader({ title, subtitle }: AppHeaderProps) {
+  const [selectedYear, setSelectedYear] = useState('2026');
+  const [selectedCampus, setSelectedCampus] = useState('all');
 
   return (
-    <header className="sticky top-0 z-30 h-14 bg-white border-b border-slate-200">
-      <div className="flex items-center justify-between h-full px-6">
-        {/* 左侧：页面标题和筛选器 */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold text-slate-900">{UNIVERSITY_NAME}</span>
-            <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-              2026年度
-            </Badge>
+    <header className="h-16 bg-slate-900/95 border-b border-cyan-500/20 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-30">
+      {/* 左侧标题 */}
+      <div className="flex items-center gap-4">
+        {title && (
+          <div>
+            <h1 className="text-xl font-bold text-cyan-100">{title}</h1>
+            {subtitle && <p className="text-xs text-cyan-500">{subtitle}</p>}
           </div>
-          
-          {showFilters && (
-            <div className="flex items-center gap-2 ml-4 pl-4 border-l border-slate-200">
-              {/* 年度筛选 */}
-              <Select value={year} onValueChange={handleYearChange}>
-                <SelectTrigger className="w-28 h-8 text-sm">
-                  <SelectValue placeholder="选择年度" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2026">2026年</SelectItem>
-                  <SelectItem value="2025">2025年</SelectItem>
-                  <SelectItem value="2024">2024年</SelectItem>
-                </SelectContent>
-              </Select>
+        )}
+      </div>
 
-              {/* 校区筛选 */}
-              <Select value={campus} onValueChange={handleCampusChange}>
-                <SelectTrigger className="w-28 h-8 text-sm">
-                  <SelectValue placeholder="选择校区" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全校</SelectItem>
-                  {campuses.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* 数据状态 */}
-              <Select defaultValue="locked">
-                <SelectTrigger className="w-28 h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="locked">已锁定</SelectItem>
-                  <SelectItem value="reviewing">复核中</SelectItem>
-                  <SelectItem value="forecast">预测值</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+      {/* 中间筛选器 */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20">
+          <Calendar className="w-4 h-4 text-cyan-500" />
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="bg-transparent text-sm text-cyan-100 outline-none cursor-pointer"
+          >
+            <option value="2026">2026年</option>
+            <option value="2025">2025年</option>
+            <option value="2024">2024年</option>
+          </select>
         </div>
 
-        {/* 右侧：操作按钮 */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-500">
-            数据更新: 2026-07-01 08:30
-          </span>
-          
-          <Button variant="ghost" size="icon" className="w-8 h-8">
-            <RefreshCw className="w-4 h-4 text-slate-500" />
-          </Button>
-          
-          <Button variant="ghost" size="icon" className="w-8 h-8 relative">
-            <Bell className="w-4 h-4 text-slate-500" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
-              3
-            </span>
-          </Button>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20">
+          <MapPin className="w-4 h-4 text-cyan-500" />
+          <select
+            value={selectedCampus}
+            onChange={(e) => setSelectedCampus(e.target.value)}
+            className="bg-transparent text-sm text-cyan-100 outline-none cursor-pointer"
+          >
+            <option value="all">全校</option>
+            <option value="main">主校区</option>
+            <option value="east">东校区</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20">
+          <Database className="w-4 h-4 text-cyan-500" />
+          <select
+            className="bg-transparent text-sm text-cyan-100 outline-none cursor-pointer"
+          >
+            <option>实时估算</option>
+            <option>月度锁定</option>
+            <option>年度确认</option>
+          </select>
+        </div>
+      </div>
+
+      {/* 右侧操作区 */}
+      <div className="flex items-center gap-3">
+        <button className="p-2 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800/50 transition-colors">
+          <Search className="w-5 h-5" />
+        </button>
+        <button className="p-2 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800/50 transition-colors relative">
+          <Bell className="w-5 h-5" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-cyan-400 rounded-full"></span>
+        </button>
+        <div className="flex items-center gap-2 pl-3 border-l border-cyan-500/20">
+          <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center">
+            <User className="w-4 h-4 text-cyan-400" />
+          </div>
+          <div className="hidden md:block">
+            <div className="text-sm text-cyan-100">管理员</div>
+            <div className="text-xs text-cyan-500">carbon@admin.edu</div>
+          </div>
         </div>
       </div>
     </header>
