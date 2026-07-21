@@ -14,6 +14,7 @@ import {
   Wallet,
   ChevronRight,
   Leaf,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,7 @@ const navigation = [
     icon: Calculator,
     children: [
       { name: "碳核算工作台", href: "/calculation", icon: Calculator },
+      { name: "绿色/低碳校园评价", href: "/evaluation", icon: Award },
     ],
   },
   {
