@@ -3,15 +3,69 @@
 import { useState, useMemo, useCallback } from "react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { IndicatorCard, IndicatorGroup } from "@/components/dashboard/indicator-card";
-import { getKPIData, getTrendData, getBuildingRanking, getAnomalies, getBuilding3DData, getBuildingDetail } from "@/data/mock-data";
-import { AlertTriangle, Zap, TrendingDown, Building2, Target, Shield, Trophy, BarChart3 } from "lucide-react";
+import { getBuildingRanking, getAnomalies, getBuilding3DData, getBuildingDetail } from "@/data/mock-data";
+import { AlertTriangle, Zap, TrendingDown, Building2, Target, Shield } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+
+interface ResourceItem {
+  name: string;
+  value: number;
+  unit: string;
+}
+
+function ResourceDonutChart({ title, data, unit }: { title: string; data: ResourceItem[]; unit: string }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  const COLORS = ["#3b82f6", "#f59e0b", "#06b6d4"];
+
+  return (
+    <div className="rounded-lg bg-gray-900/50 border border-gray-700/30 p-3">
+      <div className="text-xs text-gray-400 mb-2">{title}</div>
+      <div className="flex items-center gap-3">
+        <div className="relative w-[100px] h-[100px] flex-shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={28}
+                outerRadius={44}
+                paddingAngle={2}
+                dataKey="value"
+                stroke="none"
+              >
+                {data.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i]} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-xs font-bold text-cyan-400 font-mono">{total.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className="flex-1 space-y-1.5">
+          {data.map((item, i) => (
+            <div key={item.name} className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: COLORS[i] }} />
+                <span className="text-gray-400">{item.name}</span>
+              </div>
+              <span className="text-gray-200 font-mono">
+                {item.value.toLocaleString()} <span className="text-gray-500">{item.unit}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function L1Dashboard() {
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
 
-  const kpiData = useMemo(() => getKPIData(2026), []);
-  const trendData = useMemo(() => getTrendData(2026), []);
   const rankings = useMemo(() => getBuildingRanking(2026), []);
   const anomalies = useMemo(() => getAnomalies(), []);
   const building3DData = useMemo(() => getBuilding3DData(), []);
@@ -25,6 +79,28 @@ export default function L1Dashboard() {
     const total = 12000; // 年度配额
     return Math.round((totalEmission / total) * 100);
   }, [totalEmission]);
+
+  // 资源消耗计算
+  const STUDENT_COUNT = 25000;
+  const totalArea = useMemo(() => building3DData.reduce((s, b) => s + b.area, 0), [building3DData]);
+
+  const resourceData = useMemo(() => {
+    const totalEnergy = Math.round(totalArea * 0.095); // 95 kWh/m² → MWh
+    const totalWater = Math.round(totalArea * 0.65);   // 0.65 m³/m² → m³
+    return { totalEnergy, totalWater };
+  }, [totalArea]);
+
+  const totalResourceData = useMemo(() => [
+    { name: "碳排放", value: totalEmission, unit: "tCO₂" },
+    { name: "能耗", value: resourceData.totalEnergy, unit: "MWh" },
+    { name: "水耗", value: resourceData.totalWater, unit: "m³" },
+  ], [totalEmission, resourceData]);
+
+  const perCapitaResourceData = useMemo(() => [
+    { name: "碳排放", value: Math.round(totalEmission / STUDENT_COUNT * 100) / 100, unit: "kgCO₂" },
+    { name: "能耗", value: Math.round(resourceData.totalEnergy / STUDENT_COUNT * 100) / 100, unit: "kWh" },
+    { name: "水耗", value: Math.round(resourceData.totalWater / STUDENT_COUNT * 100) / 100, unit: "m³" },
+  ], [totalEmission, resourceData]);
 
   const handleBuildingClick = useCallback((buildingId: string) => {
     setSelectedBuilding(buildingId);
@@ -91,30 +167,10 @@ export default function L1Dashboard() {
           icon={<TrendingDown className="w-4 h-4" />}
         />
       </IndicatorGroup>
-
-      {/* 双碳目标 */}
-      <IndicatorGroup title="双碳目标">
-        <div className="p-3 rounded-lg bg-gray-900/60 border border-cyan-500/20">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-gray-400 text-xs">碳达峰完成率</span>
-            <span className="text-cyan-400 text-xs font-mono">78%</span>
-          </div>
-          <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-cyan-500 to-green-400" />
-          </div>
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-gray-400 text-xs">碳中和完成率</span>
-            <span className="text-green-400 text-xs font-mono">42%</span>
-          </div>
-          <div className="h-2 bg-gray-700 rounded-full overflow-hidden mt-1">
-            <div className="h-full w-[42%] rounded-full bg-gradient-to-r from-green-400 to-emerald-400" />
-          </div>
-        </div>
-      </IndicatorGroup>
     </div>
   );
 
-  // 右侧指标面板 - 建筑排名 + 选中建筑详情 + 对标排名
+  // 右侧指标面板 - 建筑排名 + 选中建筑详情 + 资源消耗饼图
   const rightPanel = (
     <div className="space-y-3">
       {/* 建筑排名 TOP 5 */}
@@ -189,29 +245,19 @@ export default function L1Dashboard() {
         </IndicatorGroup>
       )}
 
-      {/* 对标排名 */}
-      <IndicatorGroup title="同区域高校对标">
-        <div className="space-y-1.5">
-          {[
-            { name: "北科大", emission: totalEmission, rank: 1, active: true },
-            { name: "北航", emission: Math.round(totalEmission * 0.92), rank: 2 },
-            { name: "北理工", emission: Math.round(totalEmission * 0.88), rank: 3 },
-            { name: "清华", emission: Math.round(totalEmission * 1.35), rank: 4 },
-            { name: "北大", emission: Math.round(totalEmission * 1.18), rank: 5 },
-          ].map((item) => (
-            <div key={item.name} className={`flex items-center justify-between p-2 rounded-lg text-xs ${
-              item.active ? "bg-cyan-500/10 border border-cyan-500/30" : "bg-gray-900/30 border border-gray-700/20"
-            }`}>
-              <div className="flex items-center gap-2">
-                <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-bold ${
-                  item.rank === 1 ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500"
-                }`}>{item.rank}</span>
-                <span className={item.active ? "text-cyan-300 font-medium" : "text-gray-400"}>{item.name}</span>
-                {item.active && <span className="px-1 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-[9px]">本校</span>}
-              </div>
-              <span className="text-gray-400 font-mono">{item.emission.toLocaleString()} tCO₂</span>
-            </div>
-          ))}
+      {/* 资源消耗饼图 */}
+      <IndicatorGroup title="资源消耗分析">
+        <div className="space-y-3">
+          <ResourceDonutChart
+            title="全校资源消耗"
+            data={totalResourceData}
+            unit="tCO₂ / MWh / m³"
+          />
+          <ResourceDonutChart
+            title="生均资源消耗"
+            data={perCapitaResourceData}
+            unit="kgCO₂/人 / kWh/人 / m³/人"
+          />
         </div>
       </IndicatorGroup>
     </div>
