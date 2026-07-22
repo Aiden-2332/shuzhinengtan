@@ -633,9 +633,14 @@ function BuildingEnergyMap({
   onBuildingClick: (id: string) => void;
   selectedBuilding: string | null;
 }) {
-  // 按能耗值排序 (高→低)
+  // 按能耗值排序 (高→低)，合并人数数据
   const sorted = useMemo(
-    () => [...buildingEnergyDistribution].sort((a, b) => b.energyValue - a.energyValue),
+    () => {
+      const detailMap = new Map(buildingDetails.map((b) => [b.buildingId, b]));
+      return [...buildingEnergyDistribution]
+        .map((b) => ({ ...b, detail: detailMap.get(b.buildingId) }))
+        .sort((a, b) => b.energyValue - a.energyValue);
+    },
     []
   );
 
@@ -649,21 +654,40 @@ function BuildingEnergyMap({
         }} />
         <span className="text-gray-500 text-[9px]">高能耗</span>
       </div>
+      {/* 表头 */}
+      <div className="flex items-center gap-2 px-2 py-0.5 text-[9px] text-gray-600">
+        <span className="w-2 flex-shrink-0" />
+        <span className="flex-1">楼宇</span>
+        <span className="w-10 text-right">能耗</span>
+        <span className="w-16 text-right flex items-center justify-end gap-0.5">
+          <Users className="w-2.5 h-2.5" />人数
+        </span>
+      </div>
       {/* 楼宇列表 */}
-      <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 scrollbar-thin">
-        {sorted.slice(0, 15).map((b) => (
-          <div
-            key={b.buildingId}
-            onClick={() => onBuildingClick(b.buildingId)}
-            className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-all hover:bg-gray-800/40 ${
-              selectedBuilding === b.buildingId ? "bg-gray-800/60 ring-1 ring-cyan-400/40" : ""
-            }`}
-          >
-            <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: b.color }} />
-            <span className="text-gray-300 text-[10px] flex-1 truncate">{b.name}</span>
-            <span className="text-gray-500 text-[10px] font-mono">{b.energyValue}</span>
-          </div>
-        ))}
+      <div className="max-h-56 overflow-y-auto space-y-0.5 pr-1 scrollbar-thin">
+        {sorted.slice(0, 15).map((b) => {
+          const occupancy = b.detail?.todayOccupancy ?? 0;
+          const maxOcc = b.detail?.maxOccupancy ?? 1;
+          const ratio = Math.round((occupancy / maxOcc) * 100);
+          const occColor = ratio > 90 ? "text-red-400" : ratio > 70 ? "text-amber-400" : "text-green-400";
+
+          return (
+            <div
+              key={b.buildingId}
+              onClick={() => onBuildingClick(b.buildingId)}
+              className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-all hover:bg-gray-800/40 ${
+                selectedBuilding === b.buildingId ? "bg-gray-800/60 ring-1 ring-cyan-400/40" : ""
+              }`}
+            >
+              <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: b.color }} />
+              <span className="text-gray-300 text-[10px] flex-1 truncate">{b.name}</span>
+              <span className="text-gray-500 text-[10px] font-mono w-10 text-right">{b.energyValue}</span>
+              <span className={`text-[10px] font-mono w-16 text-right ${occColor}`}>
+                {occupancy.toLocaleString()}<span className="text-gray-600 text-[8px]"> ({ratio}%)</span>
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -855,15 +879,28 @@ export default function L3OperationsView() {
   // ========== 右侧面板 ==========
   const rightPanel = (
     <div className="space-y-3">
-      {/* 重点系统运行效率 */}
-      <IndicatorGroup title="重点系统运行效率">
-        <SystemEfficiencyPanel />
-      </IndicatorGroup>
+      {selectedBuilding ? (
+        /* 选中楼宇：显示楼宇详情面板 */
+        <IndicatorGroup title="楼宇详情">
+          <BuildingDetailPanel
+            buildingId={selectedBuilding}
+            onClear={() => setSelectedBuilding(null)}
+          />
+        </IndicatorGroup>
+      ) : (
+        <>
+          {/* 未选中楼宇：显示全局数据 */}
+          {/* 重点系统运行效率 */}
+          <IndicatorGroup title="重点系统运行效率">
+            <SystemEfficiencyPanel />
+          </IndicatorGroup>
 
-      {/* 仪表在线率 & 数据完整率 */}
-      <IndicatorGroup title="仪表在线率 & 数据完整率">
-        <MeterStatsPanel />
-      </IndicatorGroup>
+          {/* 仪表在线率 & 数据完整率 */}
+          <IndicatorGroup title="仪表在线率 & 数据完整率">
+            <MeterStatsPanel />
+          </IndicatorGroup>
+        </>
+      )}
 
       {/* 校园楼宇能耗分布 */}
       <IndicatorGroup title="校园楼宇能耗分布">
