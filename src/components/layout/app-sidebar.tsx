@@ -4,9 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Building2,
   Factory,
-  ShieldCheck,
   Brain,
   Zap,
   Calculator,
@@ -24,9 +22,7 @@ const navigation = [
     icon: LayoutDashboard,
     children: [
       { name: "L1 校领导控制塔", href: "/", icon: LayoutDashboard },
-      { name: "L2 院系业务视图", href: "/dept", icon: Building2 },
       { name: "L3 后勤运营明细", href: "/operations", icon: Factory },
-      { name: "L4 合规与披露", href: "/compliance", icon: ShieldCheck },
     ],
   },
   {
