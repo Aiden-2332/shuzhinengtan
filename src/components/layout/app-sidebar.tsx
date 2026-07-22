@@ -14,6 +14,7 @@ import {
   Leaf,
   Award,
   BarChart3,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,7 @@ const navigation = [
     children: [
       { name: "能源监测", href: "/energy-monitor", icon: Zap },
       { name: "能源分析", href: "/energy", icon: BarChart3 },
+      { name: "用电日历", href: "/energy/calendar", icon: CalendarDays },
     ],
   },
   {

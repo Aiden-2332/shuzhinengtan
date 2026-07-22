@@ -13,11 +13,14 @@ import {
   meterStats,
   buildingEnergyDistribution,
   realtimeLoadData,
+  buildingDetails,
   getAlertsByCategory,
   getCriticalAlertCount,
+  getBuildingDetail,
   alertCategoryLabels,
   type AlertCategory,
   type AlertSeverity,
+  type BuildingSystemDetail,
 } from "@/data/operations-data";
 import {
   AlertTriangle, Zap, Droplets, Flame, BarChart3,
@@ -25,6 +28,7 @@ import {
   CheckCircle, XCircle, ChevronRight, TrendingUp,
   Snowflake, Sun, Lightbulb, Activity, Bell,
   CircleDot, ArrowRight, Eye,
+  Users, Building2, X, ChevronDown,
 } from "lucide-react";
 
 // ============================================================
@@ -334,6 +338,227 @@ function SystemEfficiencyPanel() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ============================================================
+// 子组件：楼宇详细面板（点击楼宇后右侧展示）
+// ============================================================
+
+function BuildingSystemCard({ sys }: { sys: BuildingSystemDetail }) {
+  const sysIconMap: Record<string, React.ReactNode> = {
+    "空调与冷站": <Snowflake className="w-3.5 h-3.5" />,
+    "供热与锅炉": <Sun className="w-3.5 h-3.5" />,
+    "照明与动力": <Lightbulb className="w-3.5 h-3.5" />,
+  };
+
+  return (
+    <div className="p-2.5 rounded-lg bg-gray-900/40 border border-gray-700/20">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-cyan-400">{sysIconMap[sys.name]}</span>
+          <span className="text-gray-300 text-[11px] font-medium">{sys.name}</span>
+        </div>
+        <span className={`font-mono font-bold text-sm ${
+          sys.efficiency >= 85 ? "text-green-400" : sys.efficiency >= 75 ? "text-amber-400" : "text-red-400"
+        }`}>
+          {sys.efficiency}%
+        </span>
+      </div>
+      {/* 效率进度条 */}
+      <div className="h-1.5 bg-gray-700/60 rounded-full overflow-hidden mb-1.5">
+        <div
+          className={`h-full rounded-full transition-all ${
+            sys.efficiency >= 85 ? "bg-green-500" : sys.efficiency >= 75 ? "bg-amber-500" : "bg-red-500"
+          }`}
+          style={{ width: `${sys.efficiency}%` }}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-500">能耗</span>
+          <span className="text-gray-300 font-mono">{sys.energyConsumption.toLocaleString()} kWh</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-500">运行</span>
+          <span className="text-gray-300 font-mono">{sys.runningUnits}/{sys.totalUnits}</span>
+        </div>
+        {sys.lowEfficiencyCount > 0 && (
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500">低效</span>
+            <span className="text-orange-400 font-mono">{sys.lowEfficiencyCount} 台</span>
+          </div>
+        )}
+        {sys.alarmCount > 0 && (
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500">告警</span>
+            <span className="text-red-400 font-mono flex items-center gap-0.5">
+              <Bell className="w-2.5 h-2.5" />{sys.alarmCount}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BuildingDetailPanel({
+  buildingId,
+  onClear,
+}: {
+  buildingId: string;
+  onClear: () => void;
+}) {
+  const detail = getBuildingDetail(buildingId);
+  if (!detail) {
+    return (
+      <div className="text-center text-gray-500 text-[11px] py-4">
+        未找到楼宇数据
+      </div>
+    );
+  }
+
+  const occupancyRatio = Math.round((detail.todayOccupancy / detail.maxOccupancy) * 100);
+  const occupancyColor = occupancyRatio > 90 ? "text-red-400" : occupancyRatio > 70 ? "text-amber-400" : "text-green-400";
+  const occupancyBarColor = occupancyRatio > 90 ? "bg-red-500" : occupancyRatio > 70 ? "bg-amber-500" : "bg-green-500";
+
+  // 楼宇相关的告警
+  const buildingAlerts = alertRecords.filter((a) => a.buildingId === buildingId);
+  const buildingEquipWarnings = equipmentWarnings.filter((e) => e.buildingId === buildingId);
+
+  return (
+    <div className="space-y-3">
+      {/* 楼宇标题 + 关闭按钮 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
+            <Building2 className="w-3.5 h-3.5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-white text-sm font-semibold">{detail.name}</h3>
+            <span className="text-gray-500 text-[9px]">楼宇详情</span>
+          </div>
+        </div>
+        <button
+          onClick={onClear}
+          className="p-1 rounded hover:bg-gray-800/60 text-gray-500 hover:text-gray-300 transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* 当日人数使用情况 */}
+      <div className="p-2.5 rounded-lg bg-gray-900/40 border border-cyan-500/20">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Users className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="text-cyan-400 text-[11px] font-medium">当日人数</span>
+        </div>
+        <div className="flex items-baseline gap-1 mb-1.5">
+          <span className={`font-mono font-bold text-xl ${occupancyColor}`}>
+            {detail.todayOccupancy.toLocaleString()}
+          </span>
+          <span className="text-gray-500 text-[10px]">/ {detail.maxOccupancy.toLocaleString()} 人</span>
+          <span className={`ml-auto font-mono text-sm ${occupancyColor}`}>{occupancyRatio}%</span>
+        </div>
+        <div className="h-2 bg-gray-700/60 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${occupancyBarColor}`}
+            style={{ width: `${occupancyRatio}%` }}
+          />
+        </div>
+      </div>
+
+      {/* 能源消耗概览 */}
+      <div className="grid grid-cols-2 gap-1.5">
+        <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <div className="flex items-center gap-1 mb-1">
+            <Zap className="w-3 h-3 text-blue-400" />
+            <span className="text-gray-400 text-[10px]">今日用电</span>
+          </div>
+          <div className="text-blue-400 font-mono font-bold text-sm">{detail.todayElectricity.toLocaleString()}</div>
+          <span className="text-gray-600 text-[9px]">kWh</span>
+        </div>
+        <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
+          <div className="flex items-center gap-1 mb-1">
+            <Flame className="w-3 h-3 text-orange-400" />
+            <span className="text-gray-400 text-[10px]">今日用热</span>
+          </div>
+          <div className="text-orange-400 font-mono font-bold text-sm">{detail.todayHeat.toLocaleString()}</div>
+          <span className="text-gray-600 text-[9px]">MJ</span>
+        </div>
+        <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+          <div className="flex items-center gap-1 mb-1">
+            <Droplets className="w-3 h-3 text-cyan-400" />
+            <span className="text-gray-400 text-[10px]">今日用水</span>
+          </div>
+          <div className="text-cyan-400 font-mono font-bold text-sm">{detail.todayWater}</div>
+          <span className="text-gray-600 text-[9px]">m³</span>
+        </div>
+        <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-center gap-1 mb-1">
+            <Activity className="w-3 h-3 text-amber-400" />
+            <span className="text-gray-400 text-[10px]">今日碳排</span>
+          </div>
+          <div className={`font-mono font-bold text-sm ${detail.carbonEmission < 0 ? "text-green-400" : "text-amber-400"}`}>
+            {detail.carbonEmission < 0 ? "" : ""}{Math.abs(detail.carbonEmission).toFixed(2)}
+          </div>
+          <span className="text-gray-600 text-[9px]">tCO₂{detail.carbonEmission < 0 ? " (碳抵消)" : ""}</span>
+        </div>
+      </div>
+
+      {/* 三大系统运行效率 */}
+      <div>
+        <div className="flex items-center gap-1.5 mb-2">
+          <Activity className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="text-gray-300 text-[11px] font-medium">系统运行效率</span>
+        </div>
+        <div className="space-y-1.5">
+          {detail.systems.map((sys) => (
+            <BuildingSystemCard key={sys.name} sys={sys} />
+          ))}
+        </div>
+      </div>
+
+      {/* 楼宇相关告警 */}
+      {(buildingAlerts.length > 0 || buildingEquipWarnings.length > 0) && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-gray-300 text-[11px] font-medium">相关告警</span>
+            <span className="text-gray-500 text-[10px]">({buildingAlerts.length + buildingEquipWarnings.length})</span>
+          </div>
+          <div className="space-y-1">
+            {buildingAlerts.map((alert) => (
+              <div key={alert.id} className="flex items-start gap-2 p-1.5 rounded bg-gray-900/40 border border-gray-700/20">
+                <CircleDot className={`w-3 h-3 mt-0.5 flex-shrink-0 ${
+                  alert.severity === "critical" ? "text-red-400" : alert.severity === "warning" ? "text-amber-400" : "text-blue-400"
+                }`} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-gray-300 text-[10px] truncate">{alert.title}</div>
+                  <div className="text-gray-500 text-[9px]">{alert.location} · {alert.duration}</div>
+                </div>
+                {alert.autoDispatched ? (
+                  <span className="px-1 rounded bg-green-500/10 text-green-400 text-[8px] flex-shrink-0">已派发</span>
+                ) : (
+                  <span className="px-1 rounded bg-gray-600/20 text-gray-400 text-[8px] flex-shrink-0">待派发</span>
+                )}
+              </div>
+            ))}
+            {buildingEquipWarnings.map((ew) => (
+              <div key={ew.id} className="flex items-start gap-2 p-1.5 rounded bg-gray-900/40 border border-gray-700/20">
+                <Wrench className={`w-3 h-3 mt-0.5 flex-shrink-0 ${
+                  ew.severity === "critical" ? "text-red-400" : "text-amber-400"
+                }`} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-gray-300 text-[10px] truncate">{ew.equipmentName}</div>
+                  <div className="text-gray-500 text-[9px]">{ew.issue} · {ew.duration}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

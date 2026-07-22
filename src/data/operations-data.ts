@@ -91,6 +91,29 @@ export interface BuildingEnergyItem {
   color: string;            // 绿→红梯度
 }
 
+export interface BuildingSystemDetail {
+  name: string;             // 空调与冷站 / 供热与锅炉 / 照明与动力
+  efficiency: number;       // 运行效率 %
+  energyConsumption: number; // 能耗 kWh
+  runningUnits: number;     // 运行中设备数
+  totalUnits: number;       // 总设备数
+  alarmCount: number;       // 告警数
+  lowEfficiencyCount: number; // 低效运行数量
+}
+
+export interface BuildingDetailData {
+  buildingId: string;
+  name: string;
+  todayOccupancy: number;   // 当日楼宇人数
+  maxOccupancy: number;     // 最大容纳人数
+  systems: BuildingSystemDetail[]; // 三大系统数据
+  todayElectricity: number; // 今日用电 kWh
+  todayHeat: number;        // 今日用热 MJ
+  todayWater: number;       // 今日用水 m³
+  todayGas: number;         // 今日用气 m³
+  carbonEmission: number;   // 今日碳排放 tCO₂
+}
+
 export interface LoadDataPoint {
   hour: number;
   realtime: number;         // 实时 kW
@@ -421,3 +444,333 @@ export const alertCategoryLabels: Record<AlertCategory, { label: string; color: 
   environment: { label: "环境异常", color: "#3B82F6", icon: "thermometer" },
   data: { label: "数据异常", color: "#8B5CF6", icon: "wifi-off" },
 };
+
+// ============================================================
+// 楼宇级别详细数据（每栋楼独立的空调与冷站、供热与锅炉、照明与动力数据 + 当日人数）
+// ============================================================
+
+export const buildingDetails: BuildingDetailData[] = [
+  {
+    buildingId: "b01", name: "主教学楼",
+    todayOccupancy: 2850, maxOccupancy: 3200,
+    todayElectricity: 4280, todayHeat: 3520, todayWater: 85, todayGas: 12,
+    carbonEmission: 3.85,
+    systems: [
+      { name: "空调与冷站", efficiency: 78, energyConsumption: 1920, runningUnits: 6, totalUnits: 8, alarmCount: 2, lowEfficiencyCount: 2 },
+      { name: "供热与锅炉", efficiency: 82, energyConsumption: 1450, runningUnits: 2, totalUnits: 3, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "照明与动力", efficiency: 88, energyConsumption: 910, runningUnits: 12, totalUnits: 14, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b02", name: "第一教学楼",
+    todayOccupancy: 1620, maxOccupancy: 2000,
+    todayElectricity: 2180, todayHeat: 1680, todayWater: 52, todayGas: 8,
+    carbonEmission: 2.12,
+    systems: [
+      { name: "空调与冷站", efficiency: 85, energyConsumption: 980, runningUnits: 4, totalUnits: 5, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 80, energyConsumption: 720, runningUnits: 2, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 1 },
+      { name: "照明与动力", efficiency: 92, energyConsumption: 480, runningUnits: 8, totalUnits: 8, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b03", name: "第二教学楼",
+    todayOccupancy: 1380, maxOccupancy: 1800,
+    todayElectricity: 1850, todayHeat: 1420, todayWater: 45, todayGas: 6,
+    carbonEmission: 1.78,
+    systems: [
+      { name: "空调与冷站", efficiency: 87, energyConsumption: 830, runningUnits: 3, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 79, energyConsumption: 610, runningUnits: 2, totalUnits: 2, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "照明与动力", efficiency: 90, energyConsumption: 410, runningUnits: 7, totalUnits: 8, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b04", name: "第三教学楼",
+    todayOccupancy: 1050, maxOccupancy: 1500,
+    todayElectricity: 1420, todayHeat: 1100, todayWater: 38, todayGas: 5,
+    carbonEmission: 1.35,
+    systems: [
+      { name: "空调与冷站", efficiency: 90, energyConsumption: 640, runningUnits: 3, totalUnits: 3, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 83, energyConsumption: 470, runningUnits: 2, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 93, energyConsumption: 310, runningUnits: 6, totalUnits: 6, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b05", name: "信息学院楼",
+    todayOccupancy: 920, maxOccupancy: 1200,
+    todayElectricity: 3680, todayHeat: 2100, todayWater: 42, todayGas: 7,
+    carbonEmission: 3.42,
+    systems: [
+      { name: "空调与冷站", efficiency: 72, energyConsumption: 1680, runningUnits: 5, totalUnits: 6, alarmCount: 2, lowEfficiencyCount: 2 },
+      { name: "供热与锅炉", efficiency: 76, energyConsumption: 900, runningUnits: 2, totalUnits: 3, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "照明与动力", efficiency: 85, energyConsumption: 1100, runningUnits: 10, totalUnits: 12, alarmCount: 1, lowEfficiencyCount: 1 },
+    ],
+  },
+  {
+    buildingId: "b06", name: "机械学院楼",
+    todayOccupancy: 780, maxOccupancy: 1000,
+    todayElectricity: 2950, todayHeat: 2800, todayWater: 55, todayGas: 18,
+    carbonEmission: 3.15,
+    systems: [
+      { name: "空调与冷站", efficiency: 68, energyConsumption: 1200, runningUnits: 4, totalUnits: 6, alarmCount: 3, lowEfficiencyCount: 3 },
+      { name: "供热与锅炉", efficiency: 74, energyConsumption: 1100, runningUnits: 3, totalUnits: 4, alarmCount: 2, lowEfficiencyCount: 2 },
+      { name: "照明与动力", efficiency: 82, energyConsumption: 650, runningUnits: 8, totalUnits: 10, alarmCount: 1, lowEfficiencyCount: 1 },
+    ],
+  },
+  {
+    buildingId: "b07", name: "材料学院楼",
+    todayOccupancy: 650, maxOccupancy: 900,
+    todayElectricity: 2350, todayHeat: 1900, todayWater: 48, todayGas: 15,
+    carbonEmission: 2.45,
+    systems: [
+      { name: "空调与冷站", efficiency: 80, energyConsumption: 1050, runningUnits: 3, totalUnits: 4, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "供热与锅炉", efficiency: 78, energyConsumption: 820, runningUnits: 2, totalUnits: 3, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "照明与动力", efficiency: 88, energyConsumption: 480, runningUnits: 7, totalUnits: 8, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b08", name: "能源学院楼",
+    todayOccupancy: 580, maxOccupancy: 800,
+    todayElectricity: 2780, todayHeat: 2200, todayWater: 40, todayGas: 12,
+    carbonEmission: 2.78,
+    systems: [
+      { name: "空调与冷站", efficiency: 84, energyConsumption: 1250, runningUnits: 4, totalUnits: 5, alarmCount: 0, lowEfficiencyCount: 1 },
+      { name: "供热与锅炉", efficiency: 81, energyConsumption: 950, runningUnits: 2, totalUnits: 3, alarmCount: 1, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 86, energyConsumption: 580, runningUnits: 8, totalUnits: 10, alarmCount: 0, lowEfficiencyCount: 1 },
+    ],
+  },
+  {
+    buildingId: "b09", name: "经管学院楼",
+    todayOccupancy: 720, maxOccupancy: 950,
+    todayElectricity: 1280, todayHeat: 980, todayWater: 35, todayGas: 4,
+    carbonEmission: 1.22,
+    systems: [
+      { name: "空调与冷站", efficiency: 89, energyConsumption: 580, runningUnits: 3, totalUnits: 3, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 85, energyConsumption: 420, runningUnits: 1, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 94, energyConsumption: 280, runningUnits: 5, totalUnits: 5, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b10", name: "图书馆",
+    todayOccupancy: 3200, maxOccupancy: 3500,
+    todayElectricity: 3150, todayHeat: 2400, todayWater: 65, todayGas: 3,
+    carbonEmission: 2.95,
+    systems: [
+      { name: "空调与冷站", efficiency: 83, energyConsumption: 1420, runningUnits: 5, totalUnits: 6, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "供热与锅炉", efficiency: 80, energyConsumption: 1030, runningUnits: 2, totalUnits: 3, alarmCount: 0, lowEfficiencyCount: 1 },
+      { name: "照明与动力", efficiency: 90, energyConsumption: 700, runningUnits: 12, totalUnits: 14, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b11", name: "行政办公楼",
+    todayOccupancy: 480, maxOccupancy: 600,
+    todayElectricity: 1580, todayHeat: 1200, todayWater: 32, todayGas: 5,
+    carbonEmission: 1.48,
+    systems: [
+      { name: "空调与冷站", efficiency: 86, energyConsumption: 710, runningUnits: 3, totalUnits: 3, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 82, energyConsumption: 520, runningUnits: 1, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 91, energyConsumption: 350, runningUnits: 6, totalUnits: 7, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b12", name: "大礼堂",
+    todayOccupancy: 350, maxOccupancy: 1500,
+    todayElectricity: 920, todayHeat: 680, todayWater: 18, todayGas: 2,
+    carbonEmission: 0.82,
+    systems: [
+      { name: "空调与冷站", efficiency: 75, energyConsumption: 420, runningUnits: 2, totalUnits: 3, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "供热与锅炉", efficiency: 78, energyConsumption: 290, runningUnits: 1, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 1 },
+      { name: "照明与动力", efficiency: 88, energyConsumption: 210, runningUnits: 5, totalUnits: 6, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b13", name: "1号宿舍楼",
+    todayOccupancy: 920, maxOccupancy: 1000,
+    todayElectricity: 1950, todayHeat: 1800, todayWater: 95, todayGas: 20,
+    carbonEmission: 2.05,
+    systems: [
+      { name: "空调与冷站", efficiency: 76, energyConsumption: 880, runningUnits: 3, totalUnits: 4, alarmCount: 2, lowEfficiencyCount: 2 },
+      { name: "供热与锅炉", efficiency: 80, energyConsumption: 770, runningUnits: 2, totalUnits: 2, alarmCount: 1, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 89, energyConsumption: 300, runningUnits: 5, totalUnits: 6, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b14", name: "2号宿舍楼",
+    todayOccupancy: 880, maxOccupancy: 1000,
+    todayElectricity: 1780, todayHeat: 1650, todayWater: 88, todayGas: 18,
+    carbonEmission: 1.88,
+    systems: [
+      { name: "空调与冷站", efficiency: 82, energyConsumption: 800, runningUnits: 3, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 1 },
+      { name: "供热与锅炉", efficiency: 81, energyConsumption: 710, runningUnits: 2, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 90, energyConsumption: 270, runningUnits: 5, totalUnits: 5, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b15", name: "3号宿舍楼",
+    todayOccupancy: 850, maxOccupancy: 1000,
+    todayElectricity: 2100, todayHeat: 1750, todayWater: 92, todayGas: 22,
+    carbonEmission: 2.18,
+    systems: [
+      { name: "空调与冷站", efficiency: 70, energyConsumption: 950, runningUnits: 3, totalUnits: 4, alarmCount: 2, lowEfficiencyCount: 3 },
+      { name: "供热与锅炉", efficiency: 77, energyConsumption: 750, runningUnits: 2, totalUnits: 2, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "照明与动力", efficiency: 87, energyConsumption: 400, runningUnits: 5, totalUnits: 6, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b16", name: "4号宿舍楼",
+    todayOccupancy: 780, maxOccupancy: 950,
+    todayElectricity: 1580, todayHeat: 1400, todayWater: 72, todayGas: 15,
+    carbonEmission: 1.65,
+    systems: [
+      { name: "空调与冷站", efficiency: 84, energyConsumption: 710, runningUnits: 3, totalUnits: 3, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 82, energyConsumption: 600, runningUnits: 2, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 91, energyConsumption: 270, runningUnits: 5, totalUnits: 5, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b17", name: "5号宿舍楼",
+    todayOccupancy: 720, maxOccupancy: 900,
+    todayElectricity: 1350, todayHeat: 1200, todayWater: 65, todayGas: 12,
+    carbonEmission: 1.42,
+    systems: [
+      { name: "空调与冷站", efficiency: 86, energyConsumption: 610, runningUnits: 3, totalUnits: 3, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 83, energyConsumption: 520, runningUnits: 1, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 92, energyConsumption: 220, runningUnits: 4, totalUnits: 5, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b18", name: "6号宿舍楼",
+    todayOccupancy: 680, maxOccupancy: 900,
+    todayElectricity: 1120, todayHeat: 1050, todayWater: 58, todayGas: 10,
+    carbonEmission: 1.18,
+    systems: [
+      { name: "空调与冷站", efficiency: 88, energyConsumption: 500, runningUnits: 2, totalUnits: 3, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 84, energyConsumption: 450, runningUnits: 2, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 93, energyConsumption: 170, runningUnits: 4, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b19", name: "7号宿舍楼",
+    todayOccupancy: 650, maxOccupancy: 850,
+    todayElectricity: 1080, todayHeat: 980, todayWater: 55, todayGas: 9,
+    carbonEmission: 1.12,
+    systems: [
+      { name: "空调与冷站", efficiency: 87, energyConsumption: 490, runningUnits: 2, totalUnits: 3, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 83, energyConsumption: 420, runningUnits: 1, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 91, energyConsumption: 170, runningUnits: 4, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b20", name: "8号宿舍楼",
+    todayOccupancy: 620, maxOccupancy: 850,
+    todayElectricity: 850, todayHeat: 780, todayWater: 42, todayGas: 7,
+    carbonEmission: 0.88,
+    systems: [
+      { name: "空调与冷站", efficiency: 90, energyConsumption: 380, runningUnits: 2, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 86, energyConsumption: 340, runningUnits: 1, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 94, energyConsumption: 130, runningUnits: 4, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b21", name: "9号宿舍楼",
+    todayOccupancy: 600, maxOccupancy: 800,
+    todayElectricity: 980, todayHeat: 900, todayWater: 48, todayGas: 8,
+    carbonEmission: 1.02,
+    systems: [
+      { name: "空调与冷站", efficiency: 88, energyConsumption: 440, runningUnits: 2, totalUnits: 3, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 84, energyConsumption: 390, runningUnits: 1, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 92, energyConsumption: 150, runningUnits: 4, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b22", name: "10号宿舍楼",
+    todayOccupancy: 550, maxOccupancy: 800,
+    todayElectricity: 750, todayHeat: 680, todayWater: 38, todayGas: 6,
+    carbonEmission: 0.78,
+    systems: [
+      { name: "空调与冷站", efficiency: 91, energyConsumption: 340, runningUnits: 2, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 87, energyConsumption: 290, runningUnits: 1, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 95, energyConsumption: 120, runningUnits: 3, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b23", name: "第一食堂",
+    todayOccupancy: 4500, maxOccupancy: 5000,
+    todayElectricity: 3420, todayHeat: 3200, todayWater: 180, todayGas: 85,
+    carbonEmission: 3.65,
+    systems: [
+      { name: "空调与冷站", efficiency: 79, energyConsumption: 1540, runningUnits: 4, totalUnits: 5, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "供热与锅炉", efficiency: 72, energyConsumption: 1380, runningUnits: 3, totalUnits: 4, alarmCount: 2, lowEfficiencyCount: 2 },
+      { name: "照明与动力", efficiency: 86, energyConsumption: 500, runningUnits: 8, totalUnits: 10, alarmCount: 0, lowEfficiencyCount: 1 },
+    ],
+  },
+  {
+    buildingId: "b24", name: "第二食堂",
+    todayOccupancy: 3800, maxOccupancy: 4500,
+    todayElectricity: 2950, todayHeat: 2800, todayWater: 150, todayGas: 72,
+    carbonEmission: 3.12,
+    systems: [
+      { name: "空调与冷站", efficiency: 81, energyConsumption: 1330, runningUnits: 4, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 1 },
+      { name: "供热与锅炉", efficiency: 75, energyConsumption: 1200, runningUnits: 2, totalUnits: 3, alarmCount: 1, lowEfficiencyCount: 2 },
+      { name: "照明与动力", efficiency: 88, energyConsumption: 420, runningUnits: 7, totalUnits: 8, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b25", name: "体育馆",
+    todayOccupancy: 280, maxOccupancy: 3000,
+    todayElectricity: 2400, todayHeat: 1800, todayWater: 120, todayGas: 5,
+    carbonEmission: 2.28,
+    systems: [
+      { name: "空调与冷站", efficiency: 77, energyConsumption: 1080, runningUnits: 3, totalUnits: 4, alarmCount: 1, lowEfficiencyCount: 1 },
+      { name: "供热与锅炉", efficiency: 80, energyConsumption: 780, runningUnits: 2, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 1 },
+      { name: "照明与动力", efficiency: 85, energyConsumption: 540, runningUnits: 8, totalUnits: 10, alarmCount: 0, lowEfficiencyCount: 1 },
+    ],
+  },
+  {
+    buildingId: "b26", name: "综合实验中心",
+    todayOccupancy: 420, maxOccupancy: 600,
+    todayElectricity: 4200, todayHeat: 3500, todayWater: 80, todayGas: 25,
+    carbonEmission: 4.25,
+    systems: [
+      { name: "空调与冷站", efficiency: 65, energyConsumption: 1900, runningUnits: 5, totalUnits: 7, alarmCount: 3, lowEfficiencyCount: 3 },
+      { name: "供热与锅炉", efficiency: 70, energyConsumption: 1500, runningUnits: 3, totalUnits: 4, alarmCount: 2, lowEfficiencyCount: 2 },
+      { name: "照明与动力", efficiency: 80, energyConsumption: 800, runningUnits: 10, totalUnits: 14, alarmCount: 1, lowEfficiencyCount: 2 },
+    ],
+  },
+  {
+    buildingId: "b27", name: "数据中心",
+    todayOccupancy: 15, maxOccupancy: 30,
+    todayElectricity: 5800, todayHeat: 500, todayWater: 8, todayGas: 0,
+    carbonEmission: 5.15,
+    systems: [
+      { name: "空调与冷站", efficiency: 92, energyConsumption: 4200, runningUnits: 6, totalUnits: 6, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 95, energyConsumption: 50, runningUnits: 1, totalUnits: 1, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 96, energyConsumption: 1550, runningUnits: 4, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b28", name: "光伏配电房",
+    todayOccupancy: 5, maxOccupancy: 10,
+    todayElectricity: -320, todayHeat: 0, todayWater: 2, todayGas: 0,
+    carbonEmission: -0.28,
+    systems: [
+      { name: "空调与冷站", efficiency: 0, energyConsumption: 0, runningUnits: 0, totalUnits: 0, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "供热与锅炉", efficiency: 0, energyConsumption: 0, runningUnits: 0, totalUnits: 0, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 98, energyConsumption: -320, runningUnits: 1, totalUnits: 1, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+  {
+    buildingId: "b29", name: "校医院",
+    todayOccupancy: 320, maxOccupancy: 500,
+    todayElectricity: 1650, todayHeat: 1400, todayWater: 65, todayGas: 10,
+    carbonEmission: 1.72,
+    systems: [
+      { name: "空调与冷站", efficiency: 83, energyConsumption: 740, runningUnits: 3, totalUnits: 4, alarmCount: 0, lowEfficiencyCount: 1 },
+      { name: "供热与锅炉", efficiency: 80, energyConsumption: 600, runningUnits: 2, totalUnits: 2, alarmCount: 0, lowEfficiencyCount: 0 },
+      { name: "照明与动力", efficiency: 89, energyConsumption: 310, runningUnits: 5, totalUnits: 6, alarmCount: 0, lowEfficiencyCount: 0 },
+    ],
+  },
+];
+
+export function getBuildingDetail(buildingId: string): BuildingDetailData | undefined {
+  return buildingDetails.find((b) => b.buildingId === buildingId);
+}
