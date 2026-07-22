@@ -3,13 +3,13 @@
 import { useState, useMemo, useCallback } from "react";
 import {
   MonitorMetrics,
-  SankeyFlowData,
   CategoryOptions,
   AllDevices,
   DeviceCategories,
   BuildingOptions,
   SortOptions,
   DeviceStatusOrder,
+  getSankeyDataByCategory,
   type DeviceDetail,
   type DeviceStatus,
   type DeviceCategory,
@@ -295,6 +295,25 @@ export default function EnergyMonitorPage() {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showBuildingDropdown, setShowBuildingDropdown] = useState(false);
 
+  const currentSankeyData = useMemo(() => getSankeyDataByCategory(sankeyCategory), [sankeyCategory]);
+
+  const sankeySummary = useMemo(() => {
+    const totalLinks = currentSankeyData.links.reduce((s, l) => s + l.value, 0);
+    const scope1Links = currentSankeyData.links.filter((l) => {
+      const target = currentSankeyData.nodes[l.target];
+      return target.name.includes("Scope1");
+    }).reduce((s, l) => s + l.value, 0);
+    const scope2Links = currentSankeyData.links.filter((l) => {
+      const target = currentSankeyData.nodes[l.target];
+      return target.name.includes("Scope2");
+    }).reduce((s, l) => s + l.value, 0);
+    const scope3Links = currentSankeyData.links.filter((l) => {
+      const target = currentSankeyData.nodes[l.target];
+      return target.name.includes("Scope3");
+    }).reduce((s, l) => s + l.value, 0);
+    return { total: totalLinks, scope1: scope1Links, scope2: scope2Links, scope3: scope3Links };
+  }, [currentSankeyData]);
+
   const deviceCountByStatus = useMemo(() => {
     return {
       全部: AllDevices.length,
@@ -477,7 +496,30 @@ export default function EnergyMonitorPage() {
         )}
 
         <div className="flex justify-center">
-          <SankeyFlow data={SankeyFlowData} width={780} height={460} />
+          <SankeyFlow data={currentSankeyData} width={780} height={460} />
+        </div>
+
+        {/* 核算结果摘要 */}
+        <div className="mt-3 grid grid-cols-4 gap-3">
+          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-center">
+            <div className="text-xs text-slate-500 mb-0.5">总碳排</div>
+            <div className="text-xl font-bold text-slate-800">{sankeySummary.total}<span className="text-xs font-normal text-slate-400 ml-0.5">tCO₂/年</span></div>
+          </div>
+          <div className="bg-blue-50 rounded-lg p-3 border border-blue-100 text-center">
+            <div className="text-xs text-blue-600 mb-0.5">Scope 1 直接排放</div>
+            <div className="text-xl font-bold text-blue-700">{sankeySummary.scope1}<span className="text-xs font-normal text-blue-400 ml-0.5">tCO₂/年</span></div>
+            <div className="text-xs text-blue-500 mt-0.5">{sankeySummary.total > 0 ? ((sankeySummary.scope1 / sankeySummary.total) * 100).toFixed(1) : 0}%</div>
+          </div>
+          <div className="bg-purple-50 rounded-lg p-3 border border-purple-100 text-center">
+            <div className="text-xs text-purple-600 mb-0.5">Scope 2 间接排放</div>
+            <div className="text-xl font-bold text-purple-700">{sankeySummary.scope2}<span className="text-xs font-normal text-purple-400 ml-0.5">tCO₂/年</span></div>
+            <div className="text-xs text-purple-500 mt-0.5">{sankeySummary.total > 0 ? ((sankeySummary.scope2 / sankeySummary.total) * 100).toFixed(1) : 0}%</div>
+          </div>
+          <div className="bg-pink-50 rounded-lg p-3 border border-pink-100 text-center">
+            <div className="text-xs text-pink-600 mb-0.5">Scope 3 其他间接</div>
+            <div className="text-xl font-bold text-pink-700">{sankeySummary.scope3}<span className="text-xs font-normal text-pink-400 ml-0.5">tCO₂/年</span></div>
+            <div className="text-xs text-pink-500 mt-0.5">{sankeySummary.total > 0 ? ((sankeySummary.scope3 / sankeySummary.total) * 100).toFixed(1) : 0}%</div>
+          </div>
         </div>
       </div>
 

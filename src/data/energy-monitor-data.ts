@@ -182,8 +182,174 @@ export const SankeyFlowData: SankeyData = {
   ],
 };
 
-export const getSankeyDataByCategory = (_category: string): SankeyData => {
-  return SankeyFlowData;
+// ========== 5套桑基图数据（对应右上角5个按钮） ==========
+
+/** 总碳排 - 完整全链条 */
+export const SankeyTotal: SankeyData = SankeyFlowData;
+
+/** 直接排放(Scope1) - 化石燃料燃烧、食堂燃气、公务车油耗 */
+export const SankeyScope1: SankeyData = {
+  nodes: [
+    { name: "天然气", color: "#EF4444", depth: 0 },
+    { name: "汽油", color: "#9CA3AF", depth: 0 },
+    { name: "柴油", color: "#9CA3AF", depth: 0 },
+    { name: "供暖", color: "#F87171", depth: 1 },
+    { name: "直接能耗", color: "#93C5FD", depth: 1 },
+    { name: "食堂燃气", color: "#FCD34D", depth: 1 },
+    { name: "校园交通", color: "#FB923C", depth: 1 },
+    { name: "校内机动车", color: "#93C5FD", depth: 2 },
+    { name: "校园班车", color: "#86EFAC", depth: 2 },
+    { name: "公务车油耗", color: "#FDE68A", depth: 2 },
+    { name: "直接排放(Scope1)", color: "#3B82F6", depth: 3 },
+  ],
+  links: [
+    { source: 0, target: 3, value: 42 },
+    { source: 3, target: 4, value: 42 },
+    { source: 4, target: 10, value: 42 },
+    { source: 0, target: 5, value: 8 },
+    { source: 5, target: 10, value: 8 },
+    { source: 1, target: 6, value: 8 },
+    { source: 2, target: 6, value: 6 },
+    { source: 6, target: 7, value: 5 },
+    { source: 6, target: 8, value: 3 },
+    { source: 6, target: 9, value: 6 },
+    { source: 7, target: 10, value: 5 },
+    { source: 8, target: 10, value: 3 },
+    { source: 9, target: 10, value: 6 },
+  ],
+};
+
+/** 间接排放(Scope2) - 外购电力、热力 */
+export const SankeyScope2: SankeyData = {
+  nodes: [
+    { name: "外购电力", color: "#8B5CF6", depth: 0 },
+    { name: "地热", color: "#10B981", depth: 0 },
+    { name: "间接能耗", color: "#6EE7B7", depth: 1 },
+    { name: "总耗电量", color: "#34D399", depth: 1 },
+    { name: "间接排放(Scope2)", color: "#8B5CF6", depth: 2 },
+  ],
+  links: [
+    { source: 0, target: 2, value: 55 },
+    { source: 1, target: 2, value: 15 },
+    { source: 2, target: 3, value: 70 },
+    { source: 3, target: 4, value: 70 },
+  ],
+};
+
+/** 其他间接排放(Scope3) - 水、食物、纸张、垃圾、交通 */
+export const SankeyScope3: SankeyData = {
+  nodes: [
+    { name: "汽油", color: "#9CA3AF", depth: 0 },
+    { name: "柴油", color: "#9CA3AF", depth: 0 },
+    { name: "其他能源", color: "#F59E0B", depth: 0 },
+    { name: "水", color: "#FB923C", depth: 1 },
+    { name: "食物", color: "#A78BFA", depth: 1 },
+    { name: "纸张", color: "#F87171", depth: 1 },
+    { name: "垃圾与废弃物", color: "#60A5FA", depth: 1 },
+    { name: "校园交通", color: "#FB923C", depth: 1 },
+    { name: "外购水源", color: "#F9A8D4", depth: 2 },
+    { name: "废排水处理", color: "#FDE68A", depth: 2 },
+    { name: "用餐行为", color: "#C084FC", depth: 2 },
+    { name: "一次性餐具", color: "#D8B4FE", depth: 2 },
+    { name: "办公学习用纸", color: "#93C5FD", depth: 2 },
+    { name: "书籍", color: "#86EFAC", depth: 2 },
+    { name: "卫生用品", color: "#F9A8D4", depth: 2 },
+    { name: "纸张回收", color: "#FCA5A5", depth: 2 },
+    { name: "快递包装", color: "#FDBA74", depth: 2 },
+    { name: "厨余垃圾", color: "#86EFAC", depth: 2 },
+    { name: "生活垃圾", color: "#F9A8D4", depth: 2 },
+    { name: "科研废弃物", color: "#D8B4FE", depth: 2 },
+    { name: "师生通勤", color: "#C084FC", depth: 2 },
+    { name: "教职工差旅", color: "#FDE68A", depth: 2 },
+    { name: "其他间接排放(Scope3)", color: "#EC4899", depth: 3 },
+  ],
+  links: [
+    { source: 0, target: 3, value: 8 },
+    { source: 1, target: 3, value: 6 },
+    { source: 2, target: 3, value: 18 },
+    { source: 2, target: 4, value: 5 },
+    { source: 2, target: 5, value: 4 },
+    { source: 2, target: 6, value: 3 },
+    { source: 2, target: 7, value: 2 },
+    { source: 3, target: 8, value: 8 },
+    { source: 3, target: 9, value: 6 },
+    { source: 3, target: 10, value: 4 },
+    { source: 3, target: 11, value: 5 },
+    { source: 4, target: 10, value: 7 },
+    { source: 4, target: 11, value: 3 },
+    { source: 5, target: 12, value: 4 },
+    { source: 5, target: 13, value: 3 },
+    { source: 5, target: 14, value: 2 },
+    { source: 5, target: 15, value: 3 },
+    { source: 6, target: 16, value: 4 },
+    { source: 6, target: 17, value: 3 },
+    { source: 6, target: 18, value: 2 },
+    { source: 6, target: 19, value: 2 },
+    { source: 7, target: 20, value: 4 },
+    { source: 7, target: 21, value: 3 },
+    { source: 8, target: 22, value: 8 },
+    { source: 9, target: 22, value: 6 },
+    { source: 10, target: 22, value: 11 },
+    { source: 11, target: 22, value: 8 },
+    { source: 12, target: 22, value: 4 },
+    { source: 13, target: 22, value: 3 },
+    { source: 14, target: 22, value: 2 },
+    { source: 15, target: 22, value: 3 },
+    { source: 16, target: 22, value: 4 },
+    { source: 17, target: 22, value: 3 },
+    { source: 18, target: 22, value: 2 },
+    { source: 19, target: 22, value: 2 },
+    { source: 20, target: 22, value: 4 },
+    { source: 21, target: 22, value: 3 },
+  ],
+};
+
+/** 能源结构 - 按能源类型展示碳排放来源分布 */
+export const SankeyEnergy: SankeyData = {
+  nodes: [
+    { name: "天然气", color: "#EF4444", depth: 0 },
+    { name: "地热", color: "#10B981", depth: 0 },
+    { name: "汽油", color: "#9CA3AF", depth: 0 },
+    { name: "柴油", color: "#9CA3AF", depth: 0 },
+    { name: "外购电力", color: "#8B5CF6", depth: 0 },
+    { name: "其他能源", color: "#F59E0B", depth: 0 },
+    { name: "供暖", color: "#F87171", depth: 1 },
+    { name: "间接能耗", color: "#6EE7B7", depth: 1 },
+    { name: "食堂燃气", color: "#FCD34D", depth: 1 },
+    { name: "水", color: "#FB923C", depth: 1 },
+    { name: "校园交通", color: "#FB923C", depth: 1 },
+    { name: "直接排放(Scope1)", color: "#3B82F6", depth: 2 },
+    { name: "间接排放(Scope2)", color: "#8B5CF6", depth: 2 },
+    { name: "其他间接排放(Scope3)", color: "#EC4899", depth: 2 },
+  ],
+  links: [
+    { source: 0, target: 6, value: 42 },
+    { source: 0, target: 8, value: 8 },
+    { source: 1, target: 7, value: 15 },
+    { source: 2, target: 10, value: 8 },
+    { source: 3, target: 10, value: 6 },
+    { source: 4, target: 7, value: 55 },
+    { source: 5, target: 7, value: 12 },
+    { source: 5, target: 9, value: 18 },
+    { source: 6, target: 11, value: 42 },
+    { source: 7, target: 12, value: 82 },
+    { source: 8, target: 11, value: 8 },
+    { source: 9, target: 13, value: 32 },
+    { source: 10, target: 11, value: 14 },
+    { source: 10, target: 13, value: 7 },
+  ],
+};
+
+export const SankeyDataMap: Record<string, SankeyData> = {
+  "总碳排": SankeyTotal,
+  "scope1": SankeyScope1,
+  "scope2": SankeyScope2,
+  "scope3": SankeyScope3,
+  "energy": SankeyEnergy,
+};
+
+export const getSankeyDataByCategory = (category: string): SankeyData => {
+  return SankeyDataMap[category] || SankeyTotal;
 };
 
 export const MonitorMetrics: MonitorMetric[] = [
