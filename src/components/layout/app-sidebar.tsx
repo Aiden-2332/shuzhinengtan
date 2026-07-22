@@ -21,8 +21,8 @@ const navigation = [
     name: "碳控制塔",
     icon: LayoutDashboard,
     children: [
-      { name: "L1 领导组驾驶舱", href: "/", icon: LayoutDashboard },
-      { name: "L3 后勤组驾驶舱", href: "/operations", icon: Factory },
+      { name: "领导组驾驶舱", href: "/", icon: LayoutDashboard },
+      { name: "后勤组驾驶舱", href: "/operations", icon: Factory },
     ],
   },
   {
