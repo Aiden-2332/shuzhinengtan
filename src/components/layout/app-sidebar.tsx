@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Leaf,
   Award,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +37,8 @@ const navigation = [
     name: "能源管理",
     icon: Zap,
     children: [
-      { name: "能源分析", href: "/energy", icon: Zap },
+      { name: "能源监测", href: "/energy-monitor", icon: Zap },
+      { name: "能源分析", href: "/energy", icon: BarChart3 },
     ],
   },
   {
