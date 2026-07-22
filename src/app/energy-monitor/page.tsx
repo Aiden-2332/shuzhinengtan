@@ -25,6 +25,15 @@ import {
   ChevronRight,
   BarChart3,
   Gauge,
+  Info,
+  ArrowRight,
+  Fuel,
+  TreePine,
+  Factory,
+  Trash2,
+  Car,
+  ChefHat,
+  BookOpen,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: DeviceInfo["status"] }) {
@@ -72,6 +81,7 @@ export default function EnergyMonitorPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<DeviceInfo["status"] | "全部">("全部");
   const [expandedDevices, setExpandedDevices] = useState<string[]>([]);
+  const [showScopeGuide, setShowScopeGuide] = useState(false);
 
   const filteredDevices = useMemo(() => {
     return DeviceList.filter((d) => {
@@ -103,7 +113,7 @@ export default function EnergyMonitorPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-800">能源监测</h1>
-          <p className="text-sm text-slate-500 mt-0.5">全校能源设备实时监控与碳排放流向分析</p>
+          <p className="text-sm text-slate-500 mt-0.5">全校能源设备实时监控与碳排放全链条溯源分析</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full flex items-center gap-1">
@@ -123,54 +133,148 @@ export default function EnergyMonitorPage() {
         ))}
       </div>
 
-      {/* 主内容区：桑基图 + 设备列表 */}
-      <div className="grid grid-cols-5 gap-4">
-        {/* 左侧：碳排流向图 */}
-        <div className="col-span-3 bg-white rounded-lg border border-slate-200 p-4">
-          <div className="flex items-center justify-between mb-3">
+      {/* 主内容区：四层碳排流向图 */}
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
             <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
               <Activity size={16} className="text-blue-500" />
-              碳排流向图
-              <span className="text-xs text-slate-400 font-normal">(单位：tCO₂)</span>
+              碳排全链条溯源图
+              <span className="text-xs text-slate-400 font-normal">(tCO₂/年)</span>
             </h2>
-            <div className="flex items-center gap-1 bg-slate-50 rounded-lg p-0.5">
-              {CategoryOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setSankeyCategory(opt.value)}
-                  className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                    sankeyCategory === opt.value
-                      ? "bg-white text-blue-600 shadow-sm font-medium"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setShowScopeGuide(!showScopeGuide)}
+              className="text-xs text-slate-400 hover:text-blue-500 flex items-center gap-1 transition-colors"
+            >
+              <Info size={12} />
+              核算范围说明
+            </button>
           </div>
-          <div className="flex justify-center">
-            <SankeyFlow data={SankeyFlowData} width={560} height={320} />
-          </div>
-          <div className="flex items-center justify-center gap-4 mt-2 text-xs text-slate-400">
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded" style={{ backgroundColor: "#93C5FD" }} />
-              建筑节点
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded" style={{ backgroundColor: "#60A5FA" }} />
-              区域节点
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded" style={{ backgroundColor: "#818CF8" }} />
-              排放源节点
-            </span>
-            <span className="text-slate-300">|</span>
-            <span>悬停查看节点详情</span>
+          <div className="flex items-center gap-1 bg-slate-50 rounded-lg p-0.5">
+            {CategoryOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSankeyCategory(opt.value)}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                  sankeyCategory === opt.value
+                    ? "bg-white text-blue-600 shadow-sm font-medium"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* 右侧：设备管理 */}
+        {/* 核算范围说明 */}
+        {showScopeGuide && (
+          <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs space-y-1.5">
+            <div className="flex items-center gap-4 text-slate-600">
+              <span className="font-medium text-blue-700">核算范围说明：</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: "#3B82F6" }} />
+                <span>Scope 1 直接排放：化石燃料燃烧、食堂燃气、公务车油耗</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: "#8B5CF6" }} />
+                <span>Scope 2 间接排放：外购电力、热力</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: "#EC4899" }} />
+                <span>Scope 3 其他间接：水、食物、纸张、垃圾、交通</span>
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-center">
+          <SankeyFlow data={SankeyFlowData} width={780} height={460} />
+        </div>
+      </div>
+
+      {/* 底部：设备管理 + 数据源说明 */}
+      <div className="grid grid-cols-5 gap-4">
+        {/* 数据源说明 */}
+        <div className="col-span-3 bg-white rounded-lg border border-slate-200 p-4">
+          <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2 mb-3">
+            <BarChart3 size={16} className="text-slate-500" />
+            数据源与流向说明
+          </h2>
+          <div className="grid grid-cols-4 gap-3">
+            {/* 能源来源 */}
+            <div className="p-3 bg-red-50 rounded-lg border border-red-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Fuel size={14} className="text-red-500" />
+                <span className="text-xs font-semibold text-red-700">能源来源</span>
+              </div>
+              <div className="space-y-1">
+                {["天然气", "地热", "汽油", "柴油", "外购电力", "其他能源"].map((s) => (
+                  <div key={s} className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                    {s}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 消耗环节 */}
+            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Factory size={14} className="text-emerald-500" />
+                <span className="text-xs font-semibold text-emerald-700">消耗环节</span>
+              </div>
+              <div className="space-y-1">
+                {["供暖", "总耗电", "食堂燃气", "直接能耗", "交通消耗"].map((s) => (
+                  <div key={s} className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    {s}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 细分活动 */}
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <TreePine size={14} className="text-amber-500" />
+                <span className="text-xs font-semibold text-amber-700">细分活动</span>
+              </div>
+              <div className="space-y-1">
+                {["水消耗", "食物消耗", "纸张消耗", "垃圾处理", "校内交通"].map((s) => (
+                  <div key={s} className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    {s}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 核算范围 */}
+            <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <BookOpen size={14} className="text-purple-500" />
+                <span className="text-xs font-semibold text-purple-700">核算范围</span>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  Scope 1 直接排放
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                  Scope 2 间接排放
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-pink-500" />
+                  Scope 3 其他间接
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 设备管理 */}
         <div className="col-span-2 bg-white rounded-lg border border-slate-200 p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
@@ -211,7 +315,7 @@ export default function EnergyMonitorPage() {
           </div>
 
           {/* 设备列表 */}
-          <div className="space-y-1 max-h-[420px] overflow-y-auto">
+          <div className="space-y-1 max-h-[280px] overflow-y-auto">
             {filteredDevices.map((device) => (
               <div key={device.id}>
                 <button

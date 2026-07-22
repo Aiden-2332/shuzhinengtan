@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { SankeyData, SankeyNode } from "@/data/energy-monitor-data";
+import type { SankeyData } from "@/data/energy-monitor-data";
 
 interface SankeyFlowProps {
   data: SankeyData;
@@ -9,12 +9,16 @@ interface SankeyFlowProps {
   height?: number;
 }
 
-interface LayoutNode extends SankeyNode {
+interface LayoutNode {
+  name: string;
+  color: string;
+  depth: number;
   x: number;
   y: number;
   width: number;
   height: number;
   index: number;
+  totalValue: number;
 }
 
 interface LayoutLink {
@@ -27,96 +31,115 @@ interface LayoutLink {
   targetY2: number;
 }
 
-const NODE_WIDTH = 16;
-const NODE_PADDING = 24;
-const TOP_PADDING = 40;
-const COLORS = [
-  "#93C5FD", "#60A5FA", "#818CF8", "#A78BFA",
-  "#F472B6", "#FB923C", "#34D399", "#FBBF24",
-];
+const NODE_WIDTH = 14;
+const NODE_PADDING = 8;
+const TOP_PADDING = 16;
+const BOTTOM_PADDING = 16;
 
-function getNodeColor(node: { depth: number; color?: string }, index: number): string {
-  if (node.color) return node.color;
-  return COLORS[index % COLORS.length];
+function getNodeColor(node: { depth: number; color?: string }): string {
+  return node.color || "#94A3B8";
 }
 
-export default function SankeyFlow({ data, width = 600, height = 360 }: SankeyFlowProps) {
+export default function SankeyFlow({ data, width = 680, height = 520 }: SankeyFlowProps) {
   const [hoveredNode, setHoveredNode] = useState<number | null>(null);
 
-  const { nodes, links } = useMemo(() => {
+  const { nodes, links, depthLabels } = useMemo(() => {
+    if (!data.nodes.length) return { nodes: [], links: [], depthLabels: [] as string[] };
+
     const depths = [...new Set(data.nodes.map((n) => n.depth))].sort();
     const depthCount = depths.length;
-    const spacingX = (width - NODE_WIDTH - 40) / (depthCount - 1 || 1);
+    const usableWidth = width - 40;
+    const spacingX = depthCount > 1 ? usableWidth / (depthCount - 1) : usableWidth / 2;
 
-    const nodesByDepth: SankeyNode[][] = [];
+    // Group nodes by depth
+    const nodesByDepth: SankeyData["nodes"][] = [];
     data.nodes.forEach((node) => {
-      const d = node.depth;
-      if (!nodesByDepth[d]) nodesByDepth[d] = [];
-      nodesByDepth[d].push(node);
+      if (!nodesByDepth[node.depth]) nodesByDepth[node.depth] = [];
+      nodesByDepth[node.depth].push(node);
     });
 
-    const totalValueByDepth = depths.map((d) => {
-      return nodesByDepth[d]?.reduce((sum, n) => {
+    // Calculate total value for each node (max of in/out)
+    const nodeTotalValue = data.nodes.map((node, idx) => {
+      const outVal = data.links.filter((l) => l.source === idx).reduce((s, l) => s + l.value, 0);
+      const inVal = data.links.filter((l) => l.target === idx).reduce((s, l) => s + l.value, 0);
+      return Math.max(outVal, inVal, 1);
+    });
+
+    // Calculate total value per depth
+    const depthTotalValues = depths.map((d) => {
+      const nodesInDepth = nodesByDepth[d] || [];
+      return nodesInDepth.reduce((sum, n) => {
         const idx = data.nodes.indexOf(n);
-        const outLinks = data.links.filter((l) => l.source === idx);
-        const inLinks = data.links.filter((l) => l.target === idx);
-        return sum + Math.max(
-          outLinks.reduce((s, l) => s + l.value, 0),
-          inLinks.reduce((s, l) => s + l.value, 0),
-          1
-        );
-      }, 0) || 1;
+        return sum + nodeTotalValue[idx];
+      }, 0);
     });
 
-    const maxValue = Math.max(...totalValueByDepth);
-    const scaleY = (height - TOP_PADDING - 20) / (maxValue || 1);
+    const maxDepthTotal = Math.max(...depthTotalValues);
+    const availableHeight = height - TOP_PADDING - BOTTOM_PADDING;
+    const scaleY = availableHeight / (maxDepthTotal || 1);
 
+    // Layout nodes
     const layoutNodes: LayoutNode[] = data.nodes.map((node, idx) => {
       const d = node.depth;
-      const depthIdx = nodesByDepth[d]?.indexOf(node) || 0;
       const depthNodes = nodesByDepth[d] || [];
-      const totalDepthValue = totalValueByDepth[d] || 1;
+      const nodeIdxInDepth = depthNodes.indexOf(node);
+      const totalDepthVal = depthTotalValues[d] || 1;
 
-      const nodeTotal = Math.max(
-        data.links.filter((l) => l.source === idx).reduce((s, l) => s + l.value, 0),
-        data.links.filter((l) => l.target === idx).reduce((s, l) => s + l.value, 0),
-        1
-      );
+      // Calculate Y position
+      let yOffset = TOP_PADDING;
+      for (let i = 0; i < nodeIdxInDepth; i++) {
+        const prevNode = depthNodes[i];
+        const prevIdx = data.nodes.indexOf(prevNode);
+        const prevVal = nodeTotalValue[prevIdx];
+        yOffset += prevVal * scaleY + NODE_PADDING;
+      }
 
-      const prevNodesHeight = depthNodes.slice(0, depthIdx).reduce((sum, n) => {
+      // Center the column vertically if it's smaller than available height
+      const columnHeight = depthNodes.reduce((sum, n) => {
         const nIdx = data.nodes.indexOf(n);
-        const nTotal = Math.max(
-          data.links.filter((l) => l.source === nIdx).reduce((s, l) => s + l.value, 0),
-          data.links.filter((l) => l.target === nIdx).reduce((s, l) => s + l.value, 0),
-          1
-        );
-        return sum + nTotal * scaleY + NODE_PADDING;
+        return sum + nodeTotalValue[nIdx] * scaleY + NODE_PADDING;
       }, 0);
+      const columnOffset = Math.max(0, (availableHeight - columnHeight) / 2);
 
       const x = 20 + d * spacingX;
-      const y = TOP_PADDING + prevNodesHeight;
-      const h = Math.max(nodeTotal * scaleY, 4);
+      const y = yOffset + columnOffset;
+      const h = Math.max(nodeTotalValue[idx] * scaleY, 3);
 
-      return { ...node, index: idx, x, y, width: NODE_WIDTH, height: h };
+      return {
+        ...node,
+        index: idx,
+        x,
+        y,
+        width: NODE_WIDTH,
+        height: h,
+        totalValue: nodeTotalValue[idx],
+      };
     });
 
+    // Layout links with proper ordering
     const layoutLinks: LayoutLink[] = data.links.map((link) => {
       const source = layoutNodes[link.source];
       const target = layoutNodes[link.target];
 
-      const sourceTotalOut = data.links
-        .filter((l) => l.source === link.source)
-        .reduce((s, l) => s + l.value, 0);
-      const targetTotalIn = data.links
-        .filter((l) => l.target === link.target)
-        .reduce((s, l) => s + l.value, 0);
+      const sourceOutLinks = data.links.filter((l) => l.source === link.source);
+      const targetInLinks = data.links.filter((l) => l.target === link.target);
 
-      const sourcePrevOut = data.links
-        .filter((l) => l.source === link.source && data.nodes.indexOf(data.nodes[l.target]) < data.nodes.indexOf(data.nodes[link.target]))
-        .reduce((s, l) => s + l.value, 0);
-      const targetPrevIn = data.links
-        .filter((l) => l.target === link.target && data.nodes.indexOf(data.nodes[l.source]) < data.nodes.indexOf(data.nodes[link.source]))
-        .reduce((s, l) => s + l.value, 0);
+      const sourceTotalOut = sourceOutLinks.reduce((s, l) => s + l.value, 0);
+      const targetTotalIn = targetInLinks.reduce((s, l) => s + l.value, 0);
+
+      // Calculate order within source outputs
+      let sourcePrevOut = 0;
+      for (const l of sourceOutLinks) {
+        if (l.target === link.target) break;
+        sourcePrevOut += l.value;
+      }
+
+      // Calculate order within target inputs
+      let targetPrevIn = 0;
+      for (const l of targetInLinks) {
+        if (l.source === link.source) break;
+        targetPrevIn += l.value;
+      }
 
       const scaleSource = source.height / (sourceTotalOut || 1);
       const scaleTarget = target.height / (targetTotalIn || 1);
@@ -132,7 +155,16 @@ export default function SankeyFlow({ data, width = 600, height = 360 }: SankeyFl
       };
     });
 
-    return { nodes: layoutNodes, links: layoutLinks };
+    // Depth labels
+    const depthLabelMap: Record<number, string> = {
+      0: "能源来源",
+      1: "消耗环节",
+      2: "细分活动",
+      3: "核算范围",
+    };
+    const depthLabels = depths.map((d) => depthLabelMap[d] || `层级${d}`);
+
+    return { nodes: layoutNodes, links: layoutLinks, depthLabels };
   }, [data, width, height]);
 
   const isHighlighted = (nodeIdx: number) => {
@@ -145,8 +177,35 @@ export default function SankeyFlow({ data, width = 600, height = 360 }: SankeyFl
     );
   };
 
+  const getNodeTotalValue = (idx: number) => {
+    const inVal = links.filter((l) => l.target.index === idx).reduce((s, l) => s + l.value, 0);
+    const outVal = links.filter((l) => l.source.index === idx).reduce((s, l) => s + l.value, 0);
+    return Math.max(inVal, outVal);
+  };
+
   return (
     <svg width={width} height={height} className="overflow-visible">
+      {/* Depth labels */}
+      {depthLabels.map((label, i) => {
+        const depthNodes = nodes.filter((n) => n.depth === i);
+        if (!depthNodes.length) return null;
+        const centerX = depthNodes[0].x;
+        return (
+          <text
+            key={i}
+            x={centerX + NODE_WIDTH / 2}
+            y={12}
+            textAnchor="middle"
+            fontSize={11}
+            fontWeight={600}
+            fill="#64748B"
+            className="select-none"
+          >
+            {label}
+          </text>
+        );
+      })}
+
       {/* Links */}
       {links.map((link, i) => {
         const highlighted = isHighlighted(link.source.index) && isHighlighted(link.target.index);
@@ -163,19 +222,21 @@ export default function SankeyFlow({ data, width = 600, height = 360 }: SankeyFl
             ${link.source.x + link.source.width + 40} ${link.sourceY2},
             ${link.source.x + link.source.width} ${link.sourceY2} Z`;
 
+        const linkColor = getNodeColor(link.source);
+
         return (
           <g key={i}>
             <path
               d={path}
-              fill={getNodeColor(link.source, link.source.index)}
-              opacity={highlighted ? (isHoveredLink ? 0.85 : 0.4) : 0.08}
+              fill={linkColor}
+              opacity={highlighted ? (isHoveredLink ? 0.8 : 0.3) : 0.06}
               className="transition-all duration-200"
             />
             <path
               d={path}
               fill="transparent"
               stroke="transparent"
-              strokeWidth={6}
+              strokeWidth={8}
               className="cursor-pointer"
               onMouseEnter={() => setHoveredNode(link.source.index)}
               onMouseLeave={() => setHoveredNode(null)}
@@ -188,14 +249,7 @@ export default function SankeyFlow({ data, width = 600, height = 360 }: SankeyFl
       {nodes.map((node, i) => {
         const highlighted = isHighlighted(i);
         const isHovered = hoveredNode === i;
-
-        const inValue = links
-          .filter((l) => l.target.index === i)
-          .reduce((s, l) => s + l.value, 0);
-        const outValue = links
-          .filter((l) => l.source.index === i)
-          .reduce((s, l) => s + l.value, 0);
-        const displayValue = Math.max(inValue, outValue);
+        const displayValue = getNodeTotalValue(i);
 
         return (
           <g
@@ -209,30 +263,34 @@ export default function SankeyFlow({ data, width = 600, height = 360 }: SankeyFl
               y={node.y}
               width={node.width}
               height={node.height}
-              fill={getNodeColor(node, i)}
+              fill={getNodeColor(node)}
               rx={2}
-              opacity={highlighted ? 1 : 0.15}
+              opacity={highlighted ? 1 : 0.12}
               className="transition-all duration-200"
             />
+            {/* Node label - position depends on depth */}
             <text
-              x={node.x + node.width + 6}
+              x={node.depth < 2 ? node.x + node.width + 5 : node.x - 5}
               y={node.y + node.height / 2 + 4}
-              fontSize={11}
+              fontSize={node.height < 12 ? 9 : 10}
               fill={highlighted ? "#1E293B" : "#CBD5E1"}
-              className="transition-all duration-200"
+              className="transition-all duration-200 select-none"
               dominantBaseline="middle"
+              textAnchor={node.depth < 2 ? "start" : "end"}
             >
               {node.name}
             </text>
             {isHovered && (
               <text
-                x={node.x + node.width + 6}
-                y={node.y + node.height / 2 + 18}
-                fontSize={10}
+                x={node.depth < 2 ? node.x + node.width + 5 : node.x - 5}
+                y={node.y + node.height / 2 + (node.height < 12 ? 12 : 14)}
+                fontSize={9}
                 fill="#64748B"
                 dominantBaseline="middle"
+                textAnchor={node.depth < 2 ? "start" : "end"}
+                className="select-none"
               >
-                {displayValue.toLocaleString()} tCO₂
+                {displayValue.toFixed(0)} tCO₂
               </text>
             )}
           </g>
