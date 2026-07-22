@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- 字体 -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary:              #06B6D4;
+      --color-primary-container:    #0A4A66;
+      --color-on-primary:           #ffffff;
+      --color-background:                 #0A1128;
+      --color-surface-container-lowest:   #0D1730;
+      --color-surface:                    #0F1A33;
+      --color-surface-container:          #1A2D4A;
+      --color-surface-container-high:     #1F3555;
+      --color-surface-container-highest:  #253D60;
+      --color-on-surface:           #F0F4F8;
+      --color-on-surface-variant:   #94A3B8;
+      --color-success:  #16A34A;
+      --color-error:    #DC2626;
+      --color-warning:  #F59E0B;
+      --color-outline:          #1E3A5F;
+      --color-outline-variant:  #2A4060;
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.3);
+      --shadow-float:  0 10px 25px rgba(0,0,0,0.4);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.5);
+      --font-sans: "Noto Sans SC", "Geist", system-ui, sans-serif;
+    }
+
+    /* 自定义滚动条 */
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.3); border-radius: 2px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.5); }
+
+    /* 设备详情展开面板动画 */
+    .detail-panel {
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+    }
+    .detail-panel.open {
+      max-height: 800px;
+      opacity: 1;
+    }
+
+    /* 状态指示灯 */
+    .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.green { background: #16A34A; box-shadow: 0 0 8px rgba(22, 163, 74, 0.5); }
+    .status-dot.yellow { background: #F59E0B; box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+    .status-dot.gray { background: #6B7280; box-shadow: 0 0 8px rgba(107, 114, 128, 0.3); }
+    .status-dot.blue { background: #3B82F6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.5); }
+
+    /* 筛选标签 */
+    .filter-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      background: rgba(6, 182, 212, 0.15);
+      color: #06B6D4;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      cursor: pointer;
+    }
+    .filter-tag:hover {
+      background: rgba(6, 182, 212, 0.25);
+    }
+  </style>
+
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- 导航组件 -->
+  <div class="flex h-screen overflow-hidden">
+    <!-- Background Grid -->
+    <div class="fixed inset-0 opacity-20 pointer-events-none"
+      style="background-image: linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px); background-size: 50px 50px;">
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-surface-container-lowest/95 backdrop-blur-xl border-r border-primary/20 flex flex-col h-full overflow-hidden relative z-10">
+      <!-- Logo -->
+      <div class="h-16 flex items-center px-6 border-b border-primary/20">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+            <i data-lucide="leaf" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-base font-bold text-white">高校智慧碳管理</h1>
+            <p class="text-xs text-primary">Smart Carbon Platform</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
+        <!-- 碳控制塔 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>碳控制塔</span>
+          </div>
+          <div class="space-y-1">
+            <a href="home.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="layout-dashboard" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">领导组驾驶舱</span>
+            </a>
+            <a href="operations.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="factory" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">后勤组驾驶舱</span>
+            </a>
+          </div>
+        </div>
+        <!-- AI 智能分析 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="brain" class="w-4 h-4"></i>
+            <span>AI 智能分析</span>
+          </div>
+          <div class="space-y-1">
+            <a href="ai-hub.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="brain" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">AI 智能分析中心</span>
+            </a>
+          </div>
+        </div>
+        <!-- 能源管理 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="zap" class="w-4 h-4"></i>
+            <span>能源管理</span>
+          </div>
+          <div class="space-y-1">
+            <a href="energy-monitor.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="zap" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">能源监测</span>
+            </a>
+            <a href="energy.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="chart-column" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">能源分析</span>
+            </a>
+            <a href="energy-devices.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 bg-gradient-to-r from-primary/20 to-blue-500/20 text-primary border border-primary/30"
+               aria-current="page">
+              <i data-lucide="server" class="w-4 h-4 text-primary"></i>
+              <span class="flex-1">设备管理</span>
+              <i data-lucide="chevron-right" class="w-4 h-4 text-primary"></i>
+            </a>
+            <a href="energy-calendar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="calendar" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">用电日历</span>
+            </a>
+          </div>
+        </div>
+        <!-- 碳管理 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="calculator" class="w-4 h-4"></i>
+            <span>碳管理</span>
+          </div>
+          <div class="space-y-1">
+            <a href="calculation.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="calculator" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">碳核算工作台</span>
+            </a>
+            <a href="evaluation.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="award" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">绿色/低碳校园评价</span>
+            </a>
+          </div>
+        </div>
+        <!-- 减排管理 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="lightbulb" class="w-4 h-4"></i>
+            <span>减排管理</span>
+          </div>
+          <div class="space-y-1">
+            <a href="ai-suggestion.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="lightbulb" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">AI 减排建议</span>
+            </a>
+          </div>
+        </div>
+        <!-- 碳资产 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="wallet" class="w-4 h-4"></i>
+            <span>碳资产</span>
+          </div>
+          <div class="space-y-1">
+            <a href="asset.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="wallet" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">碳资产管理</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-primary/20">
+        <div class="text-xs text-gray-500 text-center">Demo 模拟数据，不用于申报</div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden relative z-10">
+      <!-- Header -->
+      <header class="h-16 bg-surface-container-lowest/95 backdrop-blur-xl border-b border-primary/20 flex items-center justify-between px-6">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container/50 border border-primary/20">
+            <i data-lucide="calendar" class="w-4 h-4 text-primary"></i>
+            <select class="bg-transparent text-sm text-gray-300 outline-none cursor-pointer border-none">
+              <option value="2026">2026 年度</option>
+              <option value="2025">2025 年度</option>
+              <option value="2024">2024 年度</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container/50 border border-primary/20">
+            <i data-lucide="map-pin" class="w-4 h-4 text-primary"></i>
+            <select class="bg-transparent text-sm text-gray-300 outline-none cursor-pointer border-none">
+              <option value="all">全校</option>
+              <option value="main">主校区</option>
+              <option value="east">东校区</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container/50 border border-primary/20">
+            <i data-lucide="database" class="w-4 h-4 text-primary"></i>
+            <select class="bg-transparent text-sm text-gray-300 outline-none cursor-pointer border-none">
+              <option value="realtime">实时估算</option>
+              <option value="monthly">月度锁定</option>
+              <option value="yearly">年度确认</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <button class="relative p-2 rounded-lg hover:bg-surface-container/50 transition-colors">
+            <i data-lucide="bell" class="w-5 h-5 text-gray-400"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+          </button>
+          <div class="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-container/50 border border-primary/20">
+            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+              <i data-lucide="user" class="w-4 h-4 text-white"></i>
+            </div>
+            <div class="text-sm">
+              <div class="text-gray-300 font-medium">校领导</div>
+              <div class="text-xs text-gray-500">管理员</div>
+            </div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto p-6 relative">
+        <!-- @main-content:start -->
+
+        <!-- ==================== 页面标题 ==================== -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-on-surface tracking-tight">设备管理面板</h1>
+            <p class="text-sm text-on-surface-variant mt-1">全校能源设备统一监控与管理平台</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="btn-batch-maintenance" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all inline-flex items-center gap-2">
+              <i data-lucide="wrench" class="w-3.5 h-3.5"></i>批量标记检修
+            </button>
+            <button id="btn-export-excel" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all inline-flex items-center gap-2">
+              <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>导出台账
+            </button>
+            <button id="btn-export-alert" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all inline-flex items-center gap-2">
+              <i data-lucide="file-text" class="w-3.5 h-3.5"></i>导出告警
+            </button>
+          </div>
+        </div>
+
+        <!-- ==================== 9b.1 顶部统计栏 ==================== -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <!-- KPI 1: 设备总数 -->
+          <div class="bg-surface rounded-lg shadow-card p-5 border border-primary/10">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">设备总数</span>
+              <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <i data-lucide="server" class="w-4 h-4 text-primary"></i>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-on-surface mb-2">35</div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="inline-flex items-center gap-1 text-success"><span class="status-dot green"></span>25正常</span>
+              <span class="inline-flex items-center gap-1 text-warning"><span class="status-dot yellow"></span>4预警</span>
+              <span class="inline-flex items-center gap-1 text-gray-400"><span class="status-dot gray"></span>3离线</span>
+              <span class="inline-flex items-center gap-1 text-blue-400"><span class="status-dot blue"></span>3检修</span>
+            </div>
+          </div>
+          <!-- KPI 2: 在线率 -->
+          <div class="bg-surface rounded-lg shadow-card p-5 border border-primary/10">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">设备在线率</span>
+              <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <i data-lucide="activity" class="w-4 h-4 text-primary"></i>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-on-surface mb-2">85.7%</div>
+            <div class="text-xs text-on-surface-variant">在线 30 / 总计 35 台</div>
+          </div>
+          <!-- KPI 3: 告警设备数 -->
+          <div class="bg-surface rounded-lg shadow-card p-5 border border-error/20">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">告警设备数</span>
+              <div class="w-8 h-8 rounded-lg bg-error/10 flex items-center justify-center">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-error"></i>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-error mb-2">4</div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="inline-flex items-center gap-1 text-error"><span class="status-dot yellow"></span>预警 4</span>
+              <span class="text-on-surface-variant">·</span>
+              <span class="text-on-surface-variant">需立即处理</span>
+            </div>
+          </div>
+          <!-- KPI 4: 最近维护 -->
+          <div class="bg-surface rounded-lg shadow-card p-5 border border-primary/10">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">最近维护</span>
+              <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <i data-lucide="clock" class="w-4 h-4 text-primary"></i>
+              </div>
+            </div>
+            <div class="text-base font-bold text-on-surface mb-2">2026-06-15</div>
+            <div class="text-xs text-on-surface-variant">距上次全面巡检 3 天</div>
+          </div>
+        </div>
+
+        <!-- ==================== 9b.2 搜索与筛选 ==================== -->
+        <div class="bg-surface rounded-lg shadow-card p-5 mb-6 border border-primary/10">
+          <div class="flex items-center gap-4 flex-wrap">
+            <!-- 模糊搜索框 -->
+            <div class="flex-1 min-w-[200px] relative">
+              <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/50"></i>
+              <input id="input-search" type="text" placeholder="搜索设备名称 / 楼栋 / 编号..." class="w-full bg-surface-container border-none rounded-md pl-9 pr-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+            </div>
+            <!-- 类别筛选 -->
+            <div class="relative">
+              <button id="btn-category-filter" class="bg-surface-container border-none px-3 py-2 rounded-md text-sm text-on-surface-variant hover:text-on-surface transition-colors inline-flex items-center gap-2">
+                <i data-lucide="list-filter" class="w-4 h-4"></i>
+                类别筛选
+                <span id="category-count" class="hidden text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-sm"></span>
+              </button>
+            </div>
+            <!-- 楼栋筛选 -->
+            <div class="relative">
+              <button id="btn-building-filter" class="bg-surface-container border-none px-3 py-2 rounded-md text-sm text-on-surface-variant hover:text-on-surface transition-colors inline-flex items-center gap-2">
+                <i data-lucide="building" class="w-4 h-4"></i>
+                楼栋筛选
+                <span id="building-count" class="hidden text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-sm"></span>
+              </button>
+            </div>
+            <!-- 排序 -->
+            <div class="relative">
+              <select id="select-sort" class="bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface-variant outline-none cursor-pointer">
+                <option value="name">排序：名称</option>
+                <option value="status">排序：状态优先级</option>
+                <option value="building">排序：楼栋</option>
+                <option value="alert-time">排序：最近告警时间</option>
+              </select>
+            </div>
+            <!-- 重置 -->
+            <button id="btn-reset-filter" class="text-xs text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-1">
+              <i data-lucide="x" class="w-3 h-3"></i>重置筛选
+            </button>
+          </div>
+          <!-- 活跃筛选标签 -->
+          <div id="active-filters" class="flex items-center gap-2 mt-3 hidden">
+            <span class="text-xs text-on-surface-variant">筛选：</span>
+          </div>
+        </div>
+
+        <!-- ==================== 9b.3 完整设备清单（35台） ==================== -->
+        <div class="bg-surface rounded-lg shadow-card overflow-hidden border border-primary/10">
+          <!-- 表头 -->
+          <div class="grid grid-cols-11 gap-2 px-5 py-3 bg-surface-container/50 text-xs font-semibold text-on-surface-variant uppercase tracking-wider border-b border-primary/10">
+            <span class="col-span-1 text-center">状态</span>
+            <span class="col-span-2">设备名称</span>
+            <span class="col-span-1">设备编号</span>
+            <span class="col-span-1">设备类别</span>
+            <span class="col-span-1">所在楼栋</span>
+            <span class="col-span-2">运行参数摘要</span>
+            <span class="col-span-1">最近告警时间</span>
+            <span class="col-span-2 text-center">操作</span>
+          </div>
+
+          <!-- 设备列表数据 -->
+          <div id="device-list" class="divide-y divide-primary/5 custom-scrollbar">
+
+            <!-- 电力计量设备（10台） -->
+            <!-- 设备1：全校进线总电表 -->
+            <div class="device-row" data-id="EM-MAIN-001" data-category="电力计量" data-building="主配电房" data-status="green">
+              <div class="grid grid-cols-11 gap-2 px-5 py-3 hover:bg-surface-container/30 transition-colors items-center">
+                <div class="col-span-1 flex justify-center"><span class="status-dot green"></span></div>
+                <div class="col-span-2">
+                  <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 transition-colors text-left" data-target="detail-EM-MAIN-001">全校进线总电表</button>
+                </div>
+                <div class="col-span-1 text-sm text-on-surface-variant font-mono text-xs">EM-MAIN-001</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">电力计量</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">主配电房</div>
+                <div class="col-span-2 text-xs text-on-surface-variant">10kV / 2000kVA</div>
+                <div class="col-span-1 text-xs text-on-surface-variant">暂无告警</div>
+                <div class="col-span-2 flex items-center justify-center gap-1">
+                  <button class="btn-expand text-xs text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1" data-target="detail-EM-MAIN-001">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>详情
+                  </button>
+                  <button class="btn-work-order text-xs text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-1">
+                    <i data-lucide="file-plus" class="w-3 h-3"></i>转工单
+                  </button>
+                </div>
+              </div>
+              <!-- 详情展开面板 -->
+              <div id="detail-EM-MAIN-001" class="detail-panel border-t border-primary/10 bg-surface-container/20">
+                <div class="px-5 py-4">
+                  <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">实时功率</div>
+                      <div class="text-lg font-bold text-primary">1,280 kW</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">今日累计</div>
+                      <div class="text-lg font-bold text-on-surface">15,360 kWh</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">负载率</div>
+                      <div class="text-lg font-bold text-success">64%</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">运行时长</div>
+                      <div class="text-lg font-bold text-on-surface">12,480h</div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">历史趋势 — 近7天功率</div>
+                      <div class="h-20 flex items-end gap-1">
+                        <div class="flex-1 bg-primary/20 rounded-t-sm" style="height:45%"></div>
+                        <div class="flex-1 bg-primary/30 rounded-t-sm" style="height:60%"></div>
+                        <div class="flex-1 bg-primary/40 rounded-t-sm" style="height:75%"></div>
+                        <div class="flex-1 bg-primary/50 rounded-t-sm" style="height:82%"></div>
+                        <div class="flex-1 bg-primary/40 rounded-t-sm" style="height:70%"></div>
+                        <div class="flex-1 bg-primary/30 rounded-t-sm" style="height:55%"></div>
+                        <div class="flex-1 bg-primary/20 rounded-t-sm" style="height:50%"></div>
+                      </div>
+                      <div class="flex justify-between text-xs text-on-surface-variant/50 mt-1">
+                        <span>6/10</span><span>6/11</span><span>6/12</span><span>6/13</span><span>6/14</span><span>6/15</span><span>6/16</span>
+                      </div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">历史趋势 — 近30天能耗</div>
+                      <div class="h-20 flex items-end gap-0.5">
+                        <div class="flex-1 bg-primary/15 rounded-t-sm" style="height:30%"></div>
+                        <div class="flex-1 bg-primary/20 rounded-t-sm" style="height:45%"></div>
+                        <div class="flex-1 bg-primary/35 rounded-t-sm" style="height:60%"></div>
+                        <div class="flex-1 bg-primary/25 rounded-t-sm" style="height:50%"></div>
+                        <div class="flex-1 bg-primary/40 rounded-t-sm" style="height:70%"></div>
+                        <div class="flex-1 bg-primary/20 rounded-t-sm" style="height:40%"></div>
+                        <div class="flex-1 bg-primary/30 rounded-t-sm" style="height:55%"></div>
+                        <div class="flex-1 bg-primary/45 rounded-t-sm" style="height:75%"></div>
+                        <div class="flex-1 bg-primary/35 rounded-t-sm" style="height:65%"></div>
+                        <div class="flex-1 bg-primary/50 rounded-t-sm" style="height:85%"></div>
+                        <div class="flex-1 bg-primary/25 rounded-t-sm" style="height:48%"></div>
+                        <div class="flex-1 bg-primary/30 rounded-t-sm" style="height:55%"></div>
+                        <div class="flex-1 bg-primary/40 rounded-t-sm" style="height:72%"></div>
+                        <div class="flex-1 bg-primary/20 rounded-t-sm" style="height:38%"></div>
+                        <div class="flex-1 bg-primary/35 rounded-t-sm" style="height:62%"></div>
+                        <div class="flex-1 bg-primary/45 rounded-t-sm" style="height:78%"></div>
+                        <div class="flex-1 bg-primary/30 rounded-t-sm" style="height:58%"></div>
+                        <div class="flex-1 bg-primary/50 rounded-t-sm" style="height:88%"></div>
+                        <div class="flex-1 bg-primary/25 rounded-t-sm" style="height:42%"></div>
+                        <div class="flex-1 bg-primary/35 rounded-t-sm" style="height:68%"></div>
+                        <div class="flex-1 bg-primary/40 rounded-t-sm" style="height:73%"></div>
+                        <div class="flex-1 bg-primary/20 rounded-t-sm" style="height:35%"></div>
+                        <div class="flex-1 bg-primary/30 rounded-t-sm" style="height:52%"></div>
+                        <div class="flex-1 bg-primary/45 rounded-t-sm" style="height:80%"></div>
+                        <div class="flex-1 bg-primary/35 rounded-t-sm" style="height:66%"></div>
+                        <div class="flex-1 bg-primary/50 rounded-t-sm" style="height:90%"></div>
+                        <div class="flex-1 bg-primary/25 rounded-t-sm" style="height:44%"></div>
+                        <div class="flex-1 bg-primary/30 rounded-t-sm" style="height:56%"></div>
+                        <div class="flex-1 bg-primary/40 rounded-t-sm" style="height:70%"></div>
+                        <div class="flex-1 bg-primary/20 rounded-t-sm" style="height:32%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">告警历史（最近10条）</div>
+                      <div class="space-y-1 text-xs">
+                        <div class="flex justify-between text-on-surface-variant"><span>暂无告警记录</span></div>
+                      </div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">台账信息</div>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div><span class="text-on-surface-variant">安装日期：</span><span class="text-on-surface">2021-03-15</span></div>
+                        <div><span class="text-on-surface-variant">额定参数：</span><span class="text-on-surface">10kV/2000kVA</span></div>
+                        <div><span class="text-on-surface-variant">维保日期：</span><span class="text-on-surface">2026-06-01</span></div>
+                        <div><span class="text-on-surface-variant">责任人：</span><span class="text-on-surface">张工</span></div>
+                      </div>
+                      <div class="flex items-center gap-2 mt-3">
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转工单</button>
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转AI建议</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">标记检修</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">查看3D定位</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 设备2：教学楼区分项电表 -->
+            <div class="device-row" data-id="EM-TEACH-001" data-category="电力计量" data-building="教学楼A~D" data-status="green">
+              <div class="grid grid-cols-11 gap-2 px-5 py-3 hover:bg-surface-container/30 transition-colors items-center">
+                <div class="col-span-1 flex justify-center"><span class="status-dot green"></span></div>
+                <div class="col-span-2">
+                  <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 transition-colors text-left" data-target="detail-EM-TEACH-001">教学楼区分项电表</button>
+                </div>
+                <div class="col-span-1 text-sm text-on-surface-variant font-mono text-xs">EM-TEACH-001</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">电力计量</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">教学楼A~D</div>
+                <div class="col-span-2 text-xs text-on-surface-variant">10kV / 500kVA</div>
+                <div class="col-span-1 text-xs text-on-surface-variant">暂无告警</div>
+                <div class="col-span-2 flex items-center justify-center gap-1">
+                  <button class="btn-expand text-xs text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1" data-target="detail-EM-TEACH-001">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>详情
+                  </button>
+                  <button class="btn-work-order text-xs text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-1">
+                    <i data-lucide="file-plus" class="w-3 h-3"></i>转工单
+                  </button>
+                </div>
+              </div>
+              <div id="detail-EM-TEACH-001" class="detail-panel border-t border-primary/10 bg-surface-container/20">
+                <div class="px-5 py-4">
+                  <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">实时功率</div>
+                      <div class="text-lg font-bold text-primary">320 kW</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">今日累计</div>
+                      <div class="text-lg font-bold text-on-surface">3,840 kWh</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">负载率</div>
+                      <div class="text-lg font-bold text-success">64%</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">运行时长</div>
+                      <div class="text-lg font-bold text-on-surface">8,760h</div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">告警历史</div>
+                      <div class="text-xs text-on-surface-variant">暂无告警记录</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">台账信息</div>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div><span class="text-on-surface-variant">安装日期：</span><span class="text-on-surface">2021-06-20</span></div>
+                        <div><span class="text-on-surface-variant">额定参数：</span><span class="text-on-surface">10kV/500kVA</span></div>
+                        <div><span class="text-on-surface-variant">维保日期：</span><span class="text-on-surface">2026-05-20</span></div>
+                        <div><span class="text-on-surface-variant">责任人：</span><span class="text-on-surface">李工</span></div>
+                      </div>
+                      <div class="flex items-center gap-2 mt-3">
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转工单</button>
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转AI建议</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">标记检修</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">查看3D定位</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 设备3：宿舍区分项电表 -->
+            <div class="device-row" data-id="EM-DORM-001" data-category="电力计量" data-building="宿舍1~6号楼" data-status="green">
+              <div class="grid grid-cols-11 gap-2 px-5 py-3 hover:bg-surface-container/30 transition-colors items-center">
+                <div class="col-span-1 flex justify-center"><span class="status-dot green"></span></div>
+                <div class="col-span-2">
+                  <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 transition-colors text-left" data-target="detail-EM-DORM-001">宿舍区分项电表</button>
+                </div>
+                <div class="col-span-1 text-sm text-on-surface-variant font-mono text-xs">EM-DORM-001</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">电力计量</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">宿舍1~6号楼</div>
+                <div class="col-span-2 text-xs text-on-surface-variant">10kV / 400kVA</div>
+                <div class="col-span-1 text-xs text-on-surface-variant">暂无告警</div>
+                <div class="col-span-2 flex items-center justify-center gap-1">
+                  <button class="btn-expand text-xs text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1" data-target="detail-EM-DORM-001">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>详情
+                  </button>
+                  <button class="btn-work-order text-xs text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-1">
+                    <i data-lucide="file-plus" class="w-3 h-3"></i>转工单
+                  </button>
+                </div>
+              </div>
+              <div id="detail-EM-DORM-001" class="detail-panel border-t border-primary/10 bg-surface-container/20">
+                <div class="px-5 py-4">
+                  <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">实时功率</div>
+                      <div class="text-lg font-bold text-primary">280 kW</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">今日累计</div>
+                      <div class="text-lg font-bold text-on-surface">3,360 kWh</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">负载率</div>
+                      <div class="text-lg font-bold text-success">70%</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">运行时长</div>
+                      <div class="text-lg font-bold text-on-surface">8,760h</div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">告警历史</div>
+                      <div class="text-xs text-on-surface-variant">暂无告警记录</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">台账信息</div>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div><span class="text-on-surface-variant">安装日期：</span><span class="text-on-surface">2021-06-20</span></div>
+                        <div><span class="text-on-surface-variant">额定参数：</span><span class="text-on-surface">10kV/400kVA</span></div>
+                        <div><span class="text-on-surface-variant">维保日期：</span><span class="text-on-surface">2026-05-20</span></div>
+                        <div><span class="text-on-surface-variant">责任人：</span><span class="text-on-surface">王工</span></div>
+                      </div>
+                      <div class="flex items-center gap-2 mt-3">
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转工单</button>
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转AI建议</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">标记检修</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">查看3D定位</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 设备4：实验楼分项电表（预警） -->
+            <div class="device-row" data-id="EM-LAB-001" data-category="电力计量" data-building="综合实验楼1~2" data-status="yellow">
+              <div class="grid grid-cols-11 gap-2 px-5 py-3 hover:bg-surface-container/30 transition-colors items-center bg-warning/5">
+                <div class="col-span-1 flex justify-center"><span class="status-dot yellow"></span></div>
+                <div class="col-span-2">
+                  <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 transition-colors text-left" data-target="detail-EM-LAB-001">实验楼分项电表</button>
+                </div>
+                <div class="col-span-1 text-sm text-on-surface-variant font-mono text-xs">EM-LAB-001</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">电力计量</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">综合实验楼1~2</div>
+                <div class="col-span-2 text-xs text-warning">负载率95% · 过载预警</div>
+                <div class="col-span-1 text-xs text-warning">2026-06-16 14:32</div>
+                <div class="col-span-2 flex items-center justify-center gap-1">
+                  <button class="btn-expand text-xs text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1" data-target="detail-EM-LAB-001">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>详情
+                  </button>
+                  <button class="btn-work-order text-xs text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-1">
+                    <i data-lucide="file-plus" class="w-3 h-3"></i>转工单
+                  </button>
+                </div>
+              </div>
+              <div id="detail-EM-LAB-001" class="detail-panel border-t border-primary/10 bg-surface-container/20">
+                <div class="px-5 py-4">
+                  <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">实时功率</div>
+                      <div class="text-lg font-bold text-warning">285 kW</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">今日累计</div>
+                      <div class="text-lg font-bold text-on-surface">3,420 kWh</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">负载率</div>
+                      <div class="text-lg font-bold text-warning">95%</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">运行时长</div>
+                      <div class="text-lg font-bold text-on-surface">8,760h</div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">告警历史（最近10条）</div>
+                      <div class="space-y-1 text-xs">
+                        <div class="flex justify-between text-warning"><span>⚠ 负载率超95%预警</span><span>06-16 14:32</span></div>
+                        <div class="flex justify-between text-on-surface-variant"><span>负载率超90%预警</span><span>06-15 10:15</span></div>
+                        <div class="flex justify-between text-on-surface-variant"><span>负载率超85%预警</span><span>06-14 09:22</span></div>
+                      </div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">台账信息</div>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div><span class="text-on-surface-variant">安装日期：</span><span class="text-on-surface">2022-01-15</span></div>
+                        <div><span class="text-on-surface-variant">额定参数：</span><span class="text-on-surface">10kV/300kVA</span></div>
+                        <div><span class="text-on-surface-variant">维保日期：</span><span class="text-on-surface">2026-04-10</span></div>
+                        <div><span class="text-on-surface-variant">责任人：</span><span class="text-on-surface">刘工</span></div>
+                      </div>
+                      <div class="flex items-center gap-2 mt-3">
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转工单</button>
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转AI建议</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">标记检修</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">查看3D定位</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 设备5：食堂分项电表 -->
+            <div class="device-row" data-id="EM-CANTEEN-001" data-category="电力计量" data-building="食堂1~2座" data-status="green">
+              <div class="grid grid-cols-11 gap-2 px-5 py-3 hover:bg-surface-container/30 transition-colors items-center">
+                <div class="col-span-1 flex justify-center"><span class="status-dot green"></span></div>
+                <div class="col-span-2">
+                  <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 transition-colors text-left" data-target="detail-EM-CANTEEN-001">食堂分项电表</button>
+                </div>
+                <div class="col-span-1 text-sm text-on-surface-variant font-mono text-xs">EM-CANTEEN-001</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">电力计量</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">食堂1~2座</div>
+                <div class="col-span-2 text-xs text-on-surface-variant">10kV / 200kVA</div>
+                <div class="col-span-1 text-xs text-on-surface-variant">暂无告警</div>
+                <div class="col-span-2 flex items-center justify-center gap-1">
+                  <button class="btn-expand text-xs text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1" data-target="detail-EM-CANTEEN-001">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>详情
+                  </button>
+                  <button class="btn-work-order text-xs text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-1">
+                    <i data-lucide="file-plus" class="w-3 h-3"></i>转工单
+                  </button>
+                </div>
+              </div>
+              <div id="detail-EM-CANTEEN-001" class="detail-panel border-t border-primary/10 bg-surface-container/20">
+                <div class="px-5 py-4">
+                  <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">实时功率</div>
+                      <div class="text-lg font-bold text-primary">145 kW</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">今日累计</div>
+                      <div class="text-lg font-bold text-on-surface">1,740 kWh</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">负载率</div>
+                      <div class="text-lg font-bold text-success">72%</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">运行时长</div>
+                      <div class="text-lg font-bold text-on-surface">6,570h</div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">告警历史</div>
+                      <div class="text-xs text-on-surface-variant">暂无告警记录</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">台账信息</div>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div><span class="text-on-surface-variant">安装日期：</span><span class="text-on-surface">2022-03-01</span></div>
+                        <div><span class="text-on-surface-variant">额定参数：</span><span class="text-on-surface">10kV/200kVA</span></div>
+                        <div><span class="text-on-surface-variant">维保日期：</span><span class="text-on-surface">2026-03-01</span></div>
+                        <div><span class="text-on-surface-variant">责任人：</span><span class="text-on-surface">赵工</span></div>
+                      </div>
+                      <div class="flex items-center gap-2 mt-3">
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转工单</button>
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转AI建议</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">标记检修</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">查看3D定位</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 设备6：行政楼分项电表 -->
+            <div class="device-row" data-id="EM-ADMIN-001" data-category="电力计量" data-building="行政楼" data-status="green">
+              <div class="grid grid-cols-11 gap-2 px-5 py-3 hover:bg-surface-container/30 transition-colors items-center">
+                <div class="col-span-1 flex justify-center"><span class="status-dot green"></span></div>
+                <div class="col-span-2">
+                  <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 transition-colors text-left" data-target="detail-EM-ADMIN-001">行政楼分项电表</button>
+                </div>
+                <div class="col-span-1 text-sm text-on-surface-variant font-mono text-xs">EM-ADMIN-001</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">电力计量</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">行政楼</div>
+                <div class="col-span-2 text-xs text-on-surface-variant">10kV / 100kVA</div>
+                <div class="col-span-1 text-xs text-on-surface-variant">暂无告警</div>
+                <div class="col-span-2 flex items-center justify-center gap-1">
+                  <button class="btn-expand text-xs text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1" data-target="detail-EM-ADMIN-001">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>详情
+                  </button>
+                  <button class="btn-work-order text-xs text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-1">
+                    <i data-lucide="file-plus" class="w-3 h-3"></i>转工单
+                  </button>
+                </div>
+              </div>
+              <div id="detail-EM-ADMIN-001" class="detail-panel border-t border-primary/10 bg-surface-container/20">
+                <div class="px-5 py-4">
+                  <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">实时功率</div>
+                      <div class="text-lg font-bold text-primary">68 kW</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">今日累计</div>
+                      <div class="text-lg font-bold text-on-surface">816 kWh</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">负载率</div>
+                      <div class="text-lg font-bold text-success">68%</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3 text-center">
+                      <div class="text-xs text-on-surface-variant mb-1">运行时长</div>
+                      <div class="text-lg font-bold text-on-surface">8,760h</div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">告警历史</div>
+                      <div class="text-xs text-on-surface-variant">暂无告警记录</div>
+                    </div>
+                    <div class="bg-surface-container/30 rounded-lg p-3">
+                      <div class="text-xs text-on-surface-variant mb-2">台账信息</div>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div><span class="text-on-surface-variant">安装日期：</span><span class="text-on-surface">2021-09-01</span></div>
+                        <div><span class="text-on-surface-variant">额定参数：</span><span class="text-on-surface">10kV/100kVA</span></div>
+                        <div><span class="text-on-surface-variant">维保日期：</span><span class="text-on-surface">2026-05-15</span></div>
+                        <div><span class="text-on-surface-variant">责任人：</span><span class="text-on-surface">陈工</span></div>
+                      </div>
+                      <div class="flex items-center gap-2 mt-3">
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转工单</button>
+                        <button class="text-xs bg-primary/10 text-primary px-2 py-1 rounded-sm hover:bg-primary/20 transition-colors">转AI建议</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">标记检修</button>
+                        <button class="text-xs bg-surface-container text-on-surface-variant px-2 py-1 rounded-sm hover:bg-surface-container-high transition-colors">查看3D定位</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 设备7：体育馆分项电表 -->
+            <div class="device-row" data-id="EM-GYM-001" data-category="电力计量" data-building="体育馆" data-status="green">
+              <div class="grid grid-cols-11 gap-2 px-5 py-3 hover:bg-surface-container/30 transition-colors items-center">
+                <div class="col-span-1 flex justify-center"><span class="status-dot green"></span></div>
+                <div class="col-span-2">
+                  <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 transition-colors text-left" data-target="detail-EM-GYM-001">体育馆分项电表</button>
+                </div>
+                <div class="col-span-1 text-sm text-on-surface-variant font-mono text-xs">EM-GYM-001</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">电力计量</div>
+                <div class="col-span-1 text-sm text-on-surface-variant text-xs">体育馆</div>
+                <div class="col-span-2 text-xs text-on-surface-variant">10kV / 150kVA</div>
+                <div class="col-span-1 text-xs text-on-surface-variant">暂无告警</div>
+                <div class="col-span-2 flex items-center justify-center gap-1">
+                  <button class="btn-expand text-xs text-primary hover:text-primary/80 transition-colors inline-flex items-center gap-1" data-target="detail-EM-GYM-001">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>详情
+                  </button>
+                  <button class="btn-work-order text-xs text-on-surface-variant hover:text-primary transition-colors inline-flex items-center gap-1">
+                    <i data-lucide="file-plus" class="w-3 h-3"></i>转工单
+                  </button>
+                </div>
+              </div>
+              <div id="detail-EM-GYM-001

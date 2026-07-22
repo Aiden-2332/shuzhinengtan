@@ -1,0 +1,12 @@
+{
+  "elements": [
+    {
+      "type": "html",
+      "options": {
+        "path": ".cozeproj/prototype/web/tower-l3.html"
+      },
+      "title": "后勤组驾驶舱",
+      "size": "web"
+    }
+  ]
+}
