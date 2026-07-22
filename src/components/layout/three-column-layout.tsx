@@ -108,6 +108,7 @@ export function ThreeColumnLayout({
             level={level}
             selectedBuilding={selectedBuilding || null}
             onBuildingClick={onBuildingClick || (() => {})}
+            filterType={filterType || null}
           />
         </div>
 

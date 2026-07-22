@@ -1,472 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import {
+  CAMPUS_DATA,
+  getEmissionColor,
+  type BuildingData,
+  type EmissionLevel,
+  type CampusData,
+} from "@/data/campus-data";
 
-// 参考智慧校园可视化大屏的建筑布局
-const BUILDINGS = [
-  // 教学区（北部 - 红砖色）
-  { id: "b1", name: "主教学楼", type: "teaching", x: -12, z: -18, width: 10, depth: 5, height: 5, emission: 950, dept: "综合教学", floors: 10, color: "#c4956a" },
-  { id: "b2", name: "第一教学楼", type: "teaching", x: 0, z: -20, width: 8, depth: 4.5, height: 4.5, emission: 820, dept: "综合教学", floors: 9, color: "#c4956a" },
-  { id: "b3", name: "第二教学楼", type: "teaching", x: 10, z: -18, width: 8, depth: 4.5, height: 4.5, emission: 750, dept: "综合教学", floors: 9, color: "#c4956a" },
-  { id: "b4", name: "第三教学楼", type: "teaching", x: 18, z: -15, width: 7, depth: 4, height: 4, emission: 680, dept: "综合教学", floors: 8, color: "#c4956a" },
-
-  // 院系楼（中部 - 米白色）
-  { id: "b5", name: "信息学院楼", type: "lab", x: -18, z: -8, width: 7, depth: 5, height: 4.5, emission: 780, dept: "信息学院", floors: 9, color: "#e8dcc8" },
-  { id: "b6", name: "机械学院楼", type: "lab", x: -10, z: -10, width: 7, depth: 5, height: 4.5, emission: 820, dept: "机械学院", floors: 9, color: "#e8dcc8" },
-  { id: "b7", name: "材料学院楼", type: "lab", x: -2, z: -8, width: 6.5, depth: 4.5, height: 4, emission: 720, dept: "材料学院", floors: 8, color: "#e8dcc8" },
-  { id: "b8", name: "能源学院楼", type: "lab", x: 6, z: -10, width: 6.5, depth: 4.5, height: 4, emission: 680, dept: "能源学院", floors: 8, color: "#e8dcc8" },
-  { id: "b9", name: "经管学院楼", type: "lab", x: 14, z: -8, width: 6.5, depth: 4.5, height: 4, emission: 620, dept: "经管学院", floors: 8, color: "#e8dcc8" },
-
-  // 图书馆（中心 - 标志性建筑）
-  { id: "b10", name: "图书馆", type: "library", x: -5, z: -2, width: 9, depth: 7, height: 5, emission: 480, dept: "图书馆", floors: 10, color: "#d4c5b0" },
-
-  // 行政楼（中部偏东）
-  { id: "b11", name: "行政办公楼", type: "admin", x: 10, z: -2, width: 7, depth: 5, height: 4, emission: 420, dept: "行政部门", floors: 8, color: "#c4956a" },
-
-  // 宿舍区（南部 - 红砖色）
-  { id: "b12", name: "1 号宿舍楼", type: "dorm", x: -20, z: 10, width: 5, depth: 4, height: 5, emission: 520, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-  { id: "b13", name: "2 号宿舍楼", type: "dorm", x: -13, z: 10, width: 5, depth: 4, height: 5, emission: 500, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-  { id: "b14", name: "3 号宿舍楼", type: "dorm", x: -6, z: 10, width: 5, depth: 4, height: 5, emission: 480, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-  { id: "b15", name: "4 号宿舍楼", type: "dorm", x: 1, z: 10, width: 5, depth: 4, height: 5, emission: 460, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-  { id: "b16", name: "5 号宿舍楼", type: "dorm", x: 8, z: 10, width: 5, depth: 4, height: 5, emission: 440, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-  { id: "b17", name: "6 号宿舍楼", type: "dorm", x: 15, z: 10, width: 5, depth: 4, height: 5, emission: 420, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-  { id: "b18", name: "7 号宿舍楼", type: "dorm", x: -16, z: 18, width: 5, depth: 4, height: 5, emission: 400, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-  { id: "b19", name: "8 号宿舍楼", type: "dorm", x: -9, z: 18, width: 5, depth: 4, height: 5, emission: 380, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-  { id: "b20", name: "9 号宿舍楼", type: "dorm", x: -2, z: 18, width: 5, depth: 4, height: 5, emission: 360, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-  { id: "b21", name: "10 号宿舍楼", type: "dorm", x: 5, z: 18, width: 5, depth: 4, height: 5, emission: 340, dept: "宿舍管理中心", floors: 10, color: "#c4956a" },
-
-  // 食堂区
-  { id: "b22", name: "第一食堂", type: "dining", x: -12, z: 3, width: 6, depth: 5, height: 3, emission: 580, dept: "餐饮服务中心", floors: 3, color: "#d4a574" },
-  { id: "b23", name: "第二食堂", type: "dining", x: 12, z: 3, width: 6, depth: 5, height: 3, emission: 520, dept: "餐饮服务中心", floors: 3, color: "#d4a574" },
-
-  // 体育设施（东部）
-  { id: "b24", name: "综合体育馆", type: "gym", x: 22, z: -5, width: 10, depth: 8, height: 4, emission: 380, dept: "体育部", floors: 4, color: "#c0c8d4" },
-  { id: "b25", name: "游泳馆", type: "gym", x: 25, z: 8, width: 8, depth: 6, height: 3.5, emission: 320, dept: "体育部", floors: 3, color: "#c0c8d4" },
-
-  // 运动场
-  { id: "b26", name: "东操场", type: "field", x: 20, z: 18, width: 12, depth: 8, height: 0.1, emission: 60, dept: "体育部", floors: 1, color: "#4a7c59" },
-
-  // 科研楼（西部）
-  { id: "b27", name: "科研楼 A", type: "lab", x: -22, z: -2, width: 7, depth: 5, height: 5, emission: 880, dept: "科研院", floors: 10, color: "#e8dcc8" },
-  { id: "b28", name: "科研楼 B", type: "lab", x: -22, z: 8, width: 7, depth: 5, height: 5, emission: 820, dept: "科研院", floors: 10, color: "#e8dcc8" },
-
-  // 光伏配电房
-  { id: "b29", name: "光伏配电房", type: "solar", x: 25, z: 20, width: 4, depth: 3, height: 2.5, emission: -150, dept: "后勤能源", floors: 1, color: "#8b7355" },
-];
-
-// 热力配色规则
-function getEmissionColor(emission: number): string {
-  if (emission < 0) return "#36d968";
-  if (emission < 200) return "#3488ff";
-  if (emission < 400) return "#a855f7";
-  if (emission < 600) return "#ff7b25";
-  return "#ef4444";
-}
-
-// 创建写实建筑模型 - 参考智慧校园大屏风格
-function createRealisticBuilding(building: typeof BUILDINGS[0], emissionColor: string): THREE.Group {
-  const group = new THREE.Group();
-
-  // 建筑主体
-  const bodyGeometry = new THREE.BoxGeometry(building.width, building.height, building.depth);
-  const bodyMaterial = new THREE.MeshStandardMaterial({
-    color: building.color || "#f5f5f0",
-    roughness: 0.75,
-    metalness: 0.05,
-  });
-  const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-  body.position.y = building.height / 2;
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
-
-  // 屋顶 - 平顶带女儿墙
-  const roofHeight = 0.4;
-  const roofGeometry = new THREE.BoxGeometry(building.width + 0.4, roofHeight, building.depth + 0.4);
-  const roofMaterial = new THREE.MeshStandardMaterial({
-    color: "#8b4513",
-    roughness: 0.7,
-    metalness: 0.1,
-  });
-  const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-  roof.position.y = building.height + roofHeight / 2;
-  roof.castShadow = true;
-  group.add(roof);
-
-  // 女儿墙
-  const parapetHeight = 0.6;
-  const parapetThickness = 0.12;
-  const parapetMaterial = new THREE.MeshStandardMaterial({
-    color: building.color || "#c4956a",
-    roughness: 0.7,
-  });
-
-  const parapetFront = new THREE.Mesh(
-    new THREE.BoxGeometry(building.width + 0.4, parapetHeight, parapetThickness),
-    parapetMaterial
-  );
-  parapetFront.position.set(0, building.height + roofHeight + parapetHeight / 2, building.depth / 2 + 0.2);
-  group.add(parapetFront);
-
-  const parapetBack = parapetFront.clone();
-  parapetBack.position.z = -building.depth / 2 - 0.2;
-  group.add(parapetBack);
-
-  const parapetLeft = new THREE.Mesh(
-    new THREE.BoxGeometry(parapetThickness, parapetHeight, building.depth + 0.4),
-    parapetMaterial
-  );
-  parapetLeft.position.set(-building.width / 2 - 0.2, building.height + roofHeight + parapetHeight / 2, 0);
-  group.add(parapetLeft);
-
-  const parapetRight = parapetLeft.clone();
-  parapetRight.position.x = building.width / 2 + 0.2;
-  group.add(parapetRight);
-
-  // 窗户系统 - 更密集的窗户排列
-  const floorHeight = building.height / building.floors;
-  const windowRows = building.floors;
-  const windowCols = Math.floor(building.width / 0.7);
-
-  for (let row = 0; row < windowRows; row++) {
-    for (let col = 0; col < windowCols; col++) {
-      // 窗框
-      const frameGeometry = new THREE.BoxGeometry(0.45, 0.65, 0.06);
-      const frameMaterial = new THREE.MeshStandardMaterial({
-        color: "#4b5563",
-        roughness: 0.3,
-        metalness: 0.6,
-      });
-      const frame = new THREE.Mesh(frameGeometry, frameMaterial);
-      frame.position.set(
-        -building.width / 2 + 0.5 + col * 0.7,
-        0.6 + row * floorHeight,
-        building.depth / 2 + 0.03
-      );
-      group.add(frame);
-
-      // 玻璃 - 使用物理材质实现真实反射
-      const glassGeometry = new THREE.BoxGeometry(0.38, 0.58, 0.04);
-      const glassMaterial = new THREE.MeshPhysicalMaterial({
-        color: "#a8d4e6",
-        roughness: 0.05,
-        metalness: 0.9,
-        transmission: 0.2,
-        transparent: true,
-        opacity: 0.8,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.1,
-      });
-      const glass = new THREE.Mesh(glassGeometry, glassMaterial);
-      glass.position.set(
-        -building.width / 2 + 0.5 + col * 0.7,
-        0.6 + row * floorHeight,
-        building.depth / 2 + 0.05
-      );
-      group.add(glass);
-
-      // 背面窗户
-      const frameBack = frame.clone();
-      frameBack.position.z = -building.depth / 2 - 0.03;
-      group.add(frameBack);
-
-      const glassBack = glass.clone();
-      glassBack.position.z = -building.depth / 2 - 0.05;
-      group.add(glassBack);
-    }
-  }
-
-  // 侧面窗户
-  const sideWindowCols = Math.floor(building.depth / 0.7);
-  for (let row = 0; row < windowRows; row++) {
-    for (let col = 0; col < sideWindowCols; col++) {
-      const frameGeometry = new THREE.BoxGeometry(0.06, 0.65, 0.45);
-      const frameMaterial = new THREE.MeshStandardMaterial({
-        color: "#4b5563",
-        roughness: 0.3,
-        metalness: 0.6,
-      });
-      const frame = new THREE.Mesh(frameGeometry, frameMaterial);
-      frame.position.set(
-        building.width / 2 + 0.03,
-        0.6 + row * floorHeight,
-        -building.depth / 2 + 0.5 + col * 0.7
-      );
-      group.add(frame);
-
-      const glassGeometry = new THREE.BoxGeometry(0.04, 0.58, 0.38);
-      const glassMaterial = new THREE.MeshPhysicalMaterial({
-        color: "#a8d4e6",
-        roughness: 0.05,
-        metalness: 0.9,
-        transmission: 0.2,
-        transparent: true,
-        opacity: 0.8,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.1,
-      });
-      const glass = new THREE.Mesh(glassGeometry, glassMaterial);
-      glass.position.set(
-        building.width / 2 + 0.05,
-        0.6 + row * floorHeight,
-        -building.depth / 2 + 0.5 + col * 0.7
-      );
-      group.add(glass);
-
-      const frameLeft = frame.clone();
-      frameLeft.position.x = -building.width / 2 - 0.03;
-      group.add(frameLeft);
-
-      const glassLeft = glass.clone();
-      glassLeft.position.x = -building.width / 2 - 0.05;
-      group.add(glassLeft);
-    }
-  }
-
-  // 入口门廊
-  if (building.height > 3) {
-    const doorGeometry = new THREE.BoxGeometry(2.5, 3, 1.8);
-    const doorMaterial = new THREE.MeshStandardMaterial({
-      color: "#374151",
-      roughness: 0.4,
-      metalness: 0.3,
-    });
-    const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    door.position.set(0, 1.5, building.depth / 2 + 0.9);
-    door.castShadow = true;
-    group.add(door);
-
-    // 门廊顶
-    const canopyGeometry = new THREE.BoxGeometry(3, 0.2, 2.5);
-    const canopyMaterial = new THREE.MeshStandardMaterial({
-      color: "#6b7280",
-      roughness: 0.5,
-      metalness: 0.2,
-    });
-    const canopy = new THREE.Mesh(canopyGeometry, canopyMaterial);
-    canopy.position.set(0, 3, building.depth / 2 + 1.25);
-    canopy.castShadow = true;
-    group.add(canopy);
-
-    // 门廊柱子
-    const pillarGeometry = new THREE.CylinderGeometry(0.15, 0.15, 3, 8);
-    const pillarMaterial = new THREE.MeshStandardMaterial({
-      color: "#9ca3af",
-      roughness: 0.4,
-      metalness: 0.3,
-    });
-    const pillar1 = new THREE.Mesh(pillarGeometry, pillarMaterial);
-    pillar1.position.set(-1.2, 1.5, building.depth / 2 + 1.8);
-    pillar1.castShadow = true;
-    group.add(pillar1);
-
-    const pillar2 = pillar1.clone();
-    pillar2.position.x = 1.2;
-    group.add(pillar2);
-  }
-
-  // 热力发光效果
-  const glowGeometry = new THREE.BoxGeometry(building.width + 1.5, building.height + 1.5, building.depth + 1.5);
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: emissionColor,
-    transparent: true,
-    opacity: 0.06,
-  });
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.y = building.height / 2;
-  group.add(glow);
-
-  group.userData = building;
-
-  return group;
-}
-
-// 创建写实树木 - 更接近真实校园绿化
-function createTree(x: number, z: number, scale: number = 1): THREE.Group {
-  const tree = new THREE.Group();
-
-  // 树干
-  const trunkGeometry = new THREE.CylinderGeometry(0.12 * scale, 0.2 * scale, 2.5 * scale, 8);
-  const trunkMaterial = new THREE.MeshStandardMaterial({
-    color: "#5c4033",
-    roughness: 0.9,
-  });
-  const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-  trunk.position.y = 1.25 * scale;
-  trunk.castShadow = true;
-  tree.add(trunk);
-
-  // 树冠 - 多层球体模拟真实树冠
-  const crownColors = ["#2d5016", "#3d6b1f", "#4a7c28", "#5a8c38"];
-  for (let i = 0; i < 4; i++) {
-    const crownGeometry = new THREE.SphereGeometry((1.5 - i * 0.25) * scale, 8, 8);
-    const crownMaterial = new THREE.MeshStandardMaterial({
-      color: crownColors[i],
-      roughness: 0.85,
-    });
-    const crown = new THREE.Mesh(crownGeometry, crownMaterial);
-    crown.position.y = (3 + i * 0.6) * scale;
-    crown.position.x = (Math.random() - 0.5) * 0.4 * scale;
-    crown.position.z = (Math.random() - 0.5) * 0.4 * scale;
-    crown.castShadow = true;
-    tree.add(crown);
-  }
-
-  tree.position.set(x, 0, z);
-  return tree;
-}
-
-// 创建环形道路
-function createCircularRoad(radius: number, width: number): THREE.Mesh {
-  const geometry = new THREE.RingGeometry(radius - width / 2, radius + width / 2, 64);
-  const material = new THREE.MeshStandardMaterial({
-    color: "#374151",
-    roughness: 0.95,
-  });
-  const road = new THREE.Mesh(geometry, material);
-  road.rotation.x = -Math.PI / 2;
-  road.position.y = 0.01;
-  road.receiveShadow = true;
-  return road;
-}
-
-// 创建直线道路
-function createRoad(x: number, z: number, width: number, depth: number, rotation: number = 0): THREE.Mesh {
-  const geometry = new THREE.PlaneGeometry(width, depth);
-  const material = new THREE.MeshStandardMaterial({
-    color: "#374151",
-    roughness: 0.95,
-  });
-  const road = new THREE.Mesh(geometry, material);
-  road.rotation.x = -Math.PI / 2;
-  road.rotation.z = rotation;
-  road.position.set(x, 0.01, z);
-  road.receiveShadow = true;
-  return road;
-}
-
-// 创建运动场
-function createSportsField(x: number, z: number, width: number, depth: number): THREE.Group {
-  const field = new THREE.Group();
-
-  // 跑道
-  const trackGeometry = new THREE.PlaneGeometry(width, depth);
-  const trackMaterial = new THREE.MeshStandardMaterial({
-    color: "#c45c3d",
-    roughness: 0.9,
-  });
-  const track = new THREE.Mesh(trackGeometry, trackMaterial);
-  track.rotation.x = -Math.PI / 2;
-  track.position.y = 0.02;
-  track.receiveShadow = true;
-  field.add(track);
-
-  // 足球场
-  const fieldGeometry = new THREE.PlaneGeometry(width * 0.6, depth * 0.6);
-  const fieldMaterial = new THREE.MeshStandardMaterial({
-    color: "#4a7c59",
-    roughness: 0.9,
-  });
-  const fieldMesh = new THREE.Mesh(fieldGeometry, fieldMaterial);
-  fieldMesh.rotation.x = -Math.PI / 2;
-  fieldMesh.position.y = 0.03;
-  fieldMesh.receiveShadow = true;
-  field.add(fieldMesh);
-
-  // 跑道线
-  const lineGeometry = new THREE.PlaneGeometry(width * 0.95, 0.15);
-  const lineMaterial = new THREE.MeshBasicMaterial({ color: "#ffffff" });
-  const line1 = new THREE.Mesh(lineGeometry, lineMaterial);
-  line1.rotation.x = -Math.PI / 2;
-  line1.position.y = 0.04;
-  line1.position.z = -depth * 0.3;
-  field.add(line1);
-
-  const line2 = line1.clone();
-  line2.position.z = depth * 0.3;
-  field.add(line2);
-
-  field.position.set(x, 0, z);
-  return field;
-}
-
-// 创建停车场
-function createParkingLot(x: number, z: number, width: number, depth: number): THREE.Group {
-  const lot = new THREE.Group();
-
-  const geometry = new THREE.PlaneGeometry(width, depth);
-  const material = new THREE.MeshStandardMaterial({
-    color: "#4b5563",
-    roughness: 0.95,
-  });
-  const ground = new THREE.Mesh(geometry, material);
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = 0.015;
-  ground.receiveShadow = true;
-  lot.add(ground);
-
-  // 停车位线
-  for (let i = 0; i < Math.floor(width / 2.5); i++) {
-    const lineGeometry = new THREE.PlaneGeometry(0.12, depth * 0.8);
-    const lineMaterial = new THREE.MeshBasicMaterial({ color: "#ffffff" });
-    const line = new THREE.Mesh(lineGeometry, lineMaterial);
-    line.rotation.x = -Math.PI / 2;
-    line.position.set(-width / 2 + 1.25 + i * 2.5, 0.02, 0);
-    lot.add(line);
-  }
-
-  lot.position.set(x, 0, z);
-  return lot;
-}
-
-// 创建湖泊/水景
-function createLake(x: number, z: number, radius: number): THREE.Mesh {
-  const geometry = new THREE.CircleGeometry(radius, 32);
-  const material = new THREE.MeshStandardMaterial({
-    color: "#1e4d6b",
-    roughness: 0.1,
-    metalness: 0.3,
-  });
-  const lake = new THREE.Mesh(geometry, material);
-  lake.rotation.x = -Math.PI / 2;
-  lake.position.set(x, 0.02, z);
-  lake.receiveShadow = true;
-  return lake;
-}
-
-// 创建路灯
-function createStreetLight(x: number, z: number): THREE.Group {
-  const light = new THREE.Group();
-
-  // 灯杆
-  const poleGeometry = new THREE.CylinderGeometry(0.08, 0.1, 4, 8);
-  const poleMaterial = new THREE.MeshStandardMaterial({
-    color: "#6b7280",
-    roughness: 0.4,
-    metalness: 0.6,
-  });
-  const pole = new THREE.Mesh(poleGeometry, poleMaterial);
-  pole.position.y = 2;
-  pole.castShadow = true;
-  light.add(pole);
-
-  // 灯头
-  const headGeometry = new THREE.BoxGeometry(0.8, 0.2, 0.4);
-  const headMaterial = new THREE.MeshStandardMaterial({
-    color: "#fbbf24",
-    roughness: 0.3,
-    emissive: "#fbbf24",
-    emissiveIntensity: 0.3,
-  });
-  const head = new THREE.Mesh(headGeometry, headMaterial);
-  head.position.y = 4;
-  light.add(head);
-
-  light.position.set(x, 0, z);
-  return light;
-}
+// ============================================================
+// Props 接口
+// ============================================================
 
 interface CampusScene3DProps {
   level?: "L1" | "L2" | "L3" | "L4";
@@ -475,36 +22,1334 @@ interface CampusScene3DProps {
   filterType?: string | null;
 }
 
-export function CampusScene3D({ level = "L1", selectedBuilding, onBuildingClick, filterType }: CampusScene3DProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const controlsRef = useRef<OrbitControls | null>(null);
-  const buildingMeshesRef = useRef<Map<string, THREE.Group>>(new Map());
-  const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; building: typeof BUILDINGS[0] } | null>(null);
+// ============================================================
+// 常量
+// ============================================================
 
+const SHADOW_MAP_SIZE = 4096;
+const MAX_POLAR_ANGLE = Math.PI / 2.05;
+const TREE_COUNT = CAMPUS_DATA.trees.length;
+const LIGHT_COUNT = CAMPUS_DATA.streetLights.length;
+
+// LOD 距离阈值
+const LOD_HIGH_DIST = 60;
+const LOD_MID_DIST = 120;
+
+// ============================================================
+// 材质工厂 - PBR 材质系统
+// ============================================================
+
+class MaterialFactory {
+  private cache = new Map<string, THREE.Material>();
+
+  getBuildingWall(color: string): THREE.MeshStandardMaterial {
+    const key = `wall-${color}`;
+    if (!this.cache.has(key)) {
+      this.cache.set(key, new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.75,
+        metalness: 0.05,
+      }));
+    }
+    return this.cache.get(key) as THREE.MeshStandardMaterial;
+  }
+
+  getBuildingRoof(): THREE.MeshStandardMaterial {
+    if (!this.cache.has("roof")) {
+      this.cache.set("roof", new THREE.MeshStandardMaterial({
+        color: "#6b5b4f",
+        roughness: 0.7,
+        metalness: 0.1,
+      }));
+    }
+    return this.cache.get("roof") as THREE.MeshStandardMaterial;
+  }
+
+  getWindowFrame(): THREE.MeshStandardMaterial {
+    if (!this.cache.has("win-frame")) {
+      this.cache.set("win-frame", new THREE.MeshStandardMaterial({
+        color: "#3b4252",
+        roughness: 0.3,
+        metalness: 0.6,
+      }));
+    }
+    return this.cache.get("win-frame") as THREE.MeshStandardMaterial;
+  }
+
+  getWindowGlass(): THREE.MeshPhysicalMaterial {
+    if (!this.cache.has("win-glass")) {
+      this.cache.set("win-glass", new THREE.MeshPhysicalMaterial({
+        color: "#a8d4e6",
+        roughness: 0.05,
+        metalness: 0.9,
+        transmission: 0.2,
+        transparent: true,
+        opacity: 0.8,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+      }));
+    }
+    return this.cache.get("win-glass") as THREE.MeshPhysicalMaterial;
+  }
+
+  getGround(): THREE.MeshStandardMaterial {
+    if (!this.cache.has("ground")) {
+      this.cache.set("ground", new THREE.MeshStandardMaterial({
+        color: "#5a7247",
+        roughness: 0.95,
+      }));
+    }
+    return this.cache.get("ground") as THREE.MeshStandardMaterial;
+  }
+
+  getRoad(type: string): THREE.MeshStandardMaterial {
+    const key = `road-${type}`;
+    if (!this.cache.has(key)) {
+      const colors: Record<string, string> = {
+        main: "#374151",
+        secondary: "#4b5563",
+        sidewalk: "#9ca3af",
+        path: "#a8a29e",
+      };
+      this.cache.set(key, new THREE.MeshStandardMaterial({
+        color: colors[type] || "#374151",
+        roughness: 0.95,
+      }));
+    }
+    return this.cache.get(key) as THREE.MeshStandardMaterial;
+  }
+
+  getEmissionGlow(level: EmissionLevel): THREE.MeshBasicMaterial {
+    const color = getEmissionColor(level);
+    const key = `glow-${level}`;
+    if (!this.cache.has(key)) {
+      this.cache.set(key, new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.08,
+        depthWrite: false,
+      }));
+    }
+    return this.cache.get(key) as THREE.MeshBasicMaterial;
+  }
+
+  dispose(): void {
+    this.cache.forEach((mat) => mat.dispose());
+    this.cache.clear();
+  }
+}
+
+// ============================================================
+// 建筑工厂 - 6种建筑原型
+// ============================================================
+
+class BuildingFactory {
+  private matFactory: MaterialFactory;
+
+  constructor(matFactory: MaterialFactory) {
+    this.matFactory = matFactory;
+  }
+
+  createBuilding(data: BuildingData, lodLevel: "high" | "mid" | "low"): THREE.Group {
+    const group = new THREE.Group();
+    group.userData = { ...data };
+
+    switch (data.type) {
+      case "teaching":
+        this.createTeaching(group, data, lodLevel);
+        break;
+      case "lab":
+        this.createLab(group, data, lodLevel);
+        break;
+      case "library":
+        this.createLibrary(group, data, lodLevel);
+        break;
+      case "dorm":
+        this.createDormitory(group, data, lodLevel);
+        break;
+      case "dining":
+        this.createDining(group, data, lodLevel);
+        break;
+      case "gym":
+        this.createGym(group, data, lodLevel);
+        break;
+      case "admin":
+        this.createAdmin(group, data, lodLevel);
+        break;
+      case "auditorium":
+        this.createAuditorium(group, data, lodLevel);
+        break;
+      case "solar":
+        this.createSolar(group, data, lodLevel);
+        break;
+      default:
+        this.createGenericBox(group, data, lodLevel);
+    }
+
+    // 碳排热力发光层
+    this.addEmissionGlow(group, data);
+
+    // 定位
+    group.position.set(data.x, 0, data.z);
+    if (data.rotation) group.rotation.y = data.rotation;
+
+    return group;
+  }
+
+  /** 教学楼原型: 对称长条体量 + 门廊 + 竖向条窗 */
+  private createTeaching(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height, floors } = data;
+    // 主楼
+    this.addBox(group, width, height, depth, data.color, 0, height / 2, 0, true);
+    // 屋顶女儿墙
+    this.addParapet(group, width, depth, height, data.color);
+    // 翼楼
+    if (data.wings) {
+      for (const w of data.wings) {
+        this.addBox(group, w.width, w.height, w.depth, data.color, w.offsetX, w.height / 2, w.offsetZ, true);
+        this.addParapet(group, w.width, w.depth, w.height, data.color);
+      }
+    }
+    // 门廊
+    if (lod !== "low" && height > 10) {
+      this.addEntranceCanopy(group, width, depth, height, 2.5, 3.5);
+    }
+    // 窗户
+    if (lod === "high") {
+      this.addWindows(group, width, depth, height, floors, 1.8, 2.4);
+    } else if (lod === "mid") {
+      this.addWindowsSimple(group, width, depth, height, floors);
+    }
+  }
+
+  /** 实验楼原型: 主体 + 侧翼设备间 + 较大窗户 */
+  private createLab(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height, floors } = data;
+    this.addBox(group, width, height, depth, data.color, 0, height / 2, 0, true);
+    this.addParapet(group, width, depth, height, data.color);
+    // 翼楼
+    if (data.wings) {
+      for (const w of data.wings) {
+        this.addBox(group, w.width, w.height, w.depth, data.color, w.offsetX, w.height / 2, w.offsetZ, true);
+        this.addParapet(group, w.width, w.depth, w.height, data.color);
+      }
+    }
+    if (lod !== "low" && height > 10) {
+      this.addEntranceCanopy(group, width, depth, height, 2, 3);
+    }
+    if (lod === "high") {
+      this.addWindows(group, width, depth, height, floors, 2.0, 2.8);
+    } else if (lod === "mid") {
+      this.addWindowsSimple(group, width, depth, height, floors);
+    }
+  }
+
+  /** 图书馆原型: 中心大体量 + 两翼 + 挑高大堂 */
+  private createLibrary(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height, floors } = data;
+    // 中心塔楼
+    const towerW = width * 0.55;
+    const towerD = depth * 0.6;
+    this.addBox(group, towerW, height, towerD, data.color, 0, height / 2, 0, true);
+    this.addParapet(group, towerW, towerD, height, data.color);
+    // 两翼
+    if (data.wings) {
+      for (const w of data.wings) {
+        this.addBox(group, w.width, w.height, w.depth, data.color, w.offsetX, w.height / 2, w.offsetZ, true);
+        this.addParapet(group, w.width, w.depth, w.height, data.color);
+      }
+    }
+    // 大台阶
+    if (lod !== "low") {
+      const stepGeo = new THREE.BoxGeometry(width * 0.6, 1.2, 4);
+      const stepMat = this.matFactory.getBuildingWall("#9ca3af");
+      const step = new THREE.Mesh(stepGeo, stepMat);
+      step.position.set(0, 0.6, depth / 2 + 2);
+      step.castShadow = true;
+      step.receiveShadow = true;
+      group.add(step);
+    }
+    if (lod === "high") {
+      this.addWindows(group, towerW, towerD, height, floors, 2.2, 3.2);
+    } else if (lod === "mid") {
+      this.addWindowsSimple(group, width, depth, height, floors);
+    }
+  }
+
+  /** 宿舍楼原型: 简洁板楼 + 阳台条纹 */
+  private createDormitory(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height, floors } = data;
+    this.addBox(group, width, height, depth, data.color, 0, height / 2, 0, true);
+    this.addParapet(group, width, depth, height, data.color);
+    // 阳台条纹
+    if (lod !== "low") {
+      const floorH = height / floors;
+      for (let i = 1; i < floors; i++) {
+        const balGeo = new THREE.BoxGeometry(width + 0.4, 0.15, 0.8);
+        const balMat = this.matFactory.getBuildingWall("#8b7355");
+        const bal = new THREE.Mesh(balGeo, balMat);
+        bal.position.set(0, i * floorH, depth / 2 + 0.4);
+        bal.castShadow = true;
+        group.add(bal);
+      }
+    }
+    if (lod === "high") {
+      this.addWindows(group, width, depth, height, floors, 1.4, 1.8);
+    } else if (lod === "mid") {
+      this.addWindowsSimple(group, width, depth, height, floors);
+    }
+  }
+
+  /** 食堂原型: 矮胖体量 + 大玻璃幕墙 + 排烟口 */
+  private createDining(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height, floors } = data;
+    this.addBox(group, width, height, depth, data.color, 0, height / 2, 0, true);
+    // 斜屋顶
+    const roofGeo = new THREE.BoxGeometry(width + 1, 0.3, depth + 1);
+    const roofMat = this.matFactory.getBuildingRoof();
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.y = height + 0.15;
+    roof.castShadow = true;
+    group.add(roof);
+    // 排烟口
+    if (lod !== "low") {
+      const chimneyGeo = new THREE.BoxGeometry(1.5, 2, 1.5);
+      const chimneyMat = this.matFactory.getBuildingWall("#6b7280");
+      const chimney = new THREE.Mesh(chimneyGeo, chimneyMat);
+      chimney.position.set(width / 4, height + 1, depth / 4);
+      chimney.castShadow = true;
+      group.add(chimney);
+    }
+    if (lod === "high") {
+      // 大玻璃幕墙
+      const glassGeo = new THREE.PlaneGeometry(width * 0.8, height * 0.6);
+      const glassMat = this.matFactory.getWindowGlass();
+      const glass = new THREE.Mesh(glassGeo, glassMat);
+      glass.position.set(0, height * 0.45, depth / 2 + 0.05);
+      group.add(glass);
+    } else if (lod === "mid") {
+      this.addWindowsSimple(group, width, depth, height, floors);
+    }
+  }
+
+  /** 体育馆原型: 大跨度弧顶 + 金属质感 */
+  private createGym(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height } = data;
+    // 主体
+    this.addBox(group, width, height * 0.7, depth, data.color, 0, height * 0.35, 0, true);
+    // 弧顶
+    const arcGeo = new THREE.CylinderGeometry(
+      Math.max(0.1, width / 2),
+      Math.max(0.1, width / 2),
+      depth,
+      16, 1, true, 0, Math.PI
+    );
+    const arcMat = new THREE.MeshStandardMaterial({
+      color: "#a0b0c0",
+      roughness: 0.3,
+      metalness: 0.7,
+      side: THREE.DoubleSide,
+    });
+    const arc = new THREE.Mesh(arcGeo, arcMat);
+    arc.rotation.z = Math.PI / 2;
+    arc.rotation.y = Math.PI / 2;
+    arc.position.set(0, height * 0.7, 0);
+    arc.castShadow = true;
+    group.add(arc);
+    if (lod !== "low") {
+      // 入口
+      this.addEntranceCanopy(group, width * 0.5, depth, height * 0.7, 4, 3);
+    }
+  }
+
+  /** 行政楼原型: 庄重对称 + 柱廊 */
+  private createAdmin(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height, floors } = data;
+    this.addBox(group, width, height, depth, data.color, 0, height / 2, 0, true);
+    this.addParapet(group, width, depth, height, data.color);
+    // 柱廊
+    if (lod !== "low") {
+      const pillarCount = 5;
+      const spacing = width / (pillarCount + 1);
+      const pillarGeo = new THREE.CylinderGeometry(0.3, 0.35, height * 0.5, 8);
+      const pillarMat = this.matFactory.getBuildingWall("#d4c5b0");
+      for (let i = 0; i < pillarCount; i++) {
+        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+        pillar.position.set(-width / 2 + spacing * (i + 1), height * 0.25, depth / 2 + 1.5);
+        pillar.castShadow = true;
+        group.add(pillar);
+      }
+      // 柱廊顶
+      const porchGeo = new THREE.BoxGeometry(width + 1, 0.3, 3.5);
+      const porchMat = this.matFactory.getBuildingRoof();
+      const porch = new THREE.Mesh(porchGeo, porchMat);
+      porch.position.set(0, height * 0.5, depth / 2 + 1.75);
+      porch.castShadow = true;
+      group.add(porch);
+    }
+    if (lod === "high") {
+      this.addWindows(group, width, depth, height, floors, 1.8, 2.4);
+    } else if (lod === "mid") {
+      this.addWindowsSimple(group, width, depth, height, floors);
+    }
+  }
+
+  /** 大礼堂原型: 椭圆体量 + 拱顶 */
+  private createAuditorium(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height } = data;
+    // 主体
+    this.addBox(group, width, height * 0.6, depth, data.color, 0, height * 0.3, 0, true);
+    // 拱顶
+    const domeRadius = Math.max(0.1, Math.min(width, depth) / 2);
+    const domeGeo = new THREE.SphereGeometry(domeRadius, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+    const domeMat = new THREE.MeshStandardMaterial({
+      color: "#b8a088",
+      roughness: 0.5,
+      metalness: 0.3,
+    });
+    const dome = new THREE.Mesh(domeGeo, domeMat);
+    dome.position.set(0, height * 0.6, 0);
+    dome.scale.set(width / (domeRadius * 2), (height * 0.4) / domeRadius, depth / (domeRadius * 2));
+    dome.castShadow = true;
+    group.add(dome);
+    // 门廊台阶
+    if (lod !== "low") {
+      const stepGeo = new THREE.BoxGeometry(width * 0.4, 1.5, 5);
+      const stepMat = this.matFactory.getBuildingWall("#9ca3af");
+      const step = new THREE.Mesh(stepGeo, stepMat);
+      step.position.set(0, 0.75, depth / 2 + 2.5);
+      step.castShadow = true;
+      group.add(step);
+    }
+  }
+
+  /** 光伏配电房原型: 矮平顶 + 太阳能板 */
+  private createSolar(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height } = data;
+    this.addBox(group, width, height, depth, data.color, 0, height / 2, 0, true);
+    // 太阳能板
+    if (lod !== "low") {
+      const panelGeo = new THREE.BoxGeometry(width * 0.9, 0.15, depth * 0.9);
+      const panelMat = new THREE.MeshStandardMaterial({
+        color: "#1a3a5c",
+        roughness: 0.1,
+        metalness: 0.9,
+      });
+      const panel = new THREE.Mesh(panelGeo, panelMat);
+      panel.position.set(0, height + 1, 0);
+      panel.rotation.x = -0.3;
+      panel.castShadow = true;
+      group.add(panel);
+    }
+  }
+
+  /** 通用盒子建筑 */
+  private createGenericBox(group: THREE.Group, data: BuildingData, lod: string): void {
+    const { width, depth, height, floors } = data;
+    this.addBox(group, width, height, depth, data.color, 0, height / 2, 0, true);
+    this.addParapet(group, width, depth, height, data.color);
+    if (lod === "high") {
+      this.addWindows(group, width, depth, height, floors, 1.8, 2.4);
+    } else if (lod === "mid") {
+      this.addWindowsSimple(group, width, depth, height, floors);
+    }
+  }
+
+  // ── 通用零件 ──
+
+  private addBox(
+    group: THREE.Group,
+    w: number, h: number, d: number,
+    color: string,
+    x: number, y: number, z: number,
+    shadow: boolean
+  ): void {
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const mat = this.matFactory.getBuildingWall(color);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = shadow;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  }
+
+  private addParapet(group: THREE.Group, w: number, d: number, h: number, color: string): void {
+    const pH = 0.5;
+    const pT = 0.15;
+    const roofH = 0.3;
+    const baseY = h + roofH + pH / 2;
+    // 前后
+    const fbGeo = new THREE.BoxGeometry(w + 0.4, pH, pT);
+    const mat = this.matFactory.getBuildingWall(color);
+    const front = new THREE.Mesh(fbGeo, mat);
+    front.position.set(0, baseY, d / 2 + 0.2);
+    group.add(front);
+    const back = new THREE.Mesh(fbGeo, mat);
+    back.position.set(0, baseY, -d / 2 - 0.2);
+    group.add(back);
+    // 左右
+    const lrGeo = new THREE.BoxGeometry(pT, pH, d + 0.4);
+    const left = new THREE.Mesh(lrGeo, mat);
+    left.position.set(-w / 2 - 0.2, baseY, 0);
+    group.add(left);
+    const right = new THREE.Mesh(lrGeo, mat);
+    right.position.set(w / 2 + 0.2, baseY, 0);
+    group.add(right);
+    // 屋顶
+    const roofGeo = new THREE.BoxGeometry(w + 0.6, roofH, d + 0.6);
+    const roofMat = this.matFactory.getBuildingRoof();
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.y = h + roofH / 2;
+    roof.castShadow = true;
+    group.add(roof);
+  }
+
+  private addEntranceCanopy(
+    group: THREE.Group,
+    bw: number, bd: number, bh: number,
+    cw: number, ch: number
+  ): void {
+    const doorGeo = new THREE.BoxGeometry(cw, ch, 2);
+    const doorMat = this.matFactory.getBuildingWall("#374151");
+    const door = new THREE.Mesh(doorGeo, doorMat);
+    door.position.set(0, ch / 2, bd / 2 + 1);
+    door.castShadow = true;
+    group.add(door);
+    // 顶
+    const topGeo = new THREE.BoxGeometry(cw + 1, 0.2, 3);
+    const topMat = this.matFactory.getBuildingWall("#6b7280");
+    const top = new THREE.Mesh(topGeo, topMat);
+    top.position.set(0, ch, bd / 2 + 1.5);
+    top.castShadow = true;
+    group.add(top);
+    // 柱
+    const pillarGeo = new THREE.CylinderGeometry(0.15, 0.15, ch, 8);
+    const pillarMat = this.matFactory.getBuildingWall("#9ca3af");
+    const p1 = new THREE.Mesh(pillarGeo, pillarMat);
+    p1.position.set(-cw / 2, ch / 2, bd / 2 + 2);
+    p1.castShadow = true;
+    group.add(p1);
+    const p2 = new THREE.Mesh(pillarGeo, pillarMat);
+    p2.position.set(cw / 2, ch / 2, bd / 2 + 2);
+    p2.castShadow = true;
+    group.add(p2);
+  }
+
+  /** 高LOD窗户 - 带窗框和玻璃 */
+  private addWindows(
+    group: THREE.Group,
+    w: number, d: number, h: number,
+    floors: number,
+    winW: number, winH: number
+  ): void {
+    const floorH = h / floors;
+    const frameMat = this.matFactory.getWindowFrame();
+    const glassMat = this.matFactory.getWindowGlass();
+
+    // 前后面窗户
+    const colsFront = Math.max(1, Math.floor(w / (winW + 0.6)));
+    const spacingFront = w / (colsFront + 0.5);
+
+    for (let row = 0; row < floors; row++) {
+      for (let col = 0; col < colsFront; col++) {
+        const px = -w / 2 + spacingFront * (col + 0.75);
+        const py = floorH * 0.55 + row * floorH;
+
+        // 前面
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.06), frameMat);
+        frame.position.set(px, py, d / 2 + 0.03);
+        group.add(frame);
+        const glass = new THREE.Mesh(new THREE.BoxGeometry(winW - 0.12, winH - 0.12, 0.04), glassMat);
+        glass.position.set(px, py, d / 2 + 0.05);
+        group.add(glass);
+
+        // 后面
+        const frameB = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.06), frameMat);
+        frameB.position.set(px, py, -d / 2 - 0.03);
+        group.add(frameB);
+        const glassB = new THREE.Mesh(new THREE.BoxGeometry(winW - 0.12, winH - 0.12, 0.04), glassMat);
+        glassB.position.set(px, py, -d / 2 - 0.05);
+        group.add(glassB);
+      }
+    }
+
+    // 侧面窗户
+    const colsSide = Math.max(1, Math.floor(d / (winW + 0.6)));
+    const spacingSide = d / (colsSide + 0.5);
+
+    for (let row = 0; row < floors; row++) {
+      for (let col = 0; col < colsSide; col++) {
+        const pz = -d / 2 + spacingSide * (col + 0.75);
+        const py = floorH * 0.55 + row * floorH;
+
+        // 右
+        const frameR = new THREE.Mesh(new THREE.BoxGeometry(0.06, winH, winW), frameMat);
+        frameR.position.set(w / 2 + 0.03, py, pz);
+        group.add(frameR);
+        const glassR = new THREE.Mesh(new THREE.BoxGeometry(0.04, winH - 0.12, winW - 0.12), glassMat);
+        glassR.position.set(w / 2 + 0.05, py, pz);
+        group.add(glassR);
+
+        // 左
+        const frameL = new THREE.Mesh(new THREE.BoxGeometry(0.06, winH, winW), frameMat);
+        frameL.position.set(-w / 2 - 0.03, py, pz);
+        group.add(frameL);
+        const glassL = new THREE.Mesh(new THREE.BoxGeometry(0.04, winH - 0.12, winW - 0.12), glassMat);
+        glassL.position.set(-w / 2 - 0.05, py, pz);
+        group.add(glassL);
+      }
+    }
+  }
+
+  /** 中LOD窗户 - 简化纹理条 */
+  private addWindowsSimple(
+    group: THREE.Group,
+    w: number, d: number, h: number,
+    floors: number
+  ): void {
+    const floorH = h / floors;
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: "#7baac4",
+      roughness: 0.2,
+      metalness: 0.5,
+      transparent: true,
+      opacity: 0.6,
+    });
+
+    for (let row = 0; row < floors; row++) {
+      const y = floorH * 0.55 + row * floorH;
+      const stripH = floorH * 0.45;
+
+      // 前后
+      const stripFGeo = new THREE.PlaneGeometry(w * 0.85, stripH);
+      const stripF = new THREE.Mesh(stripFGeo, glassMat);
+      stripF.position.set(0, y, d / 2 + 0.05);
+      group.add(stripF);
+      const stripB = new THREE.Mesh(stripFGeo, glassMat);
+      stripB.position.set(0, y, -d / 2 - 0.05);
+      stripB.rotation.y = Math.PI;
+      group.add(stripB);
+
+      // 左右
+      const stripSGeo = new THREE.PlaneGeometry(d * 0.85, stripH);
+      const stripR = new THREE.Mesh(stripSGeo, glassMat);
+      stripR.position.set(w / 2 + 0.05, y, 0);
+      stripR.rotation.y = -Math.PI / 2;
+      group.add(stripR);
+      const stripL = new THREE.Mesh(stripSGeo, glassMat);
+      stripL.position.set(-w / 2 - 0.05, y, 0);
+      stripL.rotation.y = Math.PI / 2;
+      group.add(stripL);
+    }
+  }
+
+  /** 碳排热力发光层 */
+  private addEmissionGlow(group: THREE.Group, data: BuildingData): void {
+    const maxDim = Math.max(data.width, data.depth, data.height);
+    const glowSize = maxDim * 1.15;
+    const glowGeo = new THREE.BoxGeometry(glowSize, data.height * 1.1, glowSize);
+    const glowMat = this.matFactory.getEmissionGlow(data.emissionLevel);
+    const glow = new THREE.Mesh(glowGeo, glowMat);
+    glow.position.y = data.height / 2;
+    glow.name = "emission-glow";
+    group.add(glow);
+  }
+}
+
+// ============================================================
+// 环境系统 - InstancedMesh 树木/路灯 + 道路/绿地/水系
+// ============================================================
+
+class EnvironmentSystem {
+  private matFactory: MaterialFactory;
+
+  constructor(matFactory: MaterialFactory) {
+    this.matFactory = matFactory;
+  }
+
+  /** 创建 InstancedMesh 树木 */
+  createTrees(data: CampusData): THREE.InstancedMesh {
+    // 共享几何体 - 多变体通过缩放实现
+    const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 2.5, 6);
+    const crownGeo = new THREE.SphereGeometry(1.8, 8, 6);
+
+    // 合并为一个几何体
+    const treeGeo = new THREE.Group();
+    const trunkMesh = new THREE.Mesh(trunkGeo, new THREE.MeshStandardMaterial({ color: "#5c4033", roughness: 0.9 }));
+    trunkMesh.position.y = 1.25;
+    treeGeo.add(trunkMesh);
+
+    const crownColors = ["#2d5016", "#3d6b1f", "#4a7c28"];
+    for (let i = 0; i < 3; i++) {
+      const crown = new THREE.Mesh(
+        new THREE.SphereGeometry(1.8 - i * 0.3, 8, 6),
+        new THREE.MeshStandardMaterial({ color: crownColors[i], roughness: 0.85 })
+      );
+      crown.position.y = 3 + i * 0.5;
+      treeGeo.add(crown);
+    }
+
+    // 使用简单的树形 InstancedMesh: 树干+树冠合并
+    // 简化方案: 一个圆柱+球体的 InstancedMesh
+    const mergedTreeGeo = new THREE.BufferGeometry();
+    
+    // 树干
+    const tGeo = new THREE.CylinderGeometry(0.12, 0.2, 2.5, 6);
+    tGeo.translate(0, 1.25, 0);
+    
+    // 树冠 - 3层
+    const c1 = new THREE.SphereGeometry(1.8, 8, 6);
+    c1.translate(0, 3.5, 0);
+    const c2 = new THREE.SphereGeometry(1.5, 8, 6);
+    c2.translate(0, 4.2, 0);
+    const c3 = new THREE.SphereGeometry(1.1, 8, 6);
+    c3.translate(0, 4.8, 0);
+
+    // 合并几何体
+    const geometries = [tGeo, c1, c2, c3];
+    const merged = mergeGeometries(geometries);
+    
+    const treeMat = new THREE.MeshStandardMaterial({
+      color: "#3d6b1f",
+      roughness: 0.85,
+    });
+
+    const instancedMesh = new THREE.InstancedMesh(merged, treeMat, TREE_COUNT);
+    instancedMesh.castShadow = true;
+    instancedMesh.receiveShadow = true;
+
+    const dummy = new THREE.Object3D();
+    data.trees.forEach((tree, i) => {
+      dummy.position.set(tree.x, 0, tree.z);
+      dummy.scale.set(tree.scale, tree.scale, tree.scale);
+      dummy.updateMatrix();
+      instancedMesh.setMatrixAt(i, dummy.matrix);
+    });
+    instancedMesh.instanceMatrix.needsUpdate = true;
+
+    return instancedMesh;
+  }
+
+  /** 创建 InstancedMesh 路灯 */
+  createStreetLights(data: CampusData): THREE.InstancedMesh {
+    // 灯杆几何体
+    const poleGeo = new THREE.CylinderGeometry(0.08, 0.1, 4, 6);
+    poleGeo.translate(0, 2, 0);
+    const headGeo = new THREE.BoxGeometry(0.8, 0.2, 0.4);
+    headGeo.translate(0, 4.1, 0);
+
+    const merged = mergeGeometries([poleGeo, headGeo]);
+    const lightMat = new THREE.MeshStandardMaterial({
+      color: "#6b7280",
+      roughness: 0.4,
+      metalness: 0.6,
+      emissive: "#fbbf24",
+      emissiveIntensity: 0.15,
+    });
+
+    const instancedMesh = new THREE.InstancedMesh(merged, lightMat, LIGHT_COUNT);
+    instancedMesh.castShadow = true;
+
+    const dummy = new THREE.Object3D();
+    data.streetLights.forEach((light, i) => {
+      dummy.position.set(light.x, 0, light.z);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      instancedMesh.setMatrixAt(i, dummy.matrix);
+    });
+    instancedMesh.instanceMatrix.needsUpdate = true;
+
+    return instancedMesh;
+  }
+
+  /** 创建道路 */
+  createRoads(data: CampusData): THREE.Group {
+    const roadsGroup = new THREE.Group();
+
+    for (const road of data.roads) {
+      if (road.points.length < 2) continue;
+
+      // 将折线点转换为路段
+      for (let i = 0; i < road.points.length - 1; i++) {
+        const p1 = road.points[i];
+        const p2 = road.points[i + 1];
+        const dx = p2.x - p1.x;
+        const dz = p2.z - p1.z;
+        const length = Math.sqrt(dx * dx + dz * dz);
+        const angle = Math.atan2(dx, dz);
+
+        const roadGeo = new THREE.PlaneGeometry(road.width, length);
+        const roadMat = this.matFactory.getRoad(road.type);
+        const roadMesh = new THREE.Mesh(roadGeo, roadMat);
+        roadMesh.rotation.x = -Math.PI / 2;
+        roadMesh.rotation.z = -angle;
+        roadMesh.position.set(
+          (p1.x + p2.x) / 2,
+          0.02,
+          (p1.z + p2.z) / 2
+        );
+        roadMesh.receiveShadow = true;
+        roadsGroup.add(roadMesh);
+      }
+
+      // 主干道中心线
+      if (road.type === "main" && road.points.length >= 2) {
+        for (let i = 0; i < road.points.length - 1; i++) {
+          const p1 = road.points[i];
+          const p2 = road.points[i + 1];
+          const dx = p2.x - p1.x;
+          const dz = p2.z - p1.z;
+          const length = Math.sqrt(dx * dx + dz * dz);
+          const angle = Math.atan2(dx, dz);
+
+          const lineGeo = new THREE.PlaneGeometry(0.15, length);
+          const lineMat = new THREE.MeshBasicMaterial({ color: "#ffffff" });
+          const lineMesh = new THREE.Mesh(lineGeo, lineMat);
+          lineMesh.rotation.x = -Math.PI / 2;
+          lineMesh.rotation.z = -angle;
+          lineMesh.position.set(
+            (p1.x + p2.x) / 2,
+            0.03,
+            (p1.z + p2.z) / 2
+          );
+          roadsGroup.add(lineMesh);
+        }
+      }
+    }
+
+    return roadsGroup;
+  }
+
+  /** 创建绿地 */
+  createGreenSpaces(data: CampusData): THREE.Group {
+    const greenGroup = new THREE.Group();
+
+    for (const gs of data.greenSpaces) {
+      const geo = new THREE.PlaneGeometry(gs.width, gs.depth);
+      const colors: Record<string, string> = {
+        lawn: "#5a7247",
+        flowerbed: "#6b8e4e",
+        hedge: "#3d5c2e",
+      };
+      const mat = new THREE.MeshStandardMaterial({
+        color: colors[gs.type] || "#5a7247",
+        roughness: 0.95,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(gs.x, 0.005, gs.z);
+      if (gs.rotation) mesh.rotation.z = gs.rotation;
+      mesh.receiveShadow = true;
+      greenGroup.add(mesh);
+    }
+
+    return greenGroup;
+  }
+
+  /** 创建水系 */
+  createWaterBodies(data: CampusData): THREE.Group {
+    const waterGroup = new THREE.Group();
+
+    for (const wb of data.waterBodies) {
+      const geo = new THREE.CircleGeometry(1, 32);
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: "#1e4d6b",
+        roughness: 0.05,
+        metalness: 0.3,
+        transmission: 0.1,
+        clearcoat: 0.8,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(wb.x, 0.02, wb.z);
+      mesh.scale.set(wb.radiusX, wb.radiusZ, 1);
+      mesh.receiveShadow = true;
+      waterGroup.add(mesh);
+    }
+
+    return waterGroup;
+  }
+
+  /** 创建运动场 */
+  createSportsFields(data: CampusData): THREE.Group {
+    const sportsGroup = new THREE.Group();
+
+    for (const sf of data.sportsFields) {
+      const fieldGroup = new THREE.Group();
+
+      if (sf.type === "track") {
+        // 跑道
+        const trackGeo = new THREE.PlaneGeometry(sf.width, sf.depth);
+        const trackMat = new THREE.MeshStandardMaterial({ color: "#c45c3d", roughness: 0.9 });
+        const track = new THREE.Mesh(trackGeo, trackMat);
+        track.rotation.x = -Math.PI / 2;
+        track.position.y = 0.02;
+        track.receiveShadow = true;
+        fieldGroup.add(track);
+
+        // 草坪
+        const fieldGeo = new THREE.PlaneGeometry(sf.width * 0.55, sf.depth * 0.55);
+        const fieldMat = new THREE.MeshStandardMaterial({ color: "#4a7c59", roughness: 0.9 });
+        const field = new THREE.Mesh(fieldGeo, fieldMat);
+        field.rotation.x = -Math.PI / 2;
+        field.position.y = 0.03;
+        field.receiveShadow = true;
+        fieldGroup.add(field);
+
+        // 跑道线
+        for (let i = 0; i < 4; i++) {
+          const lineGeo = new THREE.PlaneGeometry(sf.width * (0.95 - i * 0.1), 0.12);
+          const lineMat = new THREE.MeshBasicMaterial({ color: "#ffffff" });
+          const line = new THREE.Mesh(lineGeo, lineMat);
+          line.rotation.x = -Math.PI / 2;
+          line.position.y = 0.04;
+          line.position.z = -sf.depth * 0.35 + i * sf.depth * 0.23;
+          fieldGroup.add(line);
+        }
+      } else if (sf.type === "basketball") {
+        const courtGeo = new THREE.PlaneGeometry(sf.width, sf.depth);
+        const courtMat = new THREE.MeshStandardMaterial({ color: "#c47a3d", roughness: 0.9 });
+        const court = new THREE.Mesh(courtGeo, courtMat);
+        court.rotation.x = -Math.PI / 2;
+        court.position.y = 0.02;
+        court.receiveShadow = true;
+        fieldGroup.add(court);
+      } else if (sf.type === "tennis") {
+        const courtGeo = new THREE.PlaneGeometry(sf.width, sf.depth);
+        const courtMat = new THREE.MeshStandardMaterial({ color: "#2d6b3e", roughness: 0.9 });
+        const court = new THREE.Mesh(courtGeo, courtMat);
+        court.rotation.x = -Math.PI / 2;
+        court.position.y = 0.02;
+        court.receiveShadow = true;
+        fieldGroup.add(court);
+      }
+
+      fieldGroup.position.set(sf.x, 0, sf.z);
+      if (sf.rotation) fieldGroup.rotation.y = sf.rotation;
+      sportsGroup.add(fieldGroup);
+    }
+
+    return sportsGroup;
+  }
+
+  /** 创建停车场 */
+  createParkingLots(data: CampusData): THREE.Group {
+    const parkingGroup = new THREE.Group();
+
+    for (const pl of data.parkingLots) {
+      const lotGroup = new THREE.Group();
+      const groundGeo = new THREE.PlaneGeometry(pl.width, pl.depth);
+      const groundMat = new THREE.MeshStandardMaterial({ color: "#4b5563", roughness: 0.95 });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = 0.015;
+      ground.receiveShadow = true;
+      lotGroup.add(ground);
+
+      // 停车位线
+      const spotCount = Math.floor(pl.width / 2.5);
+      for (let i = 0; i < spotCount; i++) {
+        const lineGeo = new THREE.PlaneGeometry(0.1, pl.depth * 0.8);
+        const lineMat = new THREE.MeshBasicMaterial({ color: "#ffffff" });
+        const line = new THREE.Mesh(lineGeo, lineMat);
+        line.rotation.x = -Math.PI / 2;
+        line.position.set(-pl.width / 2 + 1.25 + i * 2.5, 0.02, 0);
+        lotGroup.add(line);
+      }
+
+      lotGroup.position.set(pl.x, 0, pl.z);
+      parkingGroup.add(lotGroup);
+    }
+
+    return parkingGroup;
+  }
+
+  /** 创建地面 */
+  createGround(): THREE.Mesh {
+    const groundGeo = new THREE.PlaneGeometry(250, 200);
+    const groundMat = this.matFactory.getGround();
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.01;
+    ground.receiveShadow = true;
+    return ground;
+  }
+}
+
+// ============================================================
+// 几何体合并工具
+// ============================================================
+
+function mergeGeometries(geometries: THREE.BufferGeometry[]): THREE.BufferGeometry {
+  const merged = new THREE.BufferGeometry();
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const indices: number[] = [];
+  let vertexOffset = 0;
+
+  for (const geo of geometries) {
+    const posAttr = geo.getAttribute("position");
+    const normAttr = geo.getAttribute("normal");
+    const idxAttr = geo.getIndex();
+
+    for (let i = 0; i < posAttr.count; i++) {
+      positions.push(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i));
+      if (normAttr) {
+        normals.push(normAttr.getX(i), normAttr.getY(i), normAttr.getZ(i));
+      }
+    }
+
+    if (idxAttr) {
+      for (let i = 0; i < idxAttr.count; i++) {
+        indices.push(idxAttr.getX(i) + vertexOffset);
+      }
+    }
+
+    vertexOffset += posAttr.count;
+  }
+
+  merged.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  if (normals.length > 0) {
+    merged.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+  }
+  if (indices.length > 0) {
+    merged.setIndex(indices);
+  }
+
+  return merged;
+}
+
+// ============================================================
+// LOD 管理器
+// ============================================================
+
+class LODManager {
+  private camera: THREE.PerspectiveCamera;
+  private buildingGroups: Map<string, THREE.LOD> = new Map();
+  private buildingFactory: BuildingFactory;
+  private matFactory: MaterialFactory;
+
+  constructor(camera: THREE.PerspectiveCamera, matFactory: MaterialFactory) {
+    this.camera = camera;
+    this.matFactory = matFactory;
+    this.buildingFactory = new BuildingFactory(matFactory);
+  }
+
+  addBuilding(data: BuildingData): THREE.LOD {
+    const lod = new THREE.LOD();
+
+    // 高精度模型
+    const highModel = this.buildingFactory.createBuilding(data, "high");
+    lod.addLevel(highModel, 0);
+
+    // 中精度模型
+    const midModel = this.buildingFactory.createBuilding(data, "mid");
+    lod.addLevel(midModel, LOD_HIGH_DIST);
+
+    // 低精度模型
+    const lowModel = this.buildingFactory.createBuilding(data, "low");
+    lod.addLevel(lowModel, LOD_MID_DIST);
+
+    this.buildingGroups.set(data.buildingId, lod);
+    return lod;
+  }
+
+  update(): void {
+    this.buildingGroups.forEach((lod) => {
+      lod.update(this.camera);
+    });
+  }
+
+  getBuildingGroup(buildingId: string): THREE.Group | null {
+    const lod = this.buildingGroups.get(buildingId);
+    if (!lod) return null;
+    // 获取当前可见级别
+    return lod.levels[0]?.object as THREE.Group;
+  }
+}
+
+// ============================================================
+// 交互管理器
+// ============================================================
+
+class InteractionManager {
+  private container: HTMLDivElement;
+  private camera: THREE.PerspectiveCamera;
+  private raycaster: THREE.Raycaster;
+  private mouse: THREE.Vector2;
+  private buildingMeshes: Map<string, THREE.LOD>;
+  private onBuildingClick: ((id: string) => void) | undefined;
+  private hoveredBuildingId: string | null = null;
+  private previousHovered: THREE.Mesh | null = null;
+  private onHover: ((id: string | null, x: number, y: number, data: BuildingData | null) => void) | undefined;
+  private allBuildingObjects: THREE.Object3D[] = [];
+
+  constructor(
+    container: HTMLDivElement,
+    camera: THREE.PerspectiveCamera,
+    buildingMeshes: Map<string, THREE.LOD>,
+    onBuildingClick: ((id: string) => void) | undefined,
+    onHover: ((id: string | null, x: number, y: number, data: BuildingData | null) => void) | undefined,
+  ) {
+    this.container = container;
+    this.camera = camera;
+    this.buildingMeshes = buildingMeshes;
+    this.onBuildingClick = onBuildingClick;
+    this.onHover = onHover;
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+
+    // 收集所有建筑子对象用于射线检测
+    this.buildingMeshes.forEach((lod) => {
+      lod.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          this.allBuildingObjects.push(child);
+        }
+      });
+    });
+
+    this.container.addEventListener("mousemove", this.handleMouseMove);
+    this.container.addEventListener("click", this.handleClick);
+  }
+
+  private handleMouseMove = (event: MouseEvent): void => {
+    const rect = this.container.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const intersects = this.raycaster.intersectObjects(this.allBuildingObjects, false);
+
+    // 重置之前的悬停
+    if (this.previousHovered) {
+      this.previousHovered = null;
+    }
+
+    if (intersects.length > 0) {
+      let target = intersects[0].object;
+      // 向上查找到 LOD 中的 Group
+      while (target.parent && !target.userData.buildingId) {
+        target = target.parent;
+      }
+      if (target.userData.buildingId) {
+        this.hoveredBuildingId = target.userData.buildingId;
+        this.container.style.cursor = "pointer";
+        if (this.onHover) {
+          this.onHover(
+            target.userData.buildingId,
+            event.clientX - rect.left,
+            event.clientY - rect.top,
+            target.userData as BuildingData,
+          );
+        }
+        return;
+      }
+    }
+
+    this.hoveredBuildingId = null;
+    this.container.style.cursor = "default";
+    if (this.onHover) {
+      this.onHover(null, 0, 0, null);
+    }
+  };
+
+  private handleClick = (): void => {
+    if (this.hoveredBuildingId && this.onBuildingClick) {
+      this.onBuildingClick(this.hoveredBuildingId);
+    }
+  };
+
+  getHoveredBuildingId(): string | null {
+    return this.hoveredBuildingId;
+  }
+
+  updateBuildingCollection(buildingMeshes: Map<string, THREE.LOD>): void {
+    this.buildingMeshes = buildingMeshes;
+    this.allBuildingObjects = [];
+    this.buildingMeshes.forEach((lod) => {
+      lod.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          this.allBuildingObjects.push(child);
+        }
+      });
+    });
+  }
+
+  dispose(): void {
+    this.container.removeEventListener("mousemove", this.handleMouseMove);
+    this.container.removeEventListener("click", this.handleClick);
+  }
+}
+
+// ============================================================
+// 碳排动态变色管理器
+// ============================================================
+
+class EmissionColorManager {
+  private buildingMeshes: Map<string, THREE.LOD>;
+
+  constructor(buildingMeshes: Map<string, THREE.LOD>) {
+    this.buildingMeshes = buildingMeshes;
+  }
+
+  /** 更新建筑碳排发光层 */
+  updateEmissionColors(emissionMap: Map<string, EmissionLevel>): void {
+    this.buildingMeshes.forEach((lod, buildingId) => {
+      const level = emissionMap.get(buildingId);
+      if (!level) return;
+
+      lod.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.name === "emission-glow") {
+          const color = getEmissionColor(level);
+          if (child.material instanceof THREE.MeshBasicMaterial) {
+            child.material.color.set(color);
+          }
+        }
+      });
+    });
+  }
+
+  /** 设置建筑高亮状态 */
+  setHighlight(buildingId: string, isHighlighted: boolean): void {
+    const lod = this.buildingMeshes.get(buildingId);
+    if (!lod) return;
+
+    lod.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.name === "emission-glow") {
+        if (child.material instanceof THREE.MeshBasicMaterial) {
+          child.material.opacity = isHighlighted ? 0.25 : 0.08;
+        }
+      }
+    });
+  }
+
+  /** 设置建筑过滤可见性 */
+  setFilterVisibility(visibleIds: Set<string> | null): void {
+    this.buildingMeshes.forEach((lod, id) => {
+      if (visibleIds === null) {
+        lod.visible = true;
+        lod.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.name === "emission-glow") {
+            if (child.material instanceof THREE.MeshBasicMaterial) {
+              child.material.opacity = 0.08;
+            }
+          }
+        });
+      } else {
+        lod.visible = visibleIds.has(id);
+        if (lod.visible) {
+          lod.traverse((child) => {
+            if (child instanceof THREE.Mesh && child.name === "emission-glow") {
+              if (child.material instanceof THREE.MeshBasicMaterial) {
+                child.material.opacity = 0.15;
+              }
+            }
+          });
+        }
+      }
+    });
+  }
+}
+
+// ============================================================
+// 相机聚焦动画
+// ============================================================
+
+function focusOnBuilding(
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  building: BuildingData,
+  duration: number = 800
+): void {
+  const targetPos = new THREE.Vector3(building.x, building.height / 2, building.z);
+  const cameraOffset = new THREE.Vector3(
+    building.x + building.width * 0.8,
+    building.height * 1.5 + 15,
+    building.z + building.depth * 0.8,
+  );
+
+  const startPos = camera.position.clone();
+  const startTarget = controls.target.clone();
+  const startTime = performance.now();
+
+  function animate(): void {
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    // ease-out cubic
+    const ease = 1 - Math.pow(1 - t, 3);
+
+    camera.position.lerpVectors(startPos, cameraOffset, ease);
+    controls.target.lerpVectors(startTarget, targetPos, ease);
+    controls.update();
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    }
+  }
+  animate();
+}
+
+// ============================================================
+// React 组件
+// ============================================================
+
+export function CampusScene3D({
+  level = "L1",
+  selectedBuilding,
+  onBuildingClick,
+  filterType,
+}: CampusScene3DProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    y: number;
+    building: BuildingData;
+  } | null>(null);
+
+  // 使用 ref 保存引擎实例，避免 re-render 重建
+  const engineRef = useRef<{
+    renderer: THREE.WebGLRenderer;
+    scene: THREE.Scene;
+    camera: THREE.PerspectiveCamera;
+    controls: OrbitControls;
+    lodManager: LODManager;
+    interactionManager: InteractionManager;
+    emissionManager: EmissionColorManager;
+    matFactory: MaterialFactory;
+    animationId: number;
+    buildingMeshes: Map<string, THREE.LOD>;
+  } | null>(null);
+
+  // 悬停提示回调（需 useCallback 避免 effect 重复触发）
+  const handleHover = useCallback(
+    (id: string | null, x: number, y: number, data: BuildingData | null) => {
+      if (id && data) {
+        setTooltip({ x, y, building: data });
+      } else {
+        setTooltip(null);
+      }
+    },
+    []
+  );
+
+  // ── 初始化场景 ──
   useEffect(() => {
     if (!containerRef.current) return;
-
     const container = containerRef.current;
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // 场景 - 天空蓝背景
+    // 场景
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#87ceeb");
-    scene.fog = new THREE.Fog("#87ceeb", 60, 180);
-    sceneRef.current = scene;
+    scene.fog = new THREE.FogExp2("#c8dce8", 0.004);
 
-    // 相机 - 鸟瞰视角
-    const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 1000);
-    camera.position.set(45, 35, 45);
+    // 相机
+    const camera = new THREE.PerspectiveCamera(50, width / height, 0.5, 800);
+    camera.position.set(80, 65, 80);
     camera.lookAt(0, 0, 0);
-    cameraRef.current = camera;
 
-    // 渲染器 - 高质量设置
+    // 渲染器
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -518,271 +1363,216 @@ export function CampusScene3D({ level = "L1", selectedBuilding, onBuildingClick,
     renderer.toneMappingExposure = 1.1;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
 
     // 控制器
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxPolarAngle = Math.PI / 2.05;
-    controls.minDistance = 20;
-    controls.maxDistance = 120;
+    controls.maxPolarAngle = MAX_POLAR_ANGLE;
+    controls.minDistance = 25;
+    controls.maxDistance = 200;
     controls.target.set(0, 0, 0);
-    controlsRef.current = controls;
 
+    // ── 光照 ──
     // 环境光
     const ambientLight = new THREE.AmbientLight("#ffffff", 0.5);
     scene.add(ambientLight);
 
-    // 主光源（模拟太阳）
-    const sunLight = new THREE.DirectionalLight("#fff8e7", 1.6);
-    sunLight.position.set(35, 45, 35);
+    // 半球光 (天空/地面)
+    const hemiLight = new THREE.HemisphereLight("#b0d4f1", "#5a7247", 0.3);
+    scene.add(hemiLight);
+
+    // 主方向光 (太阳)
+    const sunLight = new THREE.DirectionalLight("#fff8e7", 1.8);
+    sunLight.position.set(50, 60, 50);
     sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 4096;
-    sunLight.shadow.mapSize.height = 4096;
+    sunLight.shadow.mapSize.width = SHADOW_MAP_SIZE;
+    sunLight.shadow.mapSize.height = SHADOW_MAP_SIZE;
     sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 180;
-    sunLight.shadow.camera.left = -60;
-    sunLight.shadow.camera.right = 60;
-    sunLight.shadow.camera.top = 60;
-    sunLight.shadow.camera.bottom = -60;
+    sunLight.shadow.camera.far = 250;
+    sunLight.shadow.camera.left = -100;
+    sunLight.shadow.camera.right = 100;
+    sunLight.shadow.camera.top = 100;
+    sunLight.shadow.camera.bottom = -100;
     sunLight.shadow.bias = -0.0001;
     sunLight.shadow.normalBias = 0.02;
     scene.add(sunLight);
 
     // 补光
     const fillLight = new THREE.DirectionalLight("#b0d4f1", 0.4);
-    fillLight.position.set(-25, 25, -25);
+    fillLight.position.set(-40, 30, -40);
     scene.add(fillLight);
 
-    // 地面 - 草地
-    const groundGeometry = new THREE.PlaneGeometry(150, 150);
-    const groundMaterial = new THREE.MeshStandardMaterial({
-      color: "#5a7247",
-      roughness: 0.95,
-    });
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.01;
-    ground.receiveShadow = true;
-    scene.add(ground);
+    // ── 材质工厂 ──
+    const matFactory = new MaterialFactory();
 
-    // 环形道路系统 - 参考智慧校园大屏
-    const circularRoad1 = createCircularRoad(25, 8);
-    scene.add(circularRoad1);
-    const circularRoad2 = createCircularRoad(15, 6);
-    scene.add(circularRoad2);
+    // ── 环境 ──
+    const envSystem = new EnvironmentSystem(matFactory);
 
-    // 放射状道路
-    for (let i = 0; i < 8; i++) {
-      const angle = (i * Math.PI) / 4;
-      const roadLength = 35;
-      const roadGeometry = new THREE.PlaneGeometry(5, roadLength);
-      const roadMaterial = new THREE.MeshStandardMaterial({
-        color: "#374151",
-        roughness: 0.95,
-      });
-      const road = new THREE.Mesh(roadGeometry, roadMaterial);
-      road.rotation.x = -Math.PI / 2;
-      road.rotation.z = angle;
-      road.position.set(Math.cos(angle) * roadLength / 2, 0.01, Math.sin(angle) * roadLength / 2);
-      road.receiveShadow = true;
-      scene.add(road);
-    }
+    // 地面
+    scene.add(envSystem.createGround());
 
-    // 道路标线
-    const lineGeometry = new THREE.PlaneGeometry(0.15, 70);
-    const lineMaterial = new THREE.MeshBasicMaterial({ color: "#ffffff" });
-    const centerLine = new THREE.Mesh(lineGeometry, lineMaterial);
-    centerLine.rotation.x = -Math.PI / 2;
-    centerLine.position.y = 0.02;
-    scene.add(centerLine);
+    // 道路
+    scene.add(envSystem.createRoads(CAMPUS_DATA));
 
-    // 人行道
-    const sidewalkGeometry = new THREE.PlaneGeometry(1.5, 70);
-    const sidewalkMaterial = new THREE.MeshStandardMaterial({
-      color: "#9ca3af",
-      roughness: 0.9,
-    });
-    const sidewalk1 = new THREE.Mesh(sidewalkGeometry, sidewalkMaterial);
-    sidewalk1.rotation.x = -Math.PI / 2;
-    sidewalk1.position.set(3.5, 0.015, 0);
-    scene.add(sidewalk1);
+    // 绿地
+    scene.add(envSystem.createGreenSpaces(CAMPUS_DATA));
 
-    const sidewalk2 = sidewalk1.clone();
-    sidewalk2.position.x = -3.5;
-    scene.add(sidewalk2);
-
-    // 创建建筑
-    BUILDINGS.forEach((building) => {
-      const emissionColor = getEmissionColor(building.emission);
-      const buildingGroup = createRealisticBuilding(building, emissionColor);
-      buildingGroup.position.set(building.x, 0, building.z);
-      scene.add(buildingGroup);
-      buildingMeshesRef.current.set(building.id, buildingGroup);
-    });
+    // 水系
+    scene.add(envSystem.createWaterBodies(CAMPUS_DATA));
 
     // 运动场
-    scene.add(createSportsField(20, 18, 12, 8));
+    scene.add(envSystem.createSportsFields(CAMPUS_DATA));
 
     // 停车场
-    scene.add(createParkingLot(-28, 15, 10, 8));
-    scene.add(createParkingLot(28, -15, 8, 6));
+    scene.add(envSystem.createParkingLots(CAMPUS_DATA));
 
-    // 湖泊/水景
-    scene.add(createLake(-8, 22, 5));
+    // 树木 (InstancedMesh)
+    const treeMesh = envSystem.createTrees(CAMPUS_DATA);
+    scene.add(treeMesh);
 
-    // 树木 - 密集绿化
-    const treePositions = [
-      // 环形道路两侧
-      [-30, -20], [-30, -10], [-30, 0], [-30, 10], [-30, 20],
-      [30, -20], [30, -10], [30, 0], [30, 10], [30, 20],
-      [-20, -30], [-10, -30], [0, -30], [10, -30], [20, -30],
-      [-20, 30], [-10, 30], [0, 30], [10, 30], [20, 30],
-      // 建筑间绿化
-      [-15, -15], [-10, -15], [-5, -15], [0, -15], [5, -15], [10, -15], [15, -15],
-      [-15, 0], [-10, 0], [10, 0], [15, 0],
-      [-20, 12], [-15, 12], [-10, 12], [-5, 12], [0, 12], [5, 12], [10, 12], [15, 12], [20, 12],
-      [-25, 5], [-25, 10], [-25, 15],
-      [25, 5], [25, 10], [25, 15],
-    ];
-    treePositions.forEach(([x, z]) => {
-      const scale = 0.9 + Math.random() * 0.5;
-      scene.add(createTree(x, z, scale));
-    });
+    // 路灯 (InstancedMesh)
+    const lightMesh = envSystem.createStreetLights(CAMPUS_DATA);
+    scene.add(lightMesh);
 
-    // 路灯
-    const streetLightPositions = [
-      [-20, -20], [-20, -10], [-20, 0], [-20, 10], [-20, 20],
-      [20, -20], [20, -10], [20, 0], [20, 10], [20, 20],
-      [-10, -25], [0, -25], [10, -25],
-      [-10, 25], [0, 25], [10, 25],
-    ];
-    streetLightPositions.forEach(([x, z]) => {
-      scene.add(createStreetLight(x, z));
-    });
+    // ── 建筑 (LOD) ──
+    const lodManager = new LODManager(camera, matFactory);
+    const buildingMeshes = new Map<string, THREE.LOD>();
 
-    // 动画循环
-    let animationId: number;
+    for (const bData of CAMPUS_DATA.buildings) {
+      const lod = lodManager.addBuilding(bData);
+      scene.add(lod);
+      buildingMeshes.set(bData.buildingId, lod);
+    }
+
+    // ── 交互 ──
+    const interactionManager = new InteractionManager(
+      container, camera, buildingMeshes, onBuildingClick, handleHover
+    );
+
+    // ── 碳排变色 ──
+    const emissionManager = new EmissionColorManager(buildingMeshes);
+
+    // ── 动画循环 ──
+    let animationId = 0;
     const animate = () => {
       animationId = requestAnimationFrame(animate);
       controls.update();
+      lodManager.update();
       renderer.render(scene, camera);
     };
     animate();
 
-    // 窗口大小调整
+    // ── 窗口大小调整 ──
     const handleResize = () => {
-      if (!container || !camera || !renderer) return;
-      const newWidth = container.clientWidth;
-      const newHeight = container.clientHeight;
-      camera.aspect = newWidth / newHeight;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(newWidth, newHeight);
+      renderer.setSize(w, h);
     };
     window.addEventListener("resize", handleResize);
 
-    // 鼠标交互
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-      const meshes = Array.from(buildingMeshesRef.current.values());
-      const intersects = raycaster.intersectObjects(meshes, true);
-
-      if (intersects.length > 0) {
-        let target = intersects[0].object;
-        while (target.parent && !target.userData.id) {
-          target = target.parent;
-        }
-        if (target.userData.id) {
-          const building = target.userData as typeof BUILDINGS[0];
-          setHoveredBuilding(building.id);
-          setTooltip({
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top,
-            building,
-          });
-          container.style.cursor = "pointer";
-        }
-      } else {
-        setHoveredBuilding(null);
-        setTooltip(null);
-        container.style.cursor = "default";
-      }
+    // 保存引擎引用
+    engineRef.current = {
+      renderer, scene, camera, controls,
+      lodManager, interactionManager, emissionManager,
+      matFactory, animationId, buildingMeshes,
     };
-
-    const handleClick = (event: MouseEvent) => {
-      if (hoveredBuilding && onBuildingClick) {
-        onBuildingClick(hoveredBuilding);
-      }
-    };
-
-    container.addEventListener("mousemove", handleMouseMove);
-    container.addEventListener("click", handleClick);
 
     return () => {
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);
-      container.removeEventListener("mousemove", handleMouseMove);
-      container.removeEventListener("click", handleClick);
-      if (renderer && container.contains(renderer.domElement)) {
+      interactionManager.dispose();
+      matFactory.dispose();
+      if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
-  }, [onBuildingClick, hoveredBuilding]);
+  // 只在挂载时初始化
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // 根据层级调整视角
+  // ── 层级切换 ──
   useEffect(() => {
-    if (!cameraRef.current || !controlsRef.current) return;
+    const engine = engineRef.current;
+    if (!engine) return;
 
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
+    const { camera, controls } = engine;
 
     switch (level) {
       case "L1":
-        camera.position.set(55, 45, 55);
+        camera.position.set(80, 65, 80);
         controls.minDistance = 35;
         break;
       case "L2":
-        camera.position.set(40, 30, 40);
+        camera.position.set(55, 45, 55);
         controls.minDistance = 25;
         break;
       case "L3":
-        camera.position.set(30, 22, 30);
+        camera.position.set(35, 28, 35);
         controls.minDistance = 15;
         break;
       case "L4":
-        camera.position.set(45, 35, 45);
+        camera.position.set(65, 50, 65);
         controls.minDistance = 30;
         break;
     }
+    controls.target.set(0, 0, 0);
     controls.update();
   }, [level]);
 
-  // 选中建筑高亮
+  // ── 选中建筑 ──
   useEffect(() => {
-    buildingMeshesRef.current.forEach((group, id) => {
-      const isHovered = id === hoveredBuilding;
-      const isSelected = id === selectedBuilding;
+    const engine = engineRef.current;
+    if (!engine) return;
 
-      group.traverse((child) => {
-        if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshBasicMaterial) {
-          if (isHovered || isSelected) {
-            child.material.opacity = 0.25;
-          } else {
-            child.material.opacity = 0.06;
-          }
-        }
-      });
+    // 清除之前的高亮
+    engine.emissionManager.setFilterVisibility(null);
+
+    // 高亮选中
+    engine.buildingMeshes.forEach((_, id) => {
+      engine.emissionManager.setHighlight(id, id === selectedBuilding);
     });
-  }, [hoveredBuilding, selectedBuilding]);
+
+    // 相机聚焦
+    if (selectedBuilding) {
+      const bData = CAMPUS_DATA.buildings.find((b) => b.buildingId === selectedBuilding);
+      if (bData) {
+        focusOnBuilding(engine.camera, engine.controls, bData);
+      }
+    }
+  }, [selectedBuilding]);
+
+  // ── 过滤类型 ──
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+
+    if (!filterType) {
+      engine.emissionManager.setFilterVisibility(null);
+    } else {
+      const typeMap: Record<string, string[]> = {
+        "教学楼": ["teaching"],
+        "实验楼": ["lab"],
+        "图书馆": ["library"],
+        "宿舍": ["dorm"],
+        "食堂": ["dining"],
+        "体育馆": ["gym"],
+        "行政楼": ["admin"],
+        "大礼堂": ["auditorium"],
+        "光伏": ["solar"],
+      };
+      const types = typeMap[filterType] || [filterType];
+      const visibleIds = new Set(
+        CAMPUS_DATA.buildings
+          .filter((b) => types.includes(b.type))
+          .map((b) => b.buildingId)
+      );
+      engine.emissionManager.setFilterVisibility(visibleIds);
+    }
+  }, [filterType]);
 
   return (
     <div className="relative w-full h-full" style={{ minHeight: "500px" }}>
@@ -801,28 +1591,36 @@ export function CampusScene3D({ level = "L1", selectedBuilding, onBuildingClick,
         >
           <div className="text-sm font-medium text-white">{tooltip.building.name}</div>
           <div className="text-xs text-gray-400 mt-1">{tooltip.building.dept}</div>
-          <div className="text-xs text-blue-400 mt-1">
-            碳排放：{tooltip.building.emission} tCO₂
+          <div className="flex items-center gap-2 mt-1">
+            <span
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ background: getEmissionColor(tooltip.building.emissionLevel) }}
+            />
+            <span className="text-xs text-blue-400">
+              碳排放：{tooltip.building.emission} tCO₂
+            </span>
           </div>
         </div>
       )}
 
       {/* 层级标识 */}
-      <div className="absolute top-4 left-4 px-3 py-1.5 rounded-md text-xs font-medium"
+      <div
+        className="absolute top-4 left-4 px-3 py-1.5 rounded-md text-xs font-medium"
         style={{
           background: "rgba(10, 22, 40, 0.9)",
           border: "1px solid rgba(52, 136, 255, 0.3)",
           color: "#3488ff",
         }}
       >
-        {level === "L1" && "L1 校领导碳控制塔 - 全局视角"}
-        {level === "L2" && "L2 院系业务视图 - 院系聚焦"}
-        {level === "L3" && "L3 后勤运营明细 - 楼层级"}
-        {level === "L4" && "L4 合规与披露 - 数据完整度"}
+        {level === "L1" && "领导组驾驶舱 - 全局视角"}
+        {level === "L2" && "院系业务视图 - 院系聚焦"}
+        {level === "L3" && "后勤组驾驶舱 - 楼层级"}
+        {level === "L4" && "合规与披露 - 数据完整度"}
       </div>
 
       {/* 操作提示 */}
-      <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-md text-xs"
+      <div
+        className="absolute bottom-4 right-4 px-3 py-1.5 rounded-md text-xs"
         style={{
           background: "rgba(10, 22, 40, 0.9)",
           border: "1px solid rgba(52, 136, 255, 0.2)",
@@ -831,6 +1629,16 @@ export function CampusScene3D({ level = "L1", selectedBuilding, onBuildingClick,
       >
         鼠标拖拽旋转 | 滚轮缩放 | 点击建筑查看详情
       </div>
+
+      {/* 校园名称水印 */}
+      <div
+        className="absolute bottom-4 left-4 text-xs"
+        style={{ color: "#94A3B8", opacity: 0.6 }}
+      >
+        {CAMPUS_DATA.info.name} · {CAMPUS_DATA.info.dataSource}
+      </div>
     </div>
   );
 }
+
+

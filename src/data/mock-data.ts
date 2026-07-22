@@ -33,19 +33,36 @@ export const campuses: Campus[] = [
 
 // ========== 建筑数据 ==========
 export const buildings: Building[] = [
-  // 主校区
-  { id: 'bldg-ta', name: '教学楼A', code: 'TA', campusId: 'campus-main', type: 'teaching', area: 12000, floors: 6, yearBuilt: 2005, status: 'active' },
-  { id: 'bldg-tb', name: '教学楼B', code: 'TB', campusId: 'campus-main', type: 'teaching', area: 9500, floors: 5, yearBuilt: 2008, status: 'active' },
-  { id: 'bldg-lab', name: '实验楼', code: 'LAB', campusId: 'campus-main', type: 'laboratory', area: 18000, floors: 8, yearBuilt: 2010, status: 'active' },
-  { id: 'bldg-lib', name: '图书馆', code: 'LIB', campusId: 'campus-main', type: 'library', area: 25000, floors: 10, yearBuilt: 2012, status: 'active' },
-  { id: 'bldg-dorm1', name: '学生宿舍1号楼', code: 'D1', campusId: 'campus-main', type: 'dormitory', area: 8500, floors: 7, yearBuilt: 2003, status: 'active' },
-  { id: 'bldg-dorm2', name: '学生宿舍2号楼', code: 'D2', campusId: 'campus-main', type: 'dormitory', area: 9200, floors: 7, yearBuilt: 2005, status: 'active' },
-  { id: 'bldg-dining', name: '第一食堂', code: 'DIN1', campusId: 'campus-main', type: 'dining', area: 4500, floors: 3, yearBuilt: 2002, status: 'active' },
-  { id: 'bldg-gym', name: '体育馆', code: 'GYM', campusId: 'campus-main', type: 'gymnasium', area: 15000, floors: 2, yearBuilt: 2008, status: 'active' },
-  { id: 'bldg-admin', name: '行政楼', code: 'ADM', campusId: 'campus-main', type: 'administrative', area: 6000, floors: 5, yearBuilt: 1998, status: 'active' },
-  // 东校区
-  { id: 'bldg-tc', name: '教学楼C', code: 'TC', campusId: 'campus-east', type: 'teaching', area: 8000, floors: 4, yearBuilt: 2015, status: 'active' },
-  { id: 'bldg-dorm3', name: '学生宿舍3号楼', code: 'D3', campusId: 'campus-east', type: 'dormitory', area: 7200, floors: 6, yearBuilt: 2016, status: 'active' },
+  // 主校区 - 与 campus-data.ts 建筑ID保持一致
+  { id: 'b01', name: '主教学楼', code: 'T1', campusId: 'campus-main', type: 'teaching', area: 32000, floors: 10, yearBuilt: 2005, status: 'active' },
+  { id: 'b02', name: '第一教学楼', code: 'T2', campusId: 'campus-main', type: 'teaching', area: 26000, floors: 9, yearBuilt: 2008, status: 'active' },
+  { id: 'b03', name: '第二教学楼', code: 'T3', campusId: 'campus-main', type: 'teaching', area: 22000, floors: 8, yearBuilt: 2010, status: 'active' },
+  { id: 'b04', name: '第三教学楼', code: 'T4', campusId: 'campus-main', type: 'teaching', area: 19000, floors: 7, yearBuilt: 2012, status: 'active' },
+  { id: 'b05', name: '信息学院楼', code: 'SI', campusId: 'campus-main', type: 'laboratory', area: 24000, floors: 8, yearBuilt: 2010, status: 'active' },
+  { id: 'b06', name: '机械学院楼', code: 'ME', campusId: 'campus-main', type: 'laboratory', area: 24000, floors: 8, yearBuilt: 2010, status: 'active' },
+  { id: 'b07', name: '材料学院楼', code: 'MA', campusId: 'campus-main', type: 'laboratory', area: 20000, floors: 7, yearBuilt: 2012, status: 'active' },
+  { id: 'b08', name: '能源学院楼', code: 'EN', campusId: 'campus-main', type: 'laboratory', area: 20000, floors: 7, yearBuilt: 2012, status: 'active' },
+  { id: 'b09', name: '经管学院楼', code: 'EM', campusId: 'campus-main', type: 'laboratory', area: 18000, floors: 6, yearBuilt: 2015, status: 'active' },
+  { id: 'b10', name: '图书馆', code: 'LIB', campusId: 'campus-main', type: 'library', area: 40000, floors: 8, yearBuilt: 2012, status: 'active' },
+  { id: 'b11', name: '行政办公楼', code: 'ADM', campusId: 'campus-main', type: 'administrative', area: 24000, floors: 7, yearBuilt: 1998, status: 'active' },
+  { id: 'b12', name: '大礼堂', code: 'AUD', campusId: 'campus-main', type: 'administrative', area: 28000, floors: 3, yearBuilt: 2000, status: 'active' },
+  { id: 'b13', name: '1号宿舍楼', code: 'D1', campusId: 'campus-main', type: 'dormitory', area: 15000, floors: 10, yearBuilt: 2003, status: 'active' },
+  { id: 'b14', name: '2号宿舍楼', code: 'D2', campusId: 'campus-main', type: 'dormitory', area: 15000, floors: 10, yearBuilt: 2005, status: 'active' },
+  { id: 'b15', name: '3号宿舍楼', code: 'D3', campusId: 'campus-main', type: 'dormitory', area: 14000, floors: 9, yearBuilt: 2006, status: 'active' },
+  { id: 'b16', name: '4号宿舍楼', code: 'D4', campusId: 'campus-main', type: 'dormitory', area: 14000, floors: 9, yearBuilt: 2008, status: 'active' },
+  { id: 'b17', name: '5号宿舍楼', code: 'D5', campusId: 'campus-main', type: 'dormitory', area: 14000, floors: 9, yearBuilt: 2008, status: 'active' },
+  { id: 'b18', name: '6号宿舍楼', code: 'D6', campusId: 'campus-main', type: 'dormitory', area: 14000, floors: 9, yearBuilt: 2010, status: 'active' },
+  { id: 'b19', name: '7号宿舍楼', code: 'D7', campusId: 'campus-main', type: 'dormitory', area: 15000, floors: 10, yearBuilt: 2010, status: 'active' },
+  { id: 'b20', name: '8号宿舍楼', code: 'D8', campusId: 'campus-main', type: 'dormitory', area: 14000, floors: 9, yearBuilt: 2012, status: 'active' },
+  { id: 'b21', name: '9号宿舍楼', code: 'D9', campusId: 'campus-main', type: 'dormitory', area: 14000, floors: 9, yearBuilt: 2012, status: 'active' },
+  { id: 'b22', name: '10号宿舍楼', code: 'D10', campusId: 'campus-main', type: 'dormitory', area: 13000, floors: 8, yearBuilt: 2015, status: 'active' },
+  { id: 'b23', name: '第一食堂', code: 'C1', campusId: 'campus-main', type: 'dining', area: 12000, floors: 3, yearBuilt: 2002, status: 'active' },
+  { id: 'b24', name: '第二食堂', code: 'C2', campusId: 'campus-main', type: 'dining', area: 12000, floors: 3, yearBuilt: 2005, status: 'active' },
+  { id: 'b25', name: '综合体育馆', code: 'GYM', campusId: 'campus-main', type: 'gymnasium', area: 35000, floors: 3, yearBuilt: 2008, status: 'active' },
+  { id: 'b26', name: '游泳馆', code: 'SWIM', campusId: 'campus-main', type: 'gymnasium', area: 22000, floors: 2, yearBuilt: 2010, status: 'active' },
+  { id: 'b27', name: '科研楼A', code: 'R1', campusId: 'campus-main', type: 'laboratory', area: 24000, floors: 9, yearBuilt: 2010, status: 'active' },
+  { id: 'b28', name: '科研楼B', code: 'R2', campusId: 'campus-main', type: 'laboratory', area: 24000, floors: 9, yearBuilt: 2010, status: 'active' },
+  { id: 'b29', name: '光伏配电房', code: 'SOL', campusId: 'campus-main', type: 'teaching', area: 5000, floors: 1, yearBuilt: 2020, status: 'active' },
 ];
 
 // ========== 排放因子 ==========
@@ -100,16 +117,16 @@ export function getTrendData(year: number): TrendPoint[] {
 // ========== 建筑排名数据 ==========
 export function getBuildingRanking(year: number, metric: 'emission' | 'intensity' = 'emission'): BuildingRanking[] {
   const emissionData: Record<string, { emission: number; area: number }> = {
-    'bldg-lab': { emission: 2850, area: 18000 },
-    'bldg-lib': { emission: 2400, area: 25000 },
-    'bldg-ta': { emission: 1850, area: 12000 },
-    'bldg-gym': { emission: 1650, area: 15000 },
-    'bldg-tb': { emission: 1420, area: 9500 },
-    'bldg-dining': { emission: 1280, area: 4500 },
-    'bldg-dorm1': { emission: 980, area: 8500 },
-    'bldg-dorm2': { emission: 1050, area: 9200 },
-    'bldg-admin': { emission: 720, area: 6000 },
-    'bldg-tc': { emission: 980, area: 8000 },
+    'b27': { emission: 2850, area: 24000 },
+    'b01': { emission: 2400, area: 32000 },
+    'b06': { emission: 2200, area: 24000 },
+    'b02': { emission: 1850, area: 26000 },
+    'b05': { emission: 1650, area: 24000 },
+    'b23': { emission: 1280, area: 12000 },
+    'b13': { emission: 980, area: 15000 },
+    'b10': { emission: 1050, area: 40000 },
+    'b11': { emission: 720, area: 24000 },
+    'b03': { emission: 980, area: 22000 },
   };
   
   return Object.entries(emissionData)
@@ -152,7 +169,7 @@ export function getAnomalies(status?: string): Anomaly[] {
   const anomalies: Anomaly[] = [
     {
       id: 'anom-001',
-      buildingId: 'bldg-ta',
+      buildingId: 'b01',
       buildingName: '教学楼A',
       type: 'baseline_deviation',
       severity: 'warning',
@@ -168,7 +185,7 @@ export function getAnomalies(status?: string): Anomaly[] {
     },
     {
       id: 'anom-002',
-      buildingId: 'bldg-lab',
+      buildingId: 'b06',
       buildingName: '实验楼',
       type: 'consumption_spike',
       severity: 'warning',
@@ -184,7 +201,7 @@ export function getAnomalies(status?: string): Anomaly[] {
     },
     {
       id: 'anom-003',
-      buildingId: 'bldg-dorm1',
+      buildingId: 'b13',
       buildingName: '学生宿舍1号楼',
       type: 'data_missing',
       severity: 'blocked',
@@ -324,7 +341,7 @@ export function getAISuggestion(anomalyId: string): AISuggestion {
   return {
     id: 'suggestion-001',
     anomalyId,
-    buildingId: 'bldg-ta',
+    buildingId: 'b01',
     evidence: [
       '教学楼A在2026年6月15-21日期间，夜间(22:00-06:00)平均负荷为85kW',
       '同类建筑(教学楼B、C)同期夜间平均负荷为65kW',
@@ -394,7 +411,7 @@ export function getHourlyLoadData(buildingId: string, startDate: string, endDate
       }
       
       // 教学楼A异常：夜间负荷偏高
-      if (buildingId === 'bldg-ta' && isNight && day >= 0 && day <= 2) {
+      if (buildingId === 'b01' && isNight && day >= 0 && day <= 2) {
         load = baseLoad * 0.8; // 异常高
       }
       
@@ -513,25 +530,37 @@ export interface Building3DData {
 }
 
 export function getBuilding3DData(): Building3DData[] {
+  // 建筑ID与 campus-data.ts 保持一致 (b01-b29)
   return [
-    { id: "b1", name: "教学楼 A", type: "teaching", dept: "计算机学院", emission: 450, area: 12000, floors: 6, status: "warning", trend: 5.2 },
-    { id: "b2", name: "教学楼 B", type: "teaching", dept: "机械学院", emission: 380, area: 9500, floors: 5, status: "normal", trend: -2.1 },
-    { id: "b3", name: "教学楼 C", type: "teaching", dept: "化学学院", emission: 320, area: 8000, floors: 4, status: "normal", trend: -3.5 },
-    { id: "b4", name: "教学楼 D", type: "teaching", dept: "文学院", emission: 290, area: 7500, floors: 4, status: "normal", trend: -1.8 },
-    { id: "b5", name: "宿舍 1 号楼", type: "dorm", dept: "宿舍管理中心", emission: 280, area: 8500, floors: 7, status: "normal", trend: -4.2 },
-    { id: "b6", name: "宿舍 2 号楼", type: "dorm", dept: "宿舍管理中心", emission: 260, area: 9200, floors: 7, status: "normal", trend: -2.8 },
-    { id: "b7", name: "宿舍 3 号楼", type: "dorm", dept: "宿舍管理中心", emission: 240, area: 7200, floors: 6, status: "normal", trend: -5.1 },
-    { id: "b8", name: "宿舍 4 号楼", type: "dorm", dept: "宿舍管理中心", emission: 220, area: 7000, floors: 6, status: "normal", trend: -3.3 },
-    { id: "b9", name: "宿舍 5 号楼", type: "dorm", dept: "宿舍管理中心", emission: 200, area: 6800, floors: 6, status: "normal", trend: -6.0 },
-    { id: "b10", name: "宿舍 6 号楼", type: "dorm", dept: "宿舍管理中心", emission: 180, area: 6500, floors: 6, status: "normal", trend: -4.5 },
-    { id: "b11", name: "实验楼 A", type: "lab", dept: "化学学院", emission: 520, area: 18000, floors: 8, status: "danger", trend: 8.3 },
-    { id: "b12", name: "实验楼 B", type: "lab", dept: "机械学院", emission: 480, area: 15000, floors: 6, status: "warning", trend: 3.5 },
-    { id: "b13", name: "食堂 A", type: "dining", dept: "餐饮服务中心", emission: 350, area: 4500, floors: 3, status: "normal", trend: -1.2 },
-    { id: "b14", name: "食堂 B", type: "dining", dept: "餐饮服务中心", emission: 320, area: 4000, floors: 3, status: "normal", trend: -2.5 },
-    { id: "b15", name: "行政楼", type: "admin", dept: "行政部门", emission: 180, area: 6000, floors: 5, status: "normal", trend: -8.2 },
-    { id: "b16", name: "体育馆", type: "gym", dept: "体育部", emission: 150, area: 15000, floors: 2, status: "normal", trend: -5.5 },
-    { id: "b17", name: "图书馆", type: "library", dept: "图书馆", emission: 220, area: 25000, floors: 10, status: "normal", trend: -3.8 },
-    { id: "b18", name: "光伏配电房", type: "solar", dept: "后勤能源", emission: -80, area: 2000, floors: 1, status: "normal", trend: -15.0 },
+    { id: "b01", name: "主教学楼", type: "teaching", dept: "综合教学", emission: 950, area: 32000, floors: 10, status: "danger", trend: 5.2 },
+    { id: "b02", name: "第一教学楼", type: "teaching", dept: "综合教学", emission: 820, area: 26000, floors: 9, status: "warning", trend: 3.8 },
+    { id: "b03", name: "第二教学楼", type: "teaching", dept: "综合教学", emission: 750, area: 22000, floors: 8, status: "warning", trend: -2.1 },
+    { id: "b04", name: "第三教学楼", type: "teaching", dept: "综合教学", emission: 680, area: 19000, floors: 7, status: "normal", trend: -3.5 },
+    { id: "b05", name: "信息学院楼", type: "lab", dept: "信息学院", emission: 780, area: 24000, floors: 8, status: "warning", trend: 4.1 },
+    { id: "b06", name: "机械学院楼", type: "lab", dept: "机械学院", emission: 820, area: 24000, floors: 8, status: "danger", trend: 8.3 },
+    { id: "b07", name: "材料学院楼", type: "lab", dept: "材料学院", emission: 720, area: 20000, floors: 7, status: "warning", trend: 3.5 },
+    { id: "b08", name: "能源学院楼", type: "lab", dept: "能源学院", emission: 680, area: 20000, floors: 7, status: "normal", trend: -1.8 },
+    { id: "b09", name: "经管学院楼", type: "lab", dept: "经管学院", emission: 620, area: 18000, floors: 6, status: "normal", trend: -2.5 },
+    { id: "b10", name: "图书馆", type: "library", dept: "图书馆", emission: 480, area: 40000, floors: 8, status: "normal", trend: -3.8 },
+    { id: "b11", name: "行政办公楼", type: "admin", dept: "行政部门", emission: 420, area: 24000, floors: 7, status: "normal", trend: -8.2 },
+    { id: "b12", name: "大礼堂", type: "admin", dept: "校办", emission: 350, area: 28000, floors: 3, status: "normal", trend: -1.2 },
+    { id: "b13", name: "1号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 520, area: 15000, floors: 10, status: "normal", trend: -4.2 },
+    { id: "b14", name: "2号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 500, area: 15000, floors: 10, status: "normal", trend: -2.8 },
+    { id: "b15", name: "3号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 480, area: 14000, floors: 9, status: "normal", trend: -5.1 },
+    { id: "b16", name: "4号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 460, area: 14000, floors: 9, status: "normal", trend: -3.3 },
+    { id: "b17", name: "5号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 440, area: 14000, floors: 9, status: "normal", trend: -6.0 },
+    { id: "b18", name: "6号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 420, area: 14000, floors: 9, status: "normal", trend: -4.5 },
+    { id: "b19", name: "7号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 400, area: 15000, floors: 10, status: "normal", trend: -3.8 },
+    { id: "b20", name: "8号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 380, area: 14000, floors: 9, status: "normal", trend: -2.1 },
+    { id: "b21", name: "9号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 360, area: 14000, floors: 9, status: "normal", trend: -5.5 },
+    { id: "b22", name: "10号宿舍楼", type: "dorm", dept: "宿舍管理中心", emission: 340, area: 13000, floors: 8, status: "normal", trend: -4.8 },
+    { id: "b23", name: "第一食堂", type: "dining", dept: "餐饮服务中心", emission: 580, area: 12000, floors: 3, status: "warning", trend: 2.1 },
+    { id: "b24", name: "第二食堂", type: "dining", dept: "餐饮服务中心", emission: 520, area: 12000, floors: 3, status: "normal", trend: -1.2 },
+    { id: "b25", name: "综合体育馆", type: "gym", dept: "体育部", emission: 380, area: 35000, floors: 3, status: "normal", trend: -5.5 },
+    { id: "b26", name: "游泳馆", type: "gym", dept: "体育部", emission: 320, area: 22000, floors: 2, status: "normal", trend: -3.2 },
+    { id: "b27", name: "科研楼A", type: "lab", dept: "科研院", emission: 880, area: 24000, floors: 9, status: "danger", trend: 6.8 },
+    { id: "b28", name: "科研楼B", type: "lab", dept: "科研院", emission: 820, area: 24000, floors: 9, status: "warning", trend: 3.2 },
+    { id: "b29", name: "光伏配电房", type: "solar", dept: "后勤能源", emission: -150, area: 5000, floors: 1, status: "normal", trend: -15.0 },
   ];
 }
 

@@ -24,7 +24,7 @@ import {
 import type { Anomaly } from "@/types";
 
 export default function EnergyPage() {
-  const [selectedBuilding, setSelectedBuilding] = useState<string>("bldg-ta");
+  const [selectedBuilding, setSelectedBuilding] = useState<string>("b01");
   const [metric, setMetric] = useState<"emission" | "intensity">("emission");
 
   const rankings = useMemo(() => getBuildingRanking(2026, metric), [metric]);
