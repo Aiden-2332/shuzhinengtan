@@ -242,7 +242,7 @@ export function EconomicControlZone() {
             {/* 碳排放分项饼图 */}
             <MiniPieChart
               data={quotaView === "total" ? emissionData : perCapitaData}
-              title={quotaView === "total" ? "碳排放分项构成" : "人均碳排放分项"}
+              title={quotaView === "total" ? "排放源构成" : "人均排放源构成"}
               unit={quotaView === "total" ? "tCO₂" : "kgCO₂/人"}
             />
 

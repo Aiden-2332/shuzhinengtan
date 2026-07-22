@@ -50,16 +50,15 @@ export function getMonthlyTrends(): MonthlyTrend[] {
   });
 }
 
-// 碳排放分项构成（按建筑类型）
+// 碳排放分项构成（按排放源分类）
 export function getEmissionBreakdown(): EmissionBreakdown[] {
   return [
-    { name: "实验楼", value: 4240, color: "#3B82F6" },
-    { name: "教学楼", value: 2880, color: "#10B981" },
-    { name: "宿舍", value: 2760, color: "#F59E0B" },
-    { name: "食堂", value: 1340, color: "#EF4444" },
-    { name: "图书馆", value: 880, color: "#8B5CF6" },
-    { name: "体育馆", value: 600, color: "#06B6D4" },
-    { name: "行政楼", value: 360, color: "#EC4899" },
+    { name: "空调系统", value: 4120, color: "#3B82F6" },
+    { name: "照明系统", value: 1860, color: "#10B981" },
+    { name: "锅炉/供热", value: 1420, color: "#F59E0B" },
+    { name: "动力系统", value: 1160, color: "#8B5CF6" },
+    { name: "办公设备", value: 640, color: "#EC4899" },
+    { name: "数据中心", value: 520, color: "#06B6D4" },
     { name: "其他", value: 240, color: "#6B7280" },
   ];
 }
