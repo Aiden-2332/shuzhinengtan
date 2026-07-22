@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
@@ -10,6 +10,7 @@ import {
   type EmissionLevel,
   type CampusData,
 } from "@/data/campus-data";
+import { getAnomalies } from "@/data/mock-data";
 
 // ============================================================
 // Props 接口
@@ -1306,6 +1307,15 @@ export function CampusScene3D({
     building: BuildingData;
   } | null>(null);
 
+  // 计算总排放量（排除光伏等负值）
+  const totalEmission = useMemo(
+    () => CAMPUS_DATA.buildings.filter((b) => b.emission > 0).reduce((sum, b) => sum + b.emission, 0),
+    []
+  );
+
+  // 获取异常数据
+  const anomalies = useMemo(() => getAnomalies(), []);
+
   // 使用 ref 保存引擎实例，避免 re-render 重建
   const engineRef = useRef<{
     renderer: THREE.WebGLRenderer;
@@ -1579,29 +1589,236 @@ export function CampusScene3D({
       <div ref={containerRef} className="w-full h-full" />
 
       {/* 悬浮提示 */}
-      {tooltip && (
-        <div
-          className="absolute pointer-events-none z-50 px-3 py-2 rounded-lg shadow-lg backdrop-blur-sm"
-          style={{
-            left: tooltip.x + 15,
-            top: tooltip.y - 10,
-            background: "rgba(10, 22, 40, 0.95)",
-            border: "1px solid rgba(52, 136, 255, 0.3)",
-          }}
-        >
-          <div className="text-sm font-medium text-white">{tooltip.building.name}</div>
-          <div className="text-xs text-gray-400 mt-1">{tooltip.building.dept}</div>
-          <div className="flex items-center gap-2 mt-1">
-            <span
-              className="inline-block w-2 h-2 rounded-full"
-              style={{ background: getEmissionColor(tooltip.building.emissionLevel) }}
-            />
-            <span className="text-xs text-blue-400">
-              碳排放：{tooltip.building.emission} tCO₂
-            </span>
+      {tooltip && (() => {
+        const b = tooltip.building;
+        const emissionProportion = b.emission > 0
+          ? ((b.emission / totalEmission) * 100).toFixed(1)
+          : "0";
+        const targetRatio = b.targetEmission > 0
+          ? ((b.emission / b.targetEmission) * 100).toFixed(0)
+          : "—";
+        const targetRatioNum = b.targetEmission > 0 ? b.emission / b.targetEmission : 0;
+        const buildingAnomalies = anomalies.filter((a) => a.buildingId === b.buildingId);
+        const hasAnomaly = buildingAnomalies.length > 0;
+
+        // 定位：确保不超出容器
+        const tooltipLeft = Math.min(tooltip.x + 15, (containerRef.current?.clientWidth ?? 800) - 260);
+        const tooltipTop = Math.max(tooltip.y - 10, 10);
+
+        const severityColorMap: Record<string, string> = {
+          blocked: "#DC2626",
+          serious: "#DC2626",
+          warning: "#F59E0B",
+          info: "#0099CC",
+        };
+
+        const statusLabelMap: Record<string, string> = {
+          pending: "待处理",
+          assigned: "已分配",
+          processing: "处理中",
+          reviewing: "审核中",
+          closed: "已关闭",
+          false_positive: "误报",
+        };
+
+        const severityLabelMap: Record<string, string> = {
+          blocked: "阻断",
+          serious: "严重",
+          warning: "警告",
+          info: "提示",
+        };
+
+        return (
+          <div
+            className="absolute pointer-events-none z-50"
+            style={{
+              left: tooltipLeft,
+              top: tooltipTop,
+              minWidth: 220,
+              maxWidth: 280,
+            }}
+          >
+            {/* 主面板 */}
+            <div
+              className="rounded-xl shadow-2xl backdrop-blur-md overflow-hidden"
+              style={{
+                background: "rgba(10, 22, 40, 0.92)",
+                border: `1px solid ${hasAnomaly ? "rgba(245, 158, 11, 0.4)" : "rgba(52, 136, 255, 0.3)"}`,
+              }}
+            >
+              {/* 标题区：建筑名 + 状态色点 */}
+              <div
+                className="px-4 py-2.5 flex items-center justify-between"
+                style={{
+                  background: "rgba(20, 40, 70, 0.6)",
+                  borderBottom: "1px solid rgba(52, 136, 255, 0.15)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full"
+                    style={{ background: getEmissionColor(b.emissionLevel) }}
+                  />
+                  <span className="text-sm font-semibold text-white">{b.name}</span>
+                </div>
+                <span className="text-xs text-gray-400">{b.dept}</span>
+              </div>
+
+              {/* 数据区 */}
+              <div className="px-4 py-3 space-y-2.5">
+                {/* 碳排放 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">碳排放</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-mono font-bold text-blue-400">
+                      {b.emission > 0 ? b.emission.toLocaleString() : b.emission}
+                    </span>
+                    <span className="text-xs text-gray-500">tCO₂</span>
+                  </div>
+                </div>
+
+                {/* 排放占比 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">占总排放</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono font-bold text-cyan-400">{emissionProportion}%</span>
+                    {/* 占比条 */}
+                    <div className="w-16 h-1.5 rounded-full bg-gray-700/60 overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.min(parseFloat(emissionProportion), 100)}%`,
+                          background: getEmissionColor(b.emissionLevel),
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 目标比值 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">目标比值</span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="text-sm font-mono font-bold"
+                      style={{
+                        color: targetRatioNum <= 100 ? "#16A34A"
+                          : targetRatioNum <= 130 ? "#F59E0B"
+                          : "#DC2626",
+                      }}
+                    >
+                      {targetRatio}%
+                    </span>
+                    {b.targetEmission > 0 && (
+                      <span className="text-xs text-gray-500">
+                        ({b.targetEmission.toLocaleString()} tCO₂ 目标)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 目标比值进度条 */}
+                {b.targetEmission > 0 && (
+                  <div className="w-full h-2 rounded-full bg-gray-700/60 overflow-hidden relative">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(targetRatioNum * 100 / 200, 100)}%`,
+                        background: targetRatioNum <= 1
+                          ? "linear-gradient(90deg, #16A34A, #22C55E)"
+                          : targetRatioNum <= 1.3
+                          ? "linear-gradient(90deg, #F59E0B, #FBBF24)"
+                          : "linear-gradient(90deg, #DC2626, #EF4444)",
+                      }}
+                    />
+                    {/* 100%标记线 */}
+                    <div
+                      className="absolute top-0 h-full w-0.5 bg-white/60"
+                      style={{ left: "50%" }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* 异常信息区 */}
+              {hasAnomaly && (
+                <div
+                  className="px-4 py-3"
+                  style={{
+                    borderTop: "1px solid rgba(245, 158, 11, 0.2)",
+                    background: "rgba(245, 158, 11, 0.05)",
+                  }}
+                >
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#F59E0B" }}>
+                      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                      <path d="M12 9v4" />
+                      <path d="M12 17h.01" />
+                    </svg>
+                    <span className="text-xs font-semibold text-yellow-400">异常预警</span>
+                  </div>
+                  {buildingAnomalies.map((anomaly) => (
+                    <div key={anomaly.id} className="space-y-1.5">
+                      {/* 异常类型 + 严重程度 */}
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium"
+                          style={{
+                            background: severityColorMap[anomaly.severity] + "20",
+                            color: severityColorMap[anomaly.severity],
+                          }}
+                        >
+                          {severityLabelMap[anomaly.severity] || anomaly.severity}
+                        </span>
+                        <span className="text-xs text-gray-300 line-clamp-2">{anomaly.rule}</span>
+                      </div>
+                      {/* 处理状态 */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">处理状态</span>
+                        <span
+                          className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium"
+                          style={{
+                            background: anomaly.status === "closed" || anomaly.status === "false_positive"
+                              ? "rgba(16, 163, 74, 0.15)"
+                              : anomaly.status === "processing"
+                              ? "rgba(0, 153, 204, 0.15)"
+                              : anomaly.status === "assigned"
+                              ? "rgba(52, 136, 255, 0.15)"
+                              : "rgba(245, 158, 11, 0.15)",
+                            color: anomaly.status === "closed" || anomaly.status === "false_positive"
+                              ? "#16A34A"
+                              : anomaly.status === "processing"
+                              ? "#0099CC"
+                              : anomaly.status === "assigned"
+                              ? "#3488ff"
+                              : "#F59E0B",
+                          }}
+                        >
+                          {statusLabelMap[anomaly.status] || anomaly.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 建筑类型标签 */}
+            <div
+              className="mt-1 px-3 py-1 rounded-md text-center text-[10px]"
+              style={{
+                background: "rgba(10, 22, 40, 0.7)",
+                color: "#64748b",
+              }}
+            >
+              {b.type === "teaching" ? "教学楼" : b.type === "lab" ? "实验楼" : b.type === "library" ? "图书馆"
+                : b.type === "dorm" ? "宿舍楼" : b.type === "dining" ? "食堂" : b.type === "gym" ? "体育馆"
+                : b.type === "admin" ? "行政楼" : b.type === "auditorium" ? "大礼堂" : b.type === "solar" ? "光伏设施" : "建筑"}
+              · {b.floors}F · 点击查看详情
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 层级标识 */}
       <div

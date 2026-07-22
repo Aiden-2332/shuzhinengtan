@@ -10,6 +10,7 @@ interface BuildingData {
   type: string;
   dept: string;
   emission: number;
+  targetEmission: number;
   area: number;
   floors: number;
   status: "normal" | "warning" | "danger";

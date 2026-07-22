@@ -11,7 +11,6 @@
   <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
   <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
   <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
-  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/echarts/echarts-5.5.0.min.js"></script>
 
   <style type="text/tailwindcss">
     @theme {
@@ -50,41 +49,43 @@
       /* === 字体 === */
       --font-sans: "Noto Sans SC", "Geist", system-ui, sans-serif;
     }
-    /* 自定义滚动条样式 - 深色科技风 */
+    /* 自定义滚动条 */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.3); border-radius: 2px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.5); }
-    /* 日历网格样式 */
+    /* 日历格子 */
     .calendar-cell { transition: all 0.2s ease; cursor: pointer; }
-    .calendar-cell:hover { transform: scale(0.95); z-index: 10; }
-    .calendar-cell.selected { outline: 2px solid #06B6D4; outline-offset: -2px; box-shadow: 0 0 12px rgba(6, 182, 212, 0.4); }
-    .calendar-cell.today { outline: 2px solid #06B6D4; outline-offset: -2px; }
-    /* 能耗色块 */
-    .energy-high { background: linear-gradient(135deg, rgba(220, 38, 38, 0.35), rgba(220, 38, 38, 0.15)); border: 1px solid rgba(220, 38, 38, 0.3); }
-    .energy-mid { background: linear-gradient(135deg, rgba(6, 182, 212, 0.35), rgba(6, 182, 212, 0.15)); border: 1px solid rgba(6, 182, 212, 0.3); }
-    .energy-low { background: linear-gradient(135deg, rgba(22, 163, 74, 0.35), rgba(22, 163, 74, 0.15)); border: 1px solid rgba(22, 163, 74, 0.3); }
-    .energy-none { background: linear-gradient(135deg, rgba(148, 163, 184, 0.1), rgba(148, 163, 184, 0.05)); border: 1px solid rgba(148, 163, 184, 0.15); }
-    /* 周末底色 */
-    .weekend-bg { background: rgba(255, 255, 255, 0.03); }
-    /* 分类筛选按钮 */
-    .alert-filter-btn { transition: all 0.2s ease; }
-    .alert-filter-btn.active { background: rgba(6, 182, 212, 0.15); border-color: #06B6D4; color: #06B6D4; }
-    /* 告警类型色 */
-    .alert-danger { border-left: 3px solid #DC2626; }
-    .alert-warning { border-left: 3px solid #F59E0B; }
-    .alert-info { border-left: 3px solid #06B6D4; }
-    /* 加载骨架屏 */
-    .skeleton-pulse { animation: skeleton-pulse 1.5s ease-in-out infinite; }
-    @keyframes skeleton-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-    /* 饼图尺寸 */
-    .pie-legend-item { transition: all 0.2s ease; }
-    .pie-legend-item:hover { opacity: 0.8; }
+    .calendar-cell:hover { transform: scale(1.05); z-index: 5; }
+    .calendar-cell.selected { box-shadow: 0 0 0 2px #06B6D4, 0 0 12px rgba(6, 182, 212, 0.4); }
+    .calendar-cell.weekend { background-color: rgba(255, 255, 255, 0.03); }
+    /* 色块编码 */
+    .heat-red { background: linear-gradient(135deg, rgba(220, 38, 38, 0.35), rgba(220, 38, 38, 0.2)); border-color: rgba(220, 38, 38, 0.4); }
+    .heat-blue { background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(6, 182, 212, 0.15)); border-color: rgba(6, 182, 212, 0.3); }
+    .heat-green { background: linear-gradient(135deg, rgba(22, 163, 74, 0.3), rgba(22, 163, 74, 0.15)); border-color: rgba(22, 163, 74, 0.3); }
+    .heat-gray { background: linear-gradient(135deg, rgba(148, 163, 184, 0.1), rgba(148, 163, 184, 0.05)); border-color: rgba(148, 163, 184, 0.15); }
+    /* 饼图 */
+    .pie-chart { width: 120px; height: 120px; border-radius: 50%; position: relative; }
     /* Tooltip */
-    .energy-tooltip { position: absolute; z-index: 100; pointer-events: none; }
+    .tooltip-cal { position: absolute; z-index: 50; background: #0F1A33; border: 1px solid rgba(6, 182, 212, 0.3); border-radius: 0.5rem; padding: 8px 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); pointer-events: none; white-space: nowrap; }
+    /* 负荷曲线 */
+    .load-curve-container { position: relative; }
+    .peak-bg { background: rgba(220, 38, 38, 0.08); }
+    .valley-bg { background: rgba(22, 163, 74, 0.08); }
+    /* 筛选标签 */
+    .alert-filter-tag { transition: all 0.2s ease; cursor: pointer; }
+    .alert-filter-tag.active { background: rgba(6, 182, 212, 0.15); border-color: #06B6D4; color: #06B6D4; }
+    /* 告警行 */
+    .alert-row { transition: all 0.15s ease; }
+    .alert-row:hover { background: rgba(6, 182, 212, 0.05); }
     /* 展开面板 */
-    .alert-detail-panel { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease; }
-    .alert-detail-panel.open { max-height: 200px; opacity: 1; }
+    .alert-detail-panel { transition: max-height 0.3s ease, opacity 0.3s ease; max-height: 0; opacity: 0; overflow: hidden; }
+    .alert-detail-panel.open { max-height: 300px; opacity: 1; }
+    /* 骨架屏过渡 */
+    .skeleton-pulse { animation: skeletonPulse 1.5s ease-in-out infinite; }
+    @keyframes skeletonPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+    /* 切换月份过渡 */
+    .fade-transition { transition: opacity 0.2s ease; }
   </style>
 
   <!-- 图片兜底 -->
@@ -290,669 +291,604 @@
 
       <main class="flex-1 overflow-y-auto p-6 relative">
         <!-- @main-content:start -->
+        <div class="max-w-full">
 
-        <!-- 页面标题 -->
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h1 class="text-2xl font-bold text-white">用电日历</h1>
-            <p class="text-sm text-on-surface-variant mt-1">日能耗热力图 · 逐时负荷曲线 · 设备运行状态</p>
-          </div>
-          <div class="flex items-center gap-3">
-            <button id="btn-export-report" class="bg-surface-container text-on-surface border border-primary/20 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container-high transition-all inline-flex items-center gap-2">
-              <i data-lucide="file-text" class="w-4 h-4"></i>导出月报
-            </button>
-            <button id="btn-refresh" class="bg-surface-container text-on-surface border border-primary/20 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container-high transition-all inline-flex items-center gap-2">
-              <i data-lucide="refresh-cw" class="w-4 h-4"></i>刷新
-            </button>
-          </div>
-        </div>
-
-        <!-- 9c.1 顶部月度切换栏 -->
-        <div id="month-switcher" class="bg-surface rounded-xl shadow-card p-5 border border-primary/10 mb-6">
-          <div class="flex items-center justify-between">
-            <!-- 月份切换 -->
-            <div class="flex items-center gap-6">
-              <button id="btn-prev-month" class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors">
-                <i data-lucide="chevron-left" class="w-4 h-4 text-on-surface"></i>
-              </button>
-              <div class="text-center">
-                <span id="month-title" class="text-xl font-bold text-white tracking-wide">2026-07</span>
-                <div id="data-status" class="text-xs text-on-surface-variant mt-1 flex items-center justify-center gap-3">
-                  <span>已出账 <span id="billed-days">19</span>/<span id="total-days">31</span> 天</span>
-                  <span class="w-1 h-1 rounded-full bg-on-surface-variant/30"></span>
-                  <span>完整率 <span id="completeness-rate">61.3%</span></span>
-                </div>
-              </div>
-              <button id="btn-next-month" class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors">
-                <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface"></i>
-              </button>
+          <!-- 页面标题 -->
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h1 class="text-2xl font-bold text-white">用电日历</h1>
+              <p class="text-sm text-on-surface-variant mt-1">校园用电逐日可视化 · 能耗热力图 · 区域占比分析</p>
             </div>
-            <!-- 月度汇总 -->
-            <div class="flex items-center gap-8">
-              <div class="text-right">
-                <div class="text-xs text-on-surface-variant uppercase tracking-wider">月累计用电</div>
-                <div class="text-2xl font-bold text-white mt-1">1,847,<span class="text-lg">236</span> <span class="text-sm font-normal text-on-surface-variant">kWh</span></div>
-              </div>
-              <div class="text-right">
-                <div class="text-xs text-on-surface-variant uppercase tracking-wider">同比</div>
-                <div class="flex items-center gap-1.5 mt-1">
-                  <i data-lucide="trending-up" class="w-4 h-4 text-error"></i>
-                  <span class="text-lg font-bold text-error">+3.2%</span>
-                </div>
-              </div>
-              <div class="text-right">
-                <div class="text-xs text-on-surface-variant uppercase tracking-wider">环比</div>
-                <div class="flex items-center gap-1.5 mt-1">
-                  <i data-lucide="trending-down" class="w-4 h-4 text-success"></i>
-                  <span class="text-lg font-bold text-success">-2.1%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 主内容区：左侧月历 + 右侧详情 -->
-        <div class="grid grid-cols-12 gap-6 mb-6">
-          <!-- 9c.2 左侧月历热力图 -->
-          <div class="col-span-7">
-            <div id="calendar-section" class="bg-surface rounded-xl shadow-card border border-primary/10 overflow-hidden">
-              <!-- 日历标题：星期行 -->
-              <div class="grid grid-cols-7 px-4 pt-4 pb-2">
-                <div class="text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wider">周一</div>
-                <div class="text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wider">周二</div>
-                <div class="text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wider">周三</div>
-                <div class="text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wider">周四</div>
-                <div class="text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wider">周五</div>
-                <div class="text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wider">周六</div>
-                <div class="text-center text-xs font-semibold text-on-surface-variant uppercase tracking-wider">周日</div>
-              </div>
-
-              <!-- 日历网格主体 7×6 -->
-              <div id="calendar-grid" class="px-4 pb-4 grid grid-cols-7 gap-1.5">
-                <!-- 2026-07-01 是周三，前面补2天空白 -->
-                <!-- 第1行：周一~周日 6月29日~7月5日 -->
-                <!-- 6月29日（周一）空白 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] opacity-0 pointer-events-none"></div>
-                <!-- 6月30日（周二）空白 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] opacity-0 pointer-events-none"></div>
-
-                <!-- 7月1日（周三） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-high" data-date="2026-07-01" data-energy="4210">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">1</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-error/90">4,210</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月2日（周四） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-02" data-energy="3650">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">2</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,650</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月3日（周五） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-03" data-energy="3720">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">3</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,720</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月4日（周六）周末 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] weekend-bg energy-low" data-date="2026-07-04" data-energy="2250">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">4</span>
-                    <span class="text-[9px] text-on-surface-variant/40">六</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-success/90">2,250</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月5日（周日）周末 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] weekend-bg energy-low" data-date="2026-07-05" data-energy="1980">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">5</span>
-                    <span class="text-[9px] text-on-surface-variant/40">日</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-success/90">1,980</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-
-                <!-- 第2行：7月6日~7月12日 -->
-                <!-- 7月6日（周一） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-high" data-date="2026-07-06" data-energy="4380">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">6</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-error/90">4,380</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月7日（周二） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-high" data-date="2026-07-07" data-energy="4450">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">7</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-error/90">4,450</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月8日（周三） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-high" data-date="2026-07-08" data-energy="4520">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">8</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-error/90">4,520</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月9日（周四） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-09" data-energy="3850">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">9</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,850</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月10日（周五） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-10" data-energy="3580">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">10</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,580</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月11日（周六）周末 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] weekend-bg energy-low" data-date="2026-07-11" data-energy="2150">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">11</span>
-                    <span class="text-[9px] text-on-surface-variant/40">六</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-success/90">2,150</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月12日（周日）周末 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] weekend-bg energy-low" data-date="2026-07-12" data-energy="1820">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">12</span>
-                    <span class="text-[9px] text-on-surface-variant/40">日</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-success/90">1,820</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-
-                <!-- 第3行：7月13日~7月19日 -->
-                <!-- 7月13日（周一） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-high" data-date="2026-07-13" data-energy="4280">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">13</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-error/90">4,280</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月14日（周二） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-14" data-energy="3920">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">14</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,920</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月15日（周三） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-15" data-energy="3780">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">15</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,780</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月16日（周四） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-16" data-energy="3650">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">16</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,650</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月17日（周五） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-17" data-energy="3449">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">17</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,449</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月18日（周六）周末 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] weekend-bg energy-low" data-date="2026-07-18" data-energy="2050">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">18</span>
-                    <span class="text-[9px] text-on-surface-variant/40">六</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-success/90">2,050</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月19日（周日）周末 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] weekend-bg energy-low" data-date="2026-07-19" data-energy="1760">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">19</span>
-                    <span class="text-[9px] text-on-surface-variant/40">日</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-success/90">1,760</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-
-                <!-- 第4行：7月20日~7月26日 -->
-                <!-- 7月20日（周一） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-high selected" data-date="2026-07-20" data-energy="4350">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">20</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-error/90">4,350</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月21日（周二）- 当日 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-high today" data-date="2026-07-21" data-energy="4480">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">21</span>
-                    <span class="text-[9px] text-primary/60">今日</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-error/90">4,480</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月22日（周三） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-22" data-energy="3820">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">22</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,820</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月23日（周三） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-23" data-energy="3710">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">23</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,710</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月24日（周四） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-mid" data-date="2026-07-24" data-energy="3590">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">24</span>
-                  </div>
-                  <div class="mt-1 text-[10px] font-medium text-primary/90">3,590</div>
-                  <div class="text-[9px] text-on-surface-variant/50">kWh</div>
-                </div>
-                <!-- 7月25日（周六）周末 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] weekend-bg energy-none" data-date="2026-07-25" data-energy="0">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">25</span>
-                    <span class="text-[9px] text-on-surface-variant/40">六</span>
-                  </div>
-                  <div class="mt-1 text-[9px] text-on-surface-variant/40">暂无数据</div>
-                </div>
-                <!-- 7月26日（周日）周末 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] weekend-bg energy-none" data-date="2026-07-26" data-energy="0">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">26</span>
-                    <span class="text-[9px] text-on-surface-variant/40">日</span>
-                  </div>
-                  <div class="mt-1 text-[9px] text-on-surface-variant/40">暂无数据</div>
-                </div>
-
-                <!-- 第5行：7月27日~7月31日，后面补空白 -->
-                <!-- 7月27日（周一） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-none" data-date="2026-07-27" data-energy="0">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">27</span>
-                  </div>
-                  <div class="mt-1 text-[9px] text-on-surface-variant/40">暂无数据</div>
-                </div>
-                <!-- 7月28日（周二） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-none" data-date="2026-07-28" data-energy="0">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">28</span>
-                  </div>
-                  <div class="mt-1 text-[9px] text-on-surface-variant/40">暂无数据</div>
-                </div>
-                <!-- 7月29日（周三） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-none" data-date="2026-07-29" data-energy="0">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">29</span>
-                  </div>
-                  <div class="mt-1 text-[9px] text-on-surface-variant/40">暂无数据</div>
-                </div>
-                <!-- 7月30日（周四） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-none" data-date="2026-07-30" data-energy="0">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">30</span>
-                  </div>
-                  <div class="mt-1 text-[9px] text-on-surface-variant/40">暂无数据</div>
-                </div>
-                <!-- 7月31日（周五） -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] energy-none" data-date="2026-07-31" data-energy="0">
-                  <div class="flex items-start justify-between">
-                    <span class="text-xs font-bold text-white/80">31</span>
-                  </div>
-                  <div class="mt-1 text-[9px] text-on-surface-variant/40">暂无数据</div>
-                </div>
-                <!-- 补空白 -->
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] opacity-0 pointer-events-none"></div>
-                <div class="calendar-cell rounded-lg p-2 min-h-[80px] opacity-0 pointer-events-none"></div>
-              </div>
-
-              <!-- 色块图例 -->
-              <div class="flex items-center justify-between px-4 pb-4 pt-0 border-t border-outline-variant/10">
-                <div class="flex items-center gap-4">
-                  <span class="text-xs text-on-surface-variant">能耗等级：</span>
-                  <div class="flex items-center gap-1.5">
-                    <span class="w-4 h-4 rounded energy-high block"></span>
-                    <span class="text-[10px] text-on-surface-variant">&gt; 参考值×1.1</span>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="w-4 h-4 rounded energy-mid block"></span>
-                    <span class="text-[10px] text-on-surface-variant">0.8~1.1倍</span>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="w-4 h-4 rounded energy-low block"></span>
-                    <span class="text-[10px] text-on-surface-variant">&lt; 0.8倍</span>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="w-4 h-4 rounded energy-none block"></span>
-                    <span class="text-[10px] text-on-surface-variant">无数据</span>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-on-surface-variant">参考值：</span>
-                  <span class="text-sm font-bold text-primary">3,800</span>
-                  <span class="text-xs text-on-surface-variant">kWh/日</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 9c.3 右侧当日详情 -->
-          <div class="col-span-5 space-y-4">
-            <!-- 参考值对比区 -->
-            <div id="reference-compare" class="bg-surface rounded-xl shadow-card p-4 border border-primary/10">
-              <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                <i data-lucide="bar-chart-3" class="w-4 h-4 text-primary"></i>
-                参考值对比 — <span id="compare-date">2026-07-21</span>
-              </h3>
-              <div class="grid grid-cols-3 gap-3">
-                <div class="bg-surface-container/50 rounded-lg p-3 text-center">
-                  <div class="text-[10px] text-on-surface-variant">参考值</div>
-                  <div class="text-lg font-bold text-primary">3,800</div>
-                  <div class="text-[10px] text-on-surface-variant">kWh</div>
-                </div>
-                <div class="bg-surface-container/50 rounded-lg p-3 text-center">
-                  <div class="text-[10px] text-on-surface-variant">当日累计</div>
-                  <div class="text-lg font-bold text-white" id="daily-total">4,480</div>
-                  <div class="text-[10px] text-on-surface-variant">kWh</div>
-                </div>
-                <div class="bg-surface-container/50 rounded-lg p-3 text-center">
-                  <div class="text-[10px] text-on-surface-variant">同比差值</div>
-                  <div class="text-lg font-bold text-error" id="daily-yoy">+680</div>
-                  <div class="text-[10px] text-on-surface-variant">kWh</div>
-                </div>
-                <div class="bg-surface-container/50 rounded-lg p-3 text-center">
-                  <div class="text-[10px] text-on-surface-variant">月累计</div>
-                  <div class="text-lg font-bold text-white" id="monthly-total">1,847,236</div>
-                  <div class="text-[10px] text-on-surface-variant">kWh</div>
-                </div>
-                <div class="bg-surface-container/50 rounded-lg p-3 text-center">
-                  <div class="text-[10px] text-on-surface-variant">环比</div>
-                  <div class="text-lg font-bold text-success" id="monthly-mom">-2.1%</div>
-                  <div class="text-[10px] text-on-surface-variant">vs 上月</div>
-                </div>
-                <div class="bg-surface-container/50 rounded-lg p-3 text-center">
-                  <div class="text-[10px] text-on-surface-variant">同比</div>
-                  <div class="text-lg font-bold text-error" id="monthly-yoy">+3.2%</div>
-                  <div class="text-[10px] text-on-surface-variant">vs 去年</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 逐时负荷曲线 -->
-            <div id="hourly-load-chart" class="bg-surface rounded-xl shadow-card p-4 border border-primary/10">
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-white flex items-center gap-2">
-                  <i data-lucide="activity" class="w-4 h-4 text-primary"></i>
-                  当日用电曲线 — <span id="curve-date">2026-07-21</span>
-                </h3>
-                <div class="flex items-center gap-2">
-                  <label class="flex items-center gap-1 text-[10px] text-on-surface-variant cursor-pointer">
-                    <input type="checkbox" id="chk-ac" class="w-3 h-3 accent-primary" checked>
-                    空调
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-on-surface-variant cursor-pointer">
-                    <input type="checkbox" id="chk-lighting" class="w-3 h-3 accent-primary" checked>
-                    照明
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-on-surface-variant cursor-pointer">
-                    <input type="checkbox" id="chk-lab" class="w-3 h-3 accent-primary" checked>
-                    实验设备
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-on-surface-variant cursor-pointer">
-                    <input type="checkbox" id="chk-other" class="w-3 h-3 accent-primary" checked>
-                    其他
-                  </label>
-                </div>
-              </div>
-              <div id="hourly-chart-container" class="w-full" style="height: 200px;"></div>
-            </div>
-
-            <!-- 区域占比饼图 -->
-            <div id="area-pie" class="bg-surface rounded-xl shadow-card p-4 border border-primary/10">
-              <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                <i data-lucide="pie-chart" class="w-4 h-4 text-primary"></i>
-                区域能耗占比
-              </h3>
-              <div class="grid grid-cols-2 gap-3">
-                <div id="pie-chart-container" class="w-full" style="height: 160px;"></div>
-                <div class="flex flex-col justify-center gap-1.5">
-                  <!-- 饼图图例：教学楼区28.5% -->
-                  <div class="pie-legend-item flex items-center gap-2 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#06B6D4"></span>
-                    <span class="text-on-surface-variant flex-1">教学楼区</span>
-                    <span class="text-white font-medium">28.5%</span>
-                  </div>
-                  <!-- 宿舍区22.3% -->
-                  <div class="pie-legend-item flex items-center gap-2 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#F59E0B"></span>
-                    <span class="text-on-surface-variant flex-1">宿舍区</span>
-                    <span class="text-white font-medium">22.3%</span>
-                  </div>
-                  <!-- 实验楼18.6% -->
-                  <div class="pie-legend-item flex items-center gap-2 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#16A34A"></span>
-                    <span class="text-on-surface-variant flex-1">实验楼</span>
-                    <span class="text-white font-medium">18.6%</span>
-                  </div>
-                  <!-- 食堂12.1% -->
-                  <div class="pie-legend-item flex items-center gap-2 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#DC2626"></span>
-                    <span class="text-on-surface-variant flex-1">食堂</span>
-                    <span class="text-white font-medium">12.1%</span>
-                  </div>
-                  <!-- 行政楼8.4% -->
-                  <div class="pie-legend-item flex items-center gap-2 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#8B5CF6"></span>
-                    <span class="text-on-surface-variant flex-1">行政楼</span>
-                    <span class="text-white font-medium">8.4%</span>
-                  </div>
-                  <!-- 体育馆4.8% -->
-                  <div class="pie-legend-item flex items-center gap-2 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#EC4899"></span>
-                    <span class="text-on-surface-variant flex-1">体育馆</span>
-                    <span class="text-white font-medium">4.8%</span>
-                  </div>
-                  <!-- LED照明3.3% -->
-                  <div class="pie-legend-item flex items-center gap-2 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#06b6d4"></span>
-                    <span class="text-on-surface-variant flex-1">LED照明</span>
-                    <span class="text-white font-medium">3.3%</span>
-                  </div>
-                  <!-- 其他2.0% -->
-                  <div class="pie-legend-item flex items-center gap-2 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#64748B"></span>
-                    <span class="text-on-surface-variant flex-1">其他</span>
-                    <span class="text-white font-medium">2.0%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 当日用电排名TOP10 -->
-            <div id="daily-ranking" class="bg-surface rounded-xl shadow-card p-4 border border-primary/10">
-              <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                <i data-lucide="trophy" class="w-4 h-4 text-primary"></i>
-                当日用电排名 TOP10
-              </h3>
-              <div class="space-y-1.5">
-                <!-- 排名1：中央空调机组-教学区 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">中央空调机组-教学区</span>
-                  <span class="text-xs font-bold text-error">12,450</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-                <!-- 排名2：宿舍区总用电 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">宿舍区总用电</span>
-                  <span class="text-xs font-bold text-error">8,920</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-                <!-- 排名3：实验楼总用电 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">实验楼总用电</span>
-                  <span class="text-xs font-bold text-warning">7,380</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-                <!-- 排名4：食堂用电 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-gray-500/20 text-gray-400 text-[10px] font-bold flex items-center justify-center shrink-0">4</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">食堂用电</span>
-                  <span class="text-xs font-bold text-white">4,820</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-                <!-- 排名5：LED照明总控 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-gray-500/20 text-gray-400 text-[10px] font-bold flex items-center justify-center shrink-0">5</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">LED照明总控</span>
-                  <span class="text-xs font-bold text-white">3,150</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-                <!-- 排名6：行政楼用电 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-gray-500/20 text-gray-400 text-[10px] font-bold flex items-center justify-center shrink-0">6</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">行政楼用电</span>
-                  <span class="text-xs font-bold text-white">2,680</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-                <!-- 排名7：体育馆用电 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-gray-500/20 text-gray-400 text-[10px] font-bold flex items-center justify-center shrink-0">7</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">体育馆用电</span>
-                  <span class="text-xs font-bold text-white">1,540</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-                <!-- 排名8：数据中心/机房 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-gray-500/20 text-gray-400 text-[10px] font-bold flex items-center justify-center shrink-0">8</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">数据中心/机房</span>
-                  <span class="text-xs font-bold text-white">1,200</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-                <!-- 排名9：充电桩 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-gray-500/20 text-gray-400 text-[10px] font-bold flex items-center justify-center shrink-0">9</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">充电桩</span>
-                  <span class="text-xs font-bold text-white">680</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-                <!-- 排名10：光伏自发自用抵消 -->
-                <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-surface-container/30">
-                  <span class="w-5 h-5 rounded-full bg-gray-500/20 text-gray-400 text-[10px] font-bold flex items-center justify-center shrink-0">10</span>
-                  <span class="flex-1 text-xs text-on-surface truncate">光伏自发自用抵消</span>
-                  <span class="text-xs font-bold text-success">-4,200</span>
-                  <span class="text-[10px] text-on-surface-variant">kWh</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 设备运行状态统计 -->
-            <div id="device-status" class="bg-surface rounded-xl shadow-card p-4 border border-primary/10">
-              <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                <i data-lucide="server" class="w-4 h-4 text-primary"></i>
-                设备运行状态
-              </h3>
-              <div class="space-y-2">
-                <!-- 多功能电表 -->
-                <div class="flex items-center gap-3 bg-surface-container/30 rounded-lg p-3">
-                  <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <i data-lucide="gauge" class="w-4 h-4 text-primary"></i>
-                  </div>
-                  <div class="flex-1">
-                    <div class="text-xs font-medium text-white">多功能电表</div>
-                    <div class="text-[10px] text-on-surface-variant">10台设备</div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1 text-[10px] text-success">
-                      <span class="w-1.5 h-1.5 rounded-full bg-success pulse-dot"></span>在线 9
-                    </span>
-                    <span class="text-[10px] text-on-surface-variant">/</span>
-                    <span class="inline-flex items-center gap-1 text-[10px] text-error">
-                      <span class="w-1.5 h-1.5 rounded-full bg-error"></span>离线 1
-                    </span>
-                  </div>
-                </div>
-                <!-- 变压器 -->
-                <div class="flex items-center gap-3 bg-surface-container/30 rounded-lg p-3">
-                  <div class="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
-                    <i data-lucide="zap" class="w-4 h-4 text-success"></i>
-                  </div>
-                  <div class="flex-1">
-                    <div class="text-xs font-medium text-white">变压器</div>
-                    <div class="text-[10px] text-on-surface-variant">4台设备</div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1 text-[10px] text-success">
-                      <span class="w-1.5 h-1.5 rounded-full bg-success pulse-dot"></span>全部正常
-                    </span>
-                  </div>
-                </div>
-                <!-- 继电保护装置 -->
-                <div class="flex items-center gap-3 bg-surface-container/30 rounded-lg p-3">
-                  <div class="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
-                    <i data-lucide="shield" class="w-4 h-4 text-success"></i>
-                  </div>
-                  <div class="flex-1">
-                    <div class="text-xs font-medium text-white">继电保护装置</div>
-                    <div class="text-[10px] text-on-surface-variant">12组设备</div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1 text-[10px] text-success">
-                      <span class="w-1.5 h-1.5 rounded-full bg-success pulse-dot"></span>全部正常
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 9c.4 底部告警中心 -->
-        <div id="alert-section" class="bg-surface rounded-xl shadow-card border border-primary/10 mb-6">
-          <!-- 告警标题 -->
-          <div class="flex items-center justify-between px-5 py-4 border-b border-outline-variant/10">
             <div class="flex items-center gap-3">
-              <i data-lucide="bell-ring" class="w-5 h-5 text-error"></i>
-              <h3 class="text-base font-semibold text-white">当前告警</h3>
-              <span class="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full bg-error/15 text-error text-xs font-bold">18</span>
+              <button id="btn-export-report" class="bg-surface-container text-on-surface border border-primary/20 px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container-high transition-all inline-flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4"></i>导出月报
+              </button>
+              <button id="btn-refresh-data" class="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-all inline-flex items-center gap-2">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>刷新数据
+              </button>
             </div>
-            <div class="flex items-center gap-2">
-              <button id="alert-filter-all" class="alert-filter-btn active px-3 py-1 rounded-full text-xs font-medium border border-primary/20">全部</button>
-              <button id="alert-filter-info" class="alert-filter-btn px-3 py-1 rounded-full text-xs font-medium text-on-surface-variant border border-outline-variant/30 hover:border-primary/30">ℹ️ 信息</button>
-              <button id="alert-filter-warning" class="alert-filter-btn px-3 py-1 rounded-full text-xs font-medium text-on-surface-variant border border-outline-variant/30 hover:border-warning/30">⚠️ 警告</button>
-              <button id="alert-filter-danger" class="alert-filter-btn px-3 py-1 rounded-full text-xs font-medium text-on-surface-variant border border-outline-variant/30 hover:border-error/30">🚨 危险</button
+          </div>
+
+          <!-- 9c.1 顶部月度切换栏 -->
+          <div id="month-header" class="bg-surface rounded-xl shadow-card p-5 border border-primary/10 mb-6">
+            <div class="flex items-center justify-between">
+              <!-- 月份切换 -->
+              <div class="flex items-center gap-4">
+                <button id="btn-prev-month" class="w-9 h-9 rounded-lg bg-surface-container border border-primary/20 flex items-center justify-center hover:bg-surface-container-high transition-all">
+                  <i data-lucide="chevron-left" class="w-4 h-4 text-primary"></i>
+                </button>
+                <span id="month-title" class="text-xl font-bold text-white tracking-wide">2026-07</span>
+                <button id="btn-next-month" class="w-9 h-9 rounded-lg bg-surface-container border border-primary/20 flex items-center justify-center hover:bg-surface-container-high transition-all">
+                  <i data-lucide="chevron-right" class="w-4 h-4 text-primary"></i>
+                </button>
+                <button id="btn-today" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all">今日</button>
+              </div>
+              <!-- 月度汇总数据 -->
+              <div class="flex items-center gap-6">
+                <!-- 月累计用电量 -->
+                <div class="flex items-center gap-3 px-4 py-2 rounded-lg bg-surface-container/50 border border-primary/10">
+                  <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <i data-lucide="zap" class="w-4 h-4 text-primary"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs text-on-surface-variant">月累计用电量</div>
+                    <div class="text-base font-bold text-white">1,284,560 <span class="text-xs font-normal text-on-surface-variant">kWh</span></div>
+                  </div>
+                </div>
+                <!-- 同比 -->
+                <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container/50 border border-primary/10">
+                  <i data-lucide="trending-up" class="w-4 h-4 text-error"></i>
+                  <div>
+                    <div class="text-xs text-on-surface-variant">同比</div>
+                    <div class="text-sm font-semibold text-error">+3.2%</div>
+                  </div>
+                </div>
+                <!-- 环比 -->
+                <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container/50 border border-primary/10">
+                  <i data-lucide="trending-down" class="w-4 h-4 text-success"></i>
+                  <div>
+                    <div class="text-xs text-on-surface-variant">环比</div>
+                    <div class="text-sm font-semibold text-success">-1.5%</div>
+                  </div>
+                </div>
+                <!-- 数据状态 -->
+                <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container/50 border border-primary/10">
+                  <div class="w-2 h-2 rounded-full bg-success pulse-dot"></div>
+                  <div>
+                    <div class="text-xs text-on-surface-variant">数据状态</div>
+                    <div class="text-sm font-medium text-white">21<span class="text-on-surface-variant text-xs">/</span>31<span class="text-on-surface-variant text-xs"> 天 · 67.7%</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 主体区域：左月历 + 右详情 -->
+          <div class="flex gap-6 mb-6">
+            <!-- 9c.2 左侧月历热力图 -->
+            <div id="calendar-section" class="w-[480px] shrink-0 bg-surface rounded-xl shadow-card p-5 border border-primary/10">
+              <!-- 星期行 -->
+              <div class="grid grid-cols-7 mb-2">
+                <div class="text-center text-xs font-semibold text-on-surface-variant py-1">一</div>
+                <div class="text-center text-xs font-semibold text-on-surface-variant py-1">二</div>
+                <div class="text-center text-xs font-semibold text-on-surface-variant py-1">三</div>
+                <div class="text-center text-xs font-semibold text-on-surface-variant py-1">四</div>
+                <div class="text-center text-xs font-semibold text-on-surface-variant py-1">五</div>
+                <div class="text-center text-xs font-semibold text-on-surface-variant py-1">六</div>
+                <div class="text-center text-xs font-semibold text-on-surface-variant py-1">日</div>
+              </div>
+              <!-- 月历网格 - 2026-07 -->
+              <div id="calendar-grid" class="grid grid-cols-7 gap-1.5">
+                <!-- 第1周：6/29(一)~6/30(二) 填充，7/1(三)~7/5(日) -->
+                <div class="calendar-cell heat-gray rounded-lg p-1.5 text-center border border-transparent" data-date="2026-06-29" data-has-data="false">
+                  <div class="text-xs text-on-surface-variant/40">29</div>
+                </div>
+                <div class="calendar-cell heat-gray rounded-lg p-1.5 text-center border border-transparent" data-date="2026-06-30" data-has-data="false">
+                  <div class="text-xs text-on-surface-variant/40">30</div>
+                </div>
+                <!-- 月-日1 -->
+                <div class="calendar-cell heat-green rounded-lg p-1.5 text-center border border-transparent selected" data-date="2026-07-01" data-has-data="true">
+                  <div class="text-xs font-bold text-white">1</div>
+                  <div class="text-[10px] text-success mt-0.5">2,180</div>
+                </div>
+                <!-- 月-日2 -->
+                <div class="calendar-cell heat-green rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-02" data-has-data="true">
+                  <div class="text-xs font-bold text-white">2</div>
+                  <div class="text-[10px] text-success mt-0.5">2,050</div>
+                </div>
+                <!-- 月-日3 -->
+                <div class="calendar-cell heat-green rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-03" data-has-data="true">
+                  <div class="text-xs font-bold text-white">3</div>
+                  <div class="text-[10px] text-success mt-0.5">1,980</div>
+                </div>
+                <!-- 月-日4 周六 -->
+                <div class="calendar-cell heat-green weekend rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-04" data-has-data="true">
+                  <div class="text-xs font-bold text-white">4</div>
+                  <div class="text-[10px] text-success mt-0.5">1,720</div>
+                </div>
+                <!-- 月-日5 周日 -->
+                <div class="calendar-cell heat-green weekend rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-05" data-has-data="true">
+                  <div class="text-xs font-bold text-white">5</div>
+                  <div class="text-[10px] text-success mt-0.5">1,650</div>
+                </div>
+
+                <!-- 第2周：7/6(一)~7/12(日) -->
+                <div class="calendar-cell heat-green rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-06" data-has-data="true">
+                  <div class="text-xs font-bold text-white">6</div>
+                  <div class="text-[10px] text-success mt-0.5">2,230</div>
+                </div>
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-07" data-has-data="true">
+                  <div class="text-xs font-bold text-white">7</div>
+                  <div class="text-[10px] text-primary mt-0.5">3,120</div>
+                </div>
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-08" data-has-data="true">
+                  <div class="text-xs font-bold text-white">8</div>
+                  <div class="text-[10px] text-primary mt-0.5">3,350</div>
+                </div>
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-09" data-has-data="true">
+                  <div class="text-xs font-bold text-white">9</div>
+                  <div class="text-[10px] text-primary mt-0.5">3,010</div>
+                </div>
+                <div class="calendar-cell heat-green rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-10" data-has-data="true">
+                  <div class="text-xs font-bold text-white">10</div>
+                  <div class="text-[10px] text-success mt-0.5">2,450</div>
+                </div>
+                <!-- 7/11 周六 -->
+                <div class="calendar-cell heat-green weekend rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-11" data-has-data="true">
+                  <div class="text-xs font-bold text-white">11</div>
+                  <div class="text-[10px] text-success mt-0.5">1,880</div>
+                </div>
+                <!-- 7/12 周日 -->
+                <div class="calendar-cell heat-green weekend rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-12" data-has-data="true">
+                  <div class="text-xs font-bold text-white">12</div>
+                  <div class="text-[10px] text-success mt-0.5">1,760</div>
+                </div>
+
+                <!-- 第3周：7/13(一)~7/19(日) -->
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-13" data-has-data="true">
+                  <div class="text-xs font-bold text-white">13</div>
+                  <div class="text-[10px] text-primary mt-0.5">3,440</div>
+                </div>
+                <div class="calendar-cell heat-red rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-14" data-has-data="true">
+                  <div class="text-xs font-bold text-white">14</div>
+                  <div class="text-[10px] text-error mt-0.5">4,120</div>
+                </div>
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-15" data-has-data="true">
+                  <div class="text-xs font-bold text-white">15</div>
+                  <div class="text-[10px] text-primary mt-0.5">3,680</div>
+                </div>
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-16" data-has-data="true">
+                  <div class="text-xs font-bold text-white">16</div>
+                  <div class="text-[10px] text-primary mt-0.5">3,550</div>
+                </div>
+                <div class="calendar-cell heat-green rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-17" data-has-data="true">
+                  <div class="text-xs font-bold text-white">17</div>
+                  <div class="text-[10px] text-success mt-0.5">2,680</div>
+                </div>
+                <!-- 7/18 周六 -->
+                <div class="calendar-cell heat-green weekend rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-18" data-has-data="true">
+                  <div class="text-xs font-bold text-white">18</div>
+                  <div class="text-[10px] text-success mt-0.5">1,920</div>
+                </div>
+                <!-- 7/19 周日 -->
+                <div class="calendar-cell heat-green weekend rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-19" data-has-data="true">
+                  <div class="text-xs font-bold text-white">19</div>
+                  <div class="text-[10px] text-success mt-0.5">1,830</div>
+                </div>
+
+                <!-- 第4周：7/20(一)~7/26(日) -->
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-20" data-has-data="true">
+                  <div class="text-xs font-bold text-white">20</div>
+                  <div class="text-[10px] text-primary mt-0.5">3,890</div>
+                </div>
+                <div class="calendar-cell heat-red rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-21" data-has-data="true">
+                  <div class="text-xs font-bold text-white">21</div>
+                  <div class="text-[10px] text-error mt-0.5">3,449</div>
+                </div>
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-22" data-has-data="true">
+                  <div class="text-xs font-bold text-white">22</div>
+                  <div class="text-[10px] text-primary mt-0.5">3,210</div>
+                </div>
+                <div class="calendar-cell heat-green rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-23" data-has-data="true">
+                  <div class="text-xs font-bold text-white">23</div>
+                  <div class="text-[10px] text-success mt-0.5">2,560</div>
+                </div>
+                <div class="calendar-cell heat-green rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-24" data-has-data="true">
+                  <div class="text-xs font-bold text-white">24</div>
+                  <div class="text-[10px] text-success mt-0.5">2,340</div>
+                </div>
+                <!-- 7/25 周六 -->
+                <div class="calendar-cell heat-green weekend rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-25" data-has-data="true">
+                  <div class="text-xs font-bold text-white">25</div>
+                  <div class="text-[10px] text-success mt-0.5">1,680</div>
+                </div>
+                <!-- 7/26 周日 -->
+                <div class="calendar-cell heat-green weekend rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-26" data-has-data="true">
+                  <div class="text-xs font-bold text-white">26</div>
+                  <div class="text-[10px] text-success mt-0.5">1,550</div>
+                </div>
+
+                <!-- 第5周：7/27(一)~7/31(五) + 8/1(六)~8/2(日)填充 -->
+                <div class="calendar-cell heat-green rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-27" data-has-data="true">
+                  <div class="text-xs font-bold text-white">27</div>
+                  <div class="text-[10px] text-success mt-0.5">2,480</div>
+                </div>
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-28" data-has-data="true">
+                  <div class="text-xs font-bold text-white">28</div>
+                  <div class="text-[10px] text-primary mt-0.5">2,980</div>
+                </div>
+                <div class="calendar-cell heat-blue rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-29" data-has-data="true">
+                  <div class="text-xs font-bold text-white">29</div>
+                  <div class="text-[10px] text-primary mt-0.5">3,120</div>
+                </div>
+                <div class="calendar-cell heat-gray rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-30" data-has-data="false">
+                  <div class="text-xs text-on-surface-variant/40">30</div>
+                  <div class="text-[10px] text-on-surface-variant/30 mt-0.5">暂无</div>
+                </div>
+                <div class="calendar-cell heat-gray rounded-lg p-1.5 text-center border border-transparent" data-date="2026-07-31" data-has-data="false">
+                  <div class="text-xs text-on-surface-variant/40">31</div>
+                  <div class="text-[10px] text-on-surface-variant/30 mt-0.5">暂无</div>
+                </div>
+                <!-- 8/1 周六 填充 -->
+                <div class="calendar-cell heat-gray rounded-lg p-1.5 text-center border border-transparent" data-date="2026-08-01" data-has-data="false">
+                  <div class="text-xs text-on-surface-variant/40">1</div>
+                </div>
+                <!-- 8/2 周日 填充 -->
+                <div class="calendar-cell heat-gray rounded-lg p-1.5 text-center border border-transparent" data-date="2026-08-02" data-has-data="false">
+                  <div class="text-xs text-on-surface-variant/40">2</div>
+                </div>
+              </div>
+
+              <!-- 图例 -->
+              <div class="flex items-center gap-4 mt-3 pt-3 border-t border-outline-variant/20">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm bg-error/40 border border-error/40"></span>
+                  <span class="text-xs text-on-surface-variant">≥ 参考值×1.1</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm bg-primary/30 border border-primary/30"></span>
+                  <span class="text-xs text-on-surface-variant">0.8~1.1倍</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm bg-success/30 border border-success/30"></span>
+                  <span class="text-xs text-on-surface-variant">＜ 0.8倍</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm bg-on-surface-variant/10 border border-on-surface-variant/15"></span>
+                  <span class="text-xs text-on-surface-variant">无数据</span>
+                </div>
+                <span class="text-xs text-on-surface-variant ml-auto">参考值：3,100 kWh</span>
+              </div>
+            </div>
+
+            <!-- 右侧详情区域 -->
+            <div class="flex-1 min-w-0 space-y-6">
+              <!-- 9c.2 参考值对比区 -->
+              <div id="reference-section" class="bg-surface rounded-xl shadow-card p-5 border border-primary/10">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-base font-semibold text-white">参考值对比 — <span id="detail-date-title">2026-07-21</span></h2>
+                  <div class="flex items-center gap-2 text-xs text-on-surface-variant">
+                    <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                    <span>点击日历格子查看详情</span>
+                  </div>
+                </div>
+                <div class="grid grid-cols-5 gap-4">
+                  <!-- 参考值 -->
+                  <div class="text-center p-3 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <div class="text-xs text-on-surface-variant mb-1">参考值</div>
+                    <div class="text-lg font-bold text-primary">3,100 <span class="text-xs font-normal text-on-surface-variant">kWh</span></div>
+                  </div>
+                  <!-- 当日累计 -->
+                  <div class="text-center p-3 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <div class="text-xs text-on-surface-variant mb-1">当日累计</div>
+                    <div class="text-lg font-bold text-white">3,449 <span class="text-xs font-normal text-on-surface-variant">kWh</span></div>
+                  </div>
+                  <!-- 同比差值 -->
+                  <div class="text-center p-3 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <div class="text-xs text-on-surface-variant mb-1">同比差值</div>
+                    <div class="text-lg font-bold text-error">+349 <span class="text-xs font-normal text-on-surface-variant">kWh</span></div>
+                    <div class="text-[10px] text-error">+11.3%</div>
+                  </div>
+                  <!-- 月累计 -->
+                  <div class="text-center p-3 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <div class="text-xs text-on-surface-variant mb-1">月累计</div>
+                    <div class="text-lg font-bold text-white">1,284,560 <span class="text-xs font-normal text-on-surface-variant">kWh</span></div>
+                  </div>
+                  <!-- 环比 -->
+                  <div class="text-center p-3 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <div class="text-xs text-on-surface-variant mb-1">环比</div>
+                    <div class="text-lg font-bold text-success">-1.5%</div>
+                    <div class="text-[10px] text-success">较上月</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 9c.2 区域占比饼图 -->
+              <div id="pie-section" class="bg-surface rounded-xl shadow-card p-5 border border-primary/10">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-base font-semibold text-white">区域用电占比</h2>
+                  <span class="text-xs text-on-surface-variant">2026-07-21</span>
+                </div>
+                <div class="flex items-center gap-6">
+                  <!-- 饼图 - 用 conic-gradient 模拟 -->
+                  <div class="w-[120px] h-[120px] rounded-full shrink-0"
+                    style="background: conic-gradient(
+                      #06B6D4 0% 28.5%,
+                      #16A34A 28.5% 50.8%,
+                      #F59E0B 50.8% 69.4%,
+                      #DC2626 69.4% 81.5%,
+                      #8B5CF6 81.5% 89.9%,
+                      #EC4899 89.9% 94.7%,
+                      #3B82F6 94.7% 98.0%,
+                      #6B7280 98.0% 100%
+                    );">
+                  </div>
+                  <!-- 图例 -->
+                  <div class="flex-1 grid grid-cols-2 gap-x-6 gap-y-1.5">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#06B6D4"></span>
+                      <span class="text-xs text-on-surface-variant">教学楼区 <span class="text-white font-medium">28.5%</span></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#16A34A"></span>
+                      <span class="text-xs text-on-surface-variant">宿舍区 <span class="text-white font-medium">22.3%</span></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#F59E0B"></span>
+                      <span class="text-xs text-on-surface-variant">实验楼 <span class="text-white font-medium">18.6%</span></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#DC2626"></span>
+                      <span class="text-xs text-on-surface-variant">食堂 <span class="text-white font-medium">12.1%</span></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#8B5CF6"></span>
+                      <span class="text-xs text-on-surface-variant">行政楼 <span class="text-white font-medium">8.4%</span></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#EC4899"></span>
+                      <span class="text-xs text-on-surface-variant">体育馆 <span class="text-white font-medium">4.8%</span></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#3B82F6"></span>
+                      <span class="text-xs text-on-surface-variant">LED照明 <span class="text-white font-medium">3.3%</span></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-sm shrink-0" style="background:#6B7280"></span>
+                      <span class="text-xs text-on-surface-variant">其他 <span class="text-white font-medium">2.0%</span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 9c.3 逐时负荷曲线 -->
+              <div id="load-curve-section" class="bg-surface rounded-xl shadow-card p-5 border border-primary/10">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-base font-semibold text-white">当日用电曲线 — <span id="load-curve-date">2026-07-21</span></h2>
+                  <div class="flex items-center gap-3">
+                    <label class="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
+                      <input type="checkbox" id="chk-ac" class="accent-primary" checked>
+                      空调
+                    </label>
+                    <label class="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
+                      <input type="checkbox" id="chk-lighting" class="accent-primary" checked>
+                      照明
+                    </label>
+                    <label class="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
+                      <input type="checkbox" id="chk-lab" class="accent-primary" checked>
+                      实验设备
+                    </label>
+                    <label class="flex items-center gap-1.5 text-xs text-on-surface-variant cursor-pointer">
+                      <input type="checkbox" id="chk-other" class="accent-primary" checked>
+                      其他
+                    </label>
+                  </div>
+                </div>
+                <!-- 负荷曲线图 - 模拟SVG -->
+                <div class="load-curve-container relative">
+                  <!-- 峰时/谷时底色 -->
+                  <div class="absolute inset-0 flex pointer-events-none" style="height: 180px; top: 20px;">
+                    <!-- 谷时 0-7 -->
+                    <div class="h-full valley-bg" style="width: 29.17%"></div>
+                    <!-- 平时 7-8 -->
+                    <div class="h-full" style="width: 4.17%"></div>
+                    <!-- 峰时 8-11 -->
+                    <div class="h-full peak-bg" style="width: 12.5%"></div>
+                    <!-- 平时 11-18 -->
+                    <div class="h-full" style="width: 29.17%"></div>
+                    <!-- 峰时 18-21 -->
+                    <div class="h-full peak-bg" style="width: 12.5%"></div>
+                    <!-- 平时 21-23 -->
+                    <div class="h-full" style="width: 8.33%"></div>
+                    <!-- 谷时 23-24 -->
+                    <div class="h-full valley-bg" style="width: 4.17%"></div>
+                  </div>
+                  <!-- SVG 曲线 -->
+                  <svg viewBox="0 0 720 200" class="w-full" style="height: 200px;">
+                    <!-- Y轴标签 -->
+                    <text x="0" y="15" class="fill-on-surface-variant/50" font-size="10">400</text>
+                    <text x="0" y="55" class="fill-on-surface-variant/50" font-size="10">300</text>
+                    <text x="0" y="95" class="fill-on-surface-variant/50" font-size="10">200</text>
+                    <text x="0" y="135" class="fill-on-surface-variant/50" font-size="10">100</text>
+                    <text x="0" y="175" class="fill-on-surface-variant/50" font-size="10">0</text>
+                    <!-- 参考日均功率虚线 -->
+                    <line x1="30" y1="70" x2="710" y2="70" stroke="#F59E0B" stroke-width="1" stroke-dasharray="6,4" opacity="0.6"/>
+                    <text x="710" y="67" class="fill-warning" font-size="9" opacity="0.7">日均 280kW</text>
+                    <!-- 负荷曲线 - 蓝色实线 -->
+                    <polyline
+                      points="30,175 60,172 90,170 120,165 150,158 180,150 210,140 240,120 270,95 300,70 330,55 360,50 390,55 420,65 450,70 480,60 510,55 540,65 570,80 600,90 630,85 660,95 690,110 720,150"
+                      fill="none" stroke="#06B6D4" stroke-width="2" opacity="0.9"/>
+                    <!-- 填充区域 -->
+                    <polygon
+                      points="30,175 60,172 90,170 120,165 150,158 180,150 210,140 240,120 270,95 300,70 330,55 360,50 390,55 420,65 450,70 480,60 510,55 540,65 570,80 600,90 630,85 660,95 690,110 720,150 720,175 30,175"
+                      fill="url(#gradBlue)" opacity="0.15"/>
+                    <defs>
+                      <linearGradient id="gradBlue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.3"/>
+                        <stop offset="100%" stop-color="#06B6D4" stop-opacity="0"/>
+                      </linearGradient>
+                    </defs>
+                    <!-- X轴标签 -->
+                    <text x="30" y="192" class="fill-on-surface-variant/50" font-size="8" text-anchor="middle">0:00</text>
+                    <text x="120" y="192" class="fill-on-surface-variant/50" font-size="8" text-anchor="middle">4:00</text>
+                    <text x="210" y="192" class="fill-on-surface-variant/50" font-size="8" text-anchor="middle">8:00</text>
+                    <text x="300" y="192" class="fill-on-surface-variant/50" font-size="8" text-anchor="middle">12:00</text>
+                    <text x="390" y="192" class="fill-on-surface-variant/50" font-size="8" text-anchor="middle">14:00</text>
+                    <text x="480" y="192" class="fill-on-surface-variant/50" font-size="8" text-anchor="middle">16:00</text>
+                    <text x="570" y="192" class="fill-on-surface-variant/50" font-size="8" text-anchor="middle">20:00</text>
+                    <text x="660" y="192" class="fill-on-surface-variant/50" font-size="8" text-anchor="middle">22:00</text>
+                    <text x="720" y="192" class="fill-on-surface-variant/50" font-size="8" text-anchor="middle">24:00</text>
+                    <!-- 网格线 -->
+                    <line x1="30" y1="40" x2="720" y2="40" stroke="rgba(148,163,184,0.08)" stroke-width="0.5"/>
+                    <line x1="30" y1="80" x2="720" y2="80" stroke="rgba(148,163,184,0.08)" stroke-width="0.5"/>
+                    <line x1="30" y1="120" x2="720" y2="120" stroke="rgba(148,163,184,0.08)" stroke-width="0.5"/>
+                    <line x1="30" y1="160" x2="720" y2="160" stroke="rgba(148,163,184,0.08)" stroke-width="0.5"/>
+                  </svg>
+                  <!-- 峰谷标识 -->
+                  <div class="flex text-[10px] text-on-surface-variant/60 mt-1">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-error/30"></span>峰时 8:00-11:00 / 18:00-21:00</span>
+                    <span class="flex items-center gap-1 ml-4"><span class="w-2 h-2 rounded-sm bg-success/30"></span>谷时 23:00-7:00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 9c.3 当日用电排名TOP10 -->
+              <div id="ranking-section" class="bg-surface rounded-xl shadow-card p-5 border border-primary/10">
+                <h2 class="text-base font-semibold text-white mb-3">当日用电排名 TOP10</h2>
+                <div class="space-y-1.5">
+                  <!-- 排名-1 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <span class="w-5 h-5 rounded bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">1</span>
+                    <span class="flex-1 text-sm text-white">中央空调机组-教学区</span>
+                    <span class="text-sm font-semibold text-error">12,450 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                  <!-- 排名-2 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <span class="w-5 h-5 rounded bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">2</span>
+                    <span class="flex-1 text-sm text-white">宿舍区总用电</span>
+                    <span class="text-sm font-semibold text-white">8,920 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                  <!-- 排名-3 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <span class="w-5 h-5 rounded bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">3</span>
+                    <span class="flex-1 text-sm text-white">实验楼总用电</span>
+                    <span class="text-sm font-semibold text-white">7,380 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                  <!-- 排名-4 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <span class="w-5 h-5 rounded bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">4</span>
+                    <span class="flex-1 text-sm text-white">食堂用电</span>
+                    <span class="text-sm font-semibold text-white">4,820 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                  <!-- 排名-5 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <span class="w-5 h-5 rounded bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">5</span>
+                    <span class="flex-1 text-sm text-white">LED照明总控</span>
+                    <span class="text-sm font-semibold text-white">3,150 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                  <!-- 排名-6 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <span class="w-5 h-5 rounded bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">6</span>
+                    <span class="flex-1 text-sm text-white">行政楼用电</span>
+                    <span class="text-sm font-semibold text-white">2,680 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                  <!-- 排名-7 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <span class="w-5 h-5 rounded bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">7</span>
+                    <span class="flex-1 text-sm text-white">体育馆用电</span>
+                    <span class="text-sm font-semibold text-white">1,540 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                  <!-- 排名-8 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <span class="w-5 h-5 rounded bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">8</span>
+                    <span class="flex-1 text-sm text-white">数据中心/机房</span>
+                    <span class="text-sm font-semibold text-white">1,200 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                  <!-- 排名-9 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <span class="w-5 h-5 rounded bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">9</span>
+                    <span class="flex-1 text-sm text-white">充电桩</span>
+                    <span class="text-sm font-semibold text-white">680 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                  <!-- 排名-10 -->
+                  <div class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container/30 border border-success/20">
+                    <span class="w-5 h-5 rounded bg-success/20 text-success text-xs font-bold flex items-center justify-center">10</span>
+                    <span class="flex-1 text-sm text-white">光伏自发自用抵消</span>
+                    <span class="text-sm font-semibold text-success">-4,200 <span class="text-xs font-normal text-on-surface-variant">kWh</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 9c.3 设备运行状态统计 -->
+              <div id="device-status-section" class="bg-surface rounded-xl shadow-card p-5 border border-primary/10">
+                <h2 class="text-base font-semibold text-white mb-3">设备运行状态统计</h2>
+                <div class="grid grid-cols-3 gap-4">
+                  <!-- 多功能电表 -->
+                  <div class="p-4 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <div class="flex items-center gap-2 mb-3">
+                      <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <i data-lucide="gauge" class="w-4 h-4 text-primary"></i>
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium text-white">多功能电表</div>
+                        <div class="text-xs text-on-surface-variant">10 台</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-success/15 text-success">
+                        <span class="w-1.5 h-1.5 rounded-full bg-success pulse-dot"></span>在线 9
+                      </span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-error/15 text-error">
+                        <span class="w-1.5 h-1.5 rounded-full bg-error"></span>离线 1
+                      </span>
+                    </div>
+                  </div>
+                  <!-- 变压器 -->
+                  <div class="p-4 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <div class="flex items-center gap-2 mb-3">
+                      <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <i data-lucide="cpu" class="w-4 h-4 text-primary"></i>
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium text-white">变压器</div>
+                        <div class="text-xs text-on-surface-variant">4 台</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-success/15 text-success">
+                        <span class="w-1.5 h-1.5 rounded-full bg-success pulse-dot"></span>全部正常
+                      </span>
+                    </div>
+                  </div>
+                  <!-- 继电保护装置 -->
+                  <div class="p-4 rounded-lg bg-surface-container/30 border border-primary/10">
+                    <div class="flex items-center gap-2 mb-3">
+                      <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <i data-lucide="shield" class="w-4 h-4 text-primary"></i>
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium text-white">继电保护装置</div>
+                        <div class="text-xs text-on-surface-variant">12 组</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-success/15 text-success">
+                        <span class="w-1.5 h-1.5 rounded-full bg-success pulse-dot"></span>全部正常
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 9c.4 底部告警中心 -->
+          <div id="alert-center" class="bg-surface rounded-xl shadow-card border border-primary/10 mb-6">
+            <div class="px-5 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <h2 class="text-base font-semibold text-white">当前告警</h2>
+                <span id="alert-count-badge" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-error/15 text-error border border-error/20">18</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="alert-filter-all" class="alert-filter-tag active px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">全部</button>
+                <button id="alert-filter-info" class="alert-filter-tag px-3 py-1 rounded

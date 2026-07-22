@@ -49,25 +49,6 @@
       /* === 字体 === */
       --font-sans: "Noto Sans SC", "Geist", system-ui, sans-serif;
     }
-    /* 自定义滚动条 */
-    .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
-    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-    .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(6,182,212,0.3); border-radius: 2px; }
-    .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,0.5); }
-    /* 展开面板动画 */
-    .detail-panel { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
-    .detail-panel.open { max-height: 800px; }
-    /* 状态圆点 */
-    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-    .status-dot.green { background: #16A34A; box-shadow: 0 0 6px rgba(22,163,74,0.5); }
-    .status-dot.yellow { background: #F59E0B; box-shadow: 0 0 6px rgba(245,158,11,0.5); }
-    .status-dot.gray { background: #94A3B8; box-shadow: 0 0 6px rgba(148,163,184,0.3); }
-    .status-dot.blue { background: #3B82F6; box-shadow: 0 0 6px rgba(59,130,246,0.5); }
-    /* 趋势线模拟 */
-    .trend-line { display: flex; align-items: flex-end; gap: 2px; height: 24px; }
-    .trend-line .bar { width: 4px; border-radius: 2px 2px 0 0; background: linear-gradient(180deg, rgba(6,182,212,0.6), rgba(6,182,212,0.2)); }
-    .bar-chart-line { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
-    .bar-chart-line .bar { width: 3px; border-radius: 1px 1px 0 0; }
   </style>
 
   <!-- 图片兜底 -->
@@ -91,7 +72,7 @@
 
 <body class="bg-background text-on-surface font-sans">
 
-  <!-- 导航组件 -->
+  <!-- @nav:start 导航组件 -->
   <div class="flex h-screen overflow-hidden">
     <!-- Background Grid -->
     <div class="fixed inset-0 opacity-20 pointer-events-none"
@@ -160,7 +141,7 @@
               <i data-lucide="chart-column" class="w-4 h-4 text-gray-500"></i>
               <span class="flex-1">能源分析</span>
             </a>
-            <a href="energy-devices.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 bg-gradient-to-r from-primary/20 to-blue-500/20 text-primary border border-primary/30"
+            <a href="energy-devices.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 bg-gradient-to-r from-primary/20 to-blue-500/20 text-primary border border-primary/30"
                aria-current="page">
               <i data-lucide="server" class="w-4 h-4 text-primary"></i>
               <span class="flex-1">设备管理</span>
@@ -273,8 +254,8 @@
 
       <main class="flex-1 overflow-y-auto p-6 relative">
         <!-- @main-content:start -->
-
-        <!-- 页面标题区 -->
+        
+        <!-- 页面标题 -->
         <div class="flex items-center justify-between mb-6">
           <div>
             <h1 class="text-2xl font-bold text-on-surface">设备管理面板</h1>
@@ -293,183 +274,283 @@
           </div>
         </div>
 
-        <!-- 9b.1 顶部统计栏 - KPI卡片 -->
-        <div id="kpi-section" class="grid grid-cols-4 gap-4 mb-6">
-          <!-- KPI 1: 设备总数 -->
+        <!-- 9b.1 顶部统计栏：4个KPI卡片 -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <!-- KPI 1：设备总数 -->
           <div class="bg-surface rounded-lg shadow-card p-5 border border-primary/10">
             <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">设备总数</span>
-              <div class="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+              <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">设备总数</span>
+              <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <i data-lucide="server" class="w-4 h-4 text-primary"></i>
               </div>
             </div>
-            <div class="text-3xl font-bold text-on-surface mb-2">35</div>
-            <div class="flex items-center gap-3 flex-wrap">
-              <span class="text-xs text-on-surface-variant">全部 <span class="text-on-surface font-medium">35</span></span>
-              <span class="w-1 h-1 rounded-full bg-on-surface-variant/30"></span>
-              <span class="text-xs text-success"><span class="font-medium">25</span> 正常</span>
-              <span class="w-1 h-1 rounded-full bg-on-surface-variant/30"></span>
-              <span class="text-xs text-warning"><span class="font-medium">4</span> 预警</span>
-              <span class="w-1 h-1 rounded-full bg-on-surface-variant/30"></span>
-              <span class="text-xs text-gray-400"><span class="font-medium">3</span> 离线</span>
-              <span class="w-1 h-1 rounded-full bg-on-surface-variant/30"></span>
-              <span class="text-xs text-blue-400"><span class="font-medium">3</span> 检修</span>
+            <div class="text-3xl font-bold text-on-surface">35</div>
+            <div class="text-xs text-on-surface-variant mt-1">台已接入</div>
+            <!-- 状态标签组 -->
+            <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-outline-variant/20">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-success/15 text-success">
+                <span class="w-1.5 h-1.5 rounded-full bg-success"></span>正常 25
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-warning/15 text-warning">
+                <span class="w-1.5 h-1.5 rounded-full bg-warning"></span>预警 4
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-error/15 text-error">
+                <span class="w-1.5 h-1.5 rounded-full bg-error"></span>离线 3
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-primary/15 text-primary">
+                <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>检修 3
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs text-on-surface-variant/70">
+                全部 35
+              </span>
             </div>
           </div>
-          <!-- KPI 2: 在线率 -->
+
+          <!-- KPI 2：设备在线率 -->
           <div class="bg-surface rounded-lg shadow-card p-5 border border-primary/10">
             <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">设备在线率</span>
-              <div class="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center">
+              <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">设备在线率</span>
+              <div class="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
                 <i data-lucide="activity" class="w-4 h-4 text-success"></i>
               </div>
             </div>
-            <div class="text-3xl font-bold text-on-surface mb-2">85.7%</div>
-            <div class="text-xs text-on-surface-variant"><span class="text-on-surface font-medium">30</span> 台在线 / <span class="text-on-surface font-medium">35</span> 台总数</div>
+            <div class="text-3xl font-bold text-success">85.7%</div>
+            <div class="text-xs text-on-surface-variant mt-1">30 / 35 台在线</div>
+            <!-- 进度条 -->
+            <div class="mt-3 pt-3 border-t border-outline-variant/20">
+              <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-success to-primary rounded-full" style="width: 85.7%"></div>
+              </div>
+              <div class="flex justify-between text-xs text-on-surface-variant mt-1">
+                <span>在线率目标 ≥ 95%</span>
+                <span class="text-warning">距目标差 9.3%</span>
+              </div>
+            </div>
           </div>
-          <!-- KPI 3: 告警设备数 -->
+
+          <!-- KPI 3：告警设备数 -->
           <div class="bg-surface rounded-lg shadow-card p-5 border border-error/20">
             <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">告警设备数</span>
-              <div class="w-8 h-8 rounded-lg bg-error/15 flex items-center justify-center">
+              <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">告警设备</span>
+              <div class="w-8 h-8 rounded-lg bg-error/10 flex items-center justify-center">
                 <i data-lucide="alert-triangle" class="w-4 h-4 text-error"></i>
               </div>
             </div>
-            <div class="text-3xl font-bold text-error mb-2">4</div>
-            <div class="text-xs text-error/80">需立即关注处理</div>
+            <div class="text-3xl font-bold text-error">4</div>
+            <div class="text-xs text-on-surface-variant mt-1">台设备存在异常告警</div>
+            <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-outline-variant/20">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-error/15 text-error">
+                <i data-lucide="alert-triangle" class="w-3 h-3"></i>紧急 2
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-warning/15 text-warning">
+                <i data-lucide="alert-triangle" class="w-3 h-3"></i>警告 2
+              </span>
+              <a href="energy-calendar.html" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-primary/15 text-primary hover:underline">
+                查看告警中心 <i data-lucide="chevron-right" class="w-3 h-3"></i>
+              </a>
+            </div>
           </div>
-          <!-- KPI 4: 今日能耗 -->
+
+          <!-- KPI 4：设备分类概览 -->
           <div class="bg-surface rounded-lg shadow-card p-5 border border-primary/10">
             <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">今日总能耗</span>
-              <div class="w-8 h-8 rounded-lg bg-warning/15 flex items-center justify-center">
-                <i data-lucide="zap" class="w-4 h-4 text-warning"></i>
+              <span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">设备分类</span>
+              <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <i data-lucide="list" class="w-4 h-4 text-primary"></i>
               </div>
             </div>
-            <div class="text-3xl font-bold text-on-surface mb-2">45.2MWh</div>
-            <div class="text-xs text-on-surface-variant">较昨日 <span class="text-success">↓ 3.2%</span></div>
+            <div class="grid grid-cols-3 gap-1.5 text-xs">
+              <div class="bg-surface-container/50 rounded px-2 py-1 text-center">
+                <span class="text-primary font-semibold">10</span>
+                <span class="text-on-surface-variant/70 block">电力计量</span>
+              </div>
+              <div class="bg-surface-container/50 rounded px-2 py-1 text-center">
+                <span class="text-primary font-semibold">8</span>
+                <span class="text-on-surface-variant/70 block">暖通空调</span>
+              </div>
+              <div class="bg-surface-container/50 rounded px-2 py-1 text-center">
+                <span class="text-primary font-semibold">4</span>
+                <span class="text-on-surface-variant/70 block">燃气</span>
+              </div>
+              <div class="bg-surface-container/50 rounded px-2 py-1 text-center">
+                <span class="text-primary font-semibold">2</span>
+                <span class="text-on-surface-variant/70 block">燃油</span>
+              </div>
+              <div class="bg-surface-container/50 rounded px-2 py-1 text-center">
+                <span class="text-primary font-semibold">4</span>
+                <span class="text-on-surface-variant/70 block">可再生</span>
+              </div>
+              <div class="bg-surface-container/50 rounded px-2 py-1 text-center">
+                <span class="text-primary font-semibold">4</span>
+                <span class="text-on-surface-variant/70 block">水务</span>
+              </div>
+              <div class="bg-surface-container/50 rounded px-2 py-1 text-center">
+                <span class="text-primary font-semibold">1</span>
+                <span class="text-on-surface-variant/70 block">照明</span>
+              </div>
+              <div class="bg-surface-container/50 rounded px-2 py-1 text-center">
+                <span class="text-primary font-semibold">1</span>
+                <span class="text-on-surface-variant/70 block">科研</span>
+              </div>
+              <div class="bg-surface-container/50 rounded px-2 py-1 text-center">
+                <span class="text-primary font-semibold">1</span>
+                <span class="text-on-surface-variant/70 block">消防</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- 9b.2 搜索与筛选 -->
-        <div id="filter-section" class="bg-surface rounded-lg shadow-card p-4 mb-6 border border-primary/10">
+        <div class="bg-surface rounded-lg shadow-card p-4 mb-6 border border-primary/10">
           <div class="flex items-center gap-4 flex-wrap">
-            <!-- 模糊搜索 -->
-            <div class="flex-1 min-w-[200px] relative">
+            <!-- 模糊搜索框 -->
+            <div class="relative flex-1 min-w-[200px]">
               <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/50"></i>
-              <input id="input-search" type="text" placeholder="搜索设备名称 / 楼栋 / 编号..." class="w-full bg-surface-container border-none rounded-md pl-9 pr-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+              <input id="input-search" type="text" class="w-full bg-surface-container border-none rounded-md pl-9 pr-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" placeholder="搜索设备名称/编号/楼栋...">
             </div>
-            <!-- 类别筛选 -->
-            <div class="relative" id="filter-category-wrapper">
-              <button id="btn-category-filter" class="flex items-center gap-2 bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors">
-                <i data-lucide="list-filter" class="w-4 h-4 text-primary"></i>
+            <!-- 类别筛选下拉多选 -->
+            <div class="relative">
+              <button id="btn-category-filter" class="flex items-center gap-2 bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                <i data-lucide="filter" class="w-4 h-4"></i>
                 <span>设备类别</span>
-                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-on-surface-variant"></i>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
               </button>
-              <!-- 下拉多选面板 -->
-              <div id="category-dropdown" class="hidden absolute top-full left-0 mt-1 w-48 bg-surface-container-high rounded-lg shadow-float border border-primary/20 p-2 z-20">
-                <div class="space-y-1">
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 电力计量(10)
+              <!-- 下拉菜单 -->
+              <div id="dropdown-category" class="absolute top-full left-0 mt-1 w-44 bg-surface-container-high border border-outline/30 rounded-lg shadow-float p-1.5 hidden z-20">
+                <div class="space-y-0.5">
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="电力计量" checked class="accent-primary"> 电力计量
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 暖通空调(8)
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="暖通空调" checked class="accent-primary"> 暖通空调
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 燃气(4)
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="燃气" checked class="accent-primary"> 燃气
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 燃油(2)
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="燃油" checked class="accent-primary"> 燃油
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 可再生能源(4)
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="可再生" checked class="accent-primary"> 可再生
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 水务(4)
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="水务" checked class="accent-primary"> 水务
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 照明(1)
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="照明" checked class="accent-primary"> 照明
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 实验科研(1)
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="实验科研" checked class="accent-primary"> 实验/科研
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 消防安全(1)
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="消防安全" checked class="accent-primary"> 消防/安全
                   </label>
                 </div>
-                <div class="flex items-center justify-between mt-2 pt-2 border-t border-outline-variant/20">
-                  <button id="btn-category-reset" class="text-xs text-on-surface-variant hover:text-on-surface">重置</button>
-                  <button id="btn-category-confirm" class="text-xs text-primary font-medium hover:underline">确定</button>
+                <div class="flex items-center justify-between mt-1.5 pt-1.5 border-t border-outline/20">
+                  <button id="btn-category-select-all" class="text-xs text-primary hover:underline">全选</button>
+                  <button id="btn-category-clear" class="text-xs text-on-surface-variant hover:text-on-surface">清除</button>
                 </div>
               </div>
             </div>
-            <!-- 楼栋筛选 -->
-            <div class="relative" id="filter-building-wrapper">
-              <button id="btn-building-filter" class="flex items-center gap-2 bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors">
-                <i data-lucide="building" class="w-4 h-4 text-primary"></i>
+            <!-- 楼栋筛选下拉多选 -->
+            <div class="relative">
+              <button id="btn-building-filter" class="flex items-center gap-2 bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                <i data-lucide="building" class="w-4 h-4"></i>
                 <span>所在楼栋</span>
-                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-on-surface-variant"></i>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
               </button>
-              <div id="building-dropdown" class="hidden absolute top-full left-0 mt-1 w-48 bg-surface-container-high rounded-lg shadow-float border border-primary/20 p-2 z-20">
-                <div class="space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 教学楼A~D
+              <div id="dropdown-building" class="absolute top-full left-0 mt-1 w-44 bg-surface-container-high border border-outline/30 rounded-lg shadow-float p-1.5 hidden z-20">
+                <div class="space-y-0.5 max-h-48 overflow-y-auto">
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="教学楼A" checked class="accent-primary"> 教学楼A
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 宿舍1~6
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="教学楼B" checked class="accent-primary"> 教学楼B
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 实验楼1~2
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="教学楼C" checked class="accent-primary"> 教学楼C
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 食堂1~2
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="教学楼D" checked class="accent-primary"> 教学楼D
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 行政楼
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="宿舍1" checked class="accent-primary"> 宿舍1
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 体育馆
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="宿舍2" checked class="accent-primary"> 宿舍2
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 配电房
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="宿舍3" checked class="accent-primary"> 宿舍3
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 图书馆
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="宿舍4" checked class="accent-primary"> 宿舍4
                   </label>
-                  <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container cursor-pointer text-sm">
-                    <input type="checkbox" class="rounded border-outline-variant bg-surface-container text-primary focus:ring-primary/30" checked> 后勤区域
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="宿舍5" checked class="accent-primary"> 宿舍5
+                  </label>
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="宿舍6" checked class="accent-primary"> 宿舍6
+                  </label>
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="实验楼1" checked class="accent-primary"> 实验楼1
+                  </label>
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="实验楼2" checked class="accent-primary"> 实验楼2
+                  </label>
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="食堂1" checked class="accent-primary"> 食堂1
+                  </label>
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="食堂2" checked class="accent-primary"> 食堂2
+                  </label>
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="行政楼" checked class="accent-primary"> 行政楼
+                  </label>
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="体育馆" checked class="accent-primary"> 体育馆
+                  </label>
+                  <label class="flex items-center gap-2 px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container cursor-pointer">
+                    <input type="checkbox" value="配电房" checked class="accent-primary"> 配电房
                   </label>
                 </div>
-                <div class="flex items-center justify-between mt-2 pt-2 border-t border-outline-variant/20">
-                  <button id="btn-building-reset" class="text-xs text-on-surface-variant hover:text-on-surface">重置</button>
-                  <button id="btn-building-confirm" class="text-xs text-primary font-medium hover:underline">确定</button>
+                <div class="flex items-center justify-between mt-1.5 pt-1.5 border-t border-outline/20">
+                  <button id="btn-building-select-all" class="text-xs text-primary hover:underline">全选</button>
+                  <button id="btn-building-clear" class="text-xs text-on-surface-variant hover:text-on-surface">清除</button>
                 </div>
               </div>
             </div>
             <!-- 排序下拉 -->
-            <div class="relative" id="filter-sort-wrapper">
-              <button id="btn-sort" class="flex items-center gap-2 bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors">
-                <i data-lucide="sort-desc" class="w-4 h-4 text-primary"></i>
-                <span id="sort-label">默认排序</span>
-                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-on-surface-variant"></i>
+            <div class="relative">
+              <button id="btn-sort" class="flex items-center gap-2 bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                <i data-lucide="sort-desc" class="w-4 h-4"></i>
+                <span id="sort-label">排序：默认</span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
               </button>
-              <div id="sort-dropdown" class="hidden absolute top-full left-0 mt-1 w-44 bg-surface-container-high rounded-lg shadow-float border border-primary/20 p-1 z-20">
-                <button class="sort-option block w-full text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container rounded-md" data-sort="default">默认排序</button>
-                <button class="sort-option block w-full text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container rounded-md" data-sort="name">设备名称</button>
-                <button class="sort-option block w-full text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container rounded-md" data-sort="status">状态优先级</button>
-                <button class="sort-option block w-full text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container rounded-md" data-sort="building">所在楼栋</button>
-                <button class="sort-option block w-full text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container rounded-md" data-sort="alert-time">最近告警时间</button>
+              <div id="dropdown-sort" class="absolute top-full left-0 mt-1 w-44 bg-surface-container-high border border-outline/30 rounded-lg shadow-float p-1.5 hidden z-20">
+                <div class="space-y-0.5">
+                  <button class="sort-option w-full text-left px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container" data-sort="default">默认排序</button>
+                  <button class="sort-option w-full text-left px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container" data-sort="name">设备名称 ↑</button>
+                  <button class="sort-option w-full text-left px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container" data-sort="status">状态优先级 ↑</button>
+                  <button class="sort-option w-full text-left px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container" data-sort="building">所在楼栋 ↑</button>
+                  <button class="sort-option w-full text-left px-2.5 py-1.5 rounded text-sm text-on-surface hover:bg-surface-container" data-sort="alert">最近告警时间 ↓</button>
+                </div>
               </div>
             </div>
-            <div class="flex-1"></div>
-            <span class="text-xs text-on-surface-variant" id="device-count-label">共 <span class="text-on-surface font-medium">35</span> 台设备</span>
+            <!-- 状态筛选快捷标签 -->
+            <div class="flex items-center gap-1.5">
+              <button class="filter-status px-2.5 py-1.5 rounded-md text-xs font-medium bg-primary/20 text-primary border border-primary/30" data-status="all">全部</button>
+              <button class="filter-status px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors" data-status="normal">正常</button>
+              <button class="filter-status px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors" data-status="warning">预警</button>
+              <button class="filter-status px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors" data-status="offline">离线</button>
+              <button class="filter-status px-2.5 py-1.5 rounded-md text-xs font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors" data-status="maintenance">检修</button>
+            </div>
           </div>
         </div>
 
-        <!-- 9b.3 设备清单表格 -->
-        <div id="device-table" class="bg-surface rounded-lg shadow-card overflow-hidden border border-primary/10">
+        <!-- 9b.3 完整设备清单表格 -->
+        <div class="bg-surface rounded-lg shadow-card border border-primary/10 overflow-hidden">
           <!-- 表头 -->
-          <div class="grid grid-cols-[32px_1fr_140px_120px_120px_1fr_140px_120px] gap-2 px-4 py-3 bg-surface-container/80 text-xs font-semibold text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/10">
+          <div class="grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-3 bg-surface-container text-xs font-semibold text-on-surface-variant uppercase tracking-wide">
             <span></span>
             <span>设备名称</span>
             <span>设备编号</span>
@@ -477,304 +558,270 @@
             <span>所在楼栋</span>
             <span>运行参数摘要</span>
             <span>最近告警时间</span>
-            <span class="text-center">操作</span>
+            <span>操作</span>
           </div>
 
-          <!-- 设备列表数据 - 共35条，按类别分组 -->
-          <div id="device-list-body" class="divide-y divide-outline-variant/10">
+          <!-- 数据行：35台设备按类别分组 -->
+          <div id="device-table-body" class="divide-y divide-outline-variant/20">
 
-            <!-- ====== 电力计量设备(10台) ====== -->
-            <!-- 设备-1: 全校进线总电表 -->
-            <div class="device-row" data-category="电力计量" data-building="配电房" data-status="green" data-name="全校进线总电表" data-id="EM-MAIN-001">
-              <div class="grid grid-cols-[32px_1fr_140px_120px_120px_1fr_140px_120px] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center">
-                <span class="status-dot green"></span>
-                <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 text-left cursor-pointer bg-transparent border-none p-0">全校进线总电表</button>
-                <span class="text-sm text-on-surface-variant font-mono text-xs">EM-MAIN-001</span>
-                <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs bg-primary/15 text-primary">电力计量</span></span>
-                <span class="text-sm text-on-surface-variant">主配电房</span>
-                <span class="text-sm text-on-surface-variant truncate">10kV/2000kVA</span>
-                <span class="text-sm text-on-surface-variant">2026-06-15 08:00</span>
-                <div class="flex items-center justify-center gap-2">
-                  <button class="btn-detail-toggle text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">展开</button>
-                  <button class="btn-work-order text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">转工单</button>
-                </div>
-              </div>
-              <!-- 详情展开面板 -->
-              <div class="detail-panel border-t border-outline-variant/10">
-                <div class="px-4 py-4 bg-surface-container/20 space-y-4">
-                  <div class="grid grid-cols-5 gap-4">
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">实时功率</span>
-                      <span class="text-lg font-bold text-on-surface">1,682kW</span>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">今日累计</span>
-                      <span class="text-lg font-bold text-on-surface">28.4MWh</span>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">温度</span>
-                      <span class="text-lg font-bold text-on-surface">42°C</span>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">负载率</span>
-                      <span class="text-lg font-bold text-success">68.2%</span>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">运行时长</span>
-                      <span class="text-lg font-bold text-on-surface">12,846h</span>
-                    </div>
-                  </div>
-                  <!-- 历史趋势 -->
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-surface-container/40 rounded-lg p-3">
-                      <span class="text-xs text-on-surface-variant block mb-2">近7天功率趋势</span>
-                      <div class="trend-line h-16 items-end gap-1">
-                        <div class="bar" style="height:60%"></div><div class="bar" style="height:75%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:80%"></div><div class="bar" style="height:70%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:72%"></div>
-                      </div>
-                      <div class="flex justify-between text-xs text-on-surface-variant mt-1">
-                        <span>6/9</span><span>6/10</span><span>6/11</span><span>6/12</span><span>6/13</span><span>6/14</span><span>6/15</span>
-                      </div>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3">
-                      <span class="text-xs text-on-surface-variant block mb-2">近30天能耗柱状图</span>
-                      <div class="flex items-end gap-1 h-16">
-                        <div class="bar" style="height:45%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                        <div class="bar" style="height:52%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                        <div class="bar" style="height:38%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                        <div class="bar" style="height:65%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                        <div class="bar" style="height:58%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                        <div class="bar" style="height:72%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                        <div class="bar" style="height:48%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                        <div class="bar" style="height:55%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                        <div class="bar" style="height:42%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                        <div class="bar" style="height:60%;background:linear-gradient(180deg,rgba(6,182,212,0.6),rgba(6,182,212,0.2))"></div>
-                      </div>
-                      <div class="flex justify-between text-xs text-on-surface-variant mt-1">
-                        <span>5/16</span><span>5/22</span><span>5/28</span><span>6/3</span><span>6/9</span><span>6/15</span>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- 告警历史 + 台账信息 -->
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-surface-container/40 rounded-lg p-3">
-                      <span class="text-xs text-on-surface-variant block mb-2 font-medium">告警历史（最近10条）</span>
-                      <div class="space-y-1.5 max-h-32 overflow-y-auto scrollbar-thin">
-                        <div class="flex items-center justify-between text-xs"><span class="text-warning">⚠ 电压波动</span><span class="text-on-surface-variant">06-15 07:52</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-on-surface-variant">✓ 恢复正常</span><span class="text-on-surface-variant">06-14 23:10</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-warning">⚠ 功率因数偏低</span><span class="text-on-surface-variant">06-14 14:35</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-on-surface-variant">✓ 恢复正常</span><span class="text-on-surface-variant">06-13 09:20</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-warning">⚠ 谐波超标</span><span class="text-on-surface-variant">06-12 16:45</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-on-surface-variant">✓ 恢复正常</span><span class="text-on-surface-variant">06-11 11:30</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-warning">⚠ 三相不平衡</span><span class="text-on-surface-variant">06-10 08:15</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-on-surface-variant">✓ 恢复正常</span><span class="text-on-surface-variant">06-09 22:00</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-warning">⚠ 过流保护</span><span class="text-on-surface-variant">06-08 13:25</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-on-surface-variant">✓ 恢复正常</span><span class="text-on-surface-variant">06-07 19:40</span></div>
-                      </div>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3">
-                      <span class="text-xs text-on-surface-variant block mb-2 font-medium">台账信息</span>
-                      <div class="grid grid-cols-2 gap-2 text-xs">
-                        <span class="text-on-surface-variant">安装日期</span><span class="text-on-surface">2020-03-15</span>
-                        <span class="text-on-surface-variant">额定参数</span><span class="text-on-surface">10kV/2000kVA</span>
-                        <span class="text-on-surface-variant">维保日期</span><span class="text-on-surface">2026-06-01</span>
-                        <span class="text-on-surface-variant">责任人</span><span class="text-primary">张工</span>
-                        <span class="text-on-surface-variant">生产厂商</span><span class="text-on-surface">威胜集团</span>
-                        <span class="text-on-surface-variant">设备型号</span><span class="text-on-surface">DTSD341-MC3</span>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- 操作按钮 -->
-                  <div class="flex items-center gap-3 pt-2">
-                    <button class="bg-primary text-on-primary px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-90 transition-all">转工单</button>
-                    <button class="bg-surface-container border border-primary/20 text-primary px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">转AI建议</button>
-                    <button class="bg-surface-container border border-warning/20 text-warning px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">标记检修</button>
-                    <button class="bg-surface-container border border-outline-variant/20 text-on-surface-variant px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">查看3D定位</button>
-                  </div>
-                </div>
+            <!-- ====== 电力计量设备（10台，序号1-10） ====== -->
+
+            <!-- 设备-1：全校进线总电表 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="1" data-status="normal" data-category="电力计量" data-building="配电房" data-name="全校进线总电表">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="1">全校进线总电表</button>
+              <span class="text-sm text-on-surface-variant">EM-MAIN-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">主配电房</span>
+              <span class="text-sm text-on-surface-variant truncate">10kV/2000kVA</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="1">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="1">转工单</button>
               </div>
             </div>
 
-            <!-- 设备-2: 教学楼区分项电表 -->
-            <div class="device-row" data-category="电力计量" data-building="教学楼A~D" data-status="green" data-name="教学楼区分项电表" data-id="EM-TEACH-001">
-              <div class="grid grid-cols-[32px_1fr_140px_120px_120px_1fr_140px_120px] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center">
-                <span class="status-dot green"></span>
-                <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 text-left cursor-pointer bg-transparent border-none p-0">教学楼区分项电表</button>
-                <span class="text-sm text-on-surface-variant font-mono text-xs">EM-TEACH-001</span>
-                <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs bg-primary/15 text-primary">电力计量</span></span>
-                <span class="text-sm text-on-surface-variant">教学楼A~D总进线</span>
-                <span class="text-sm text-on-surface-variant truncate">10kV/500kVA</span>
-                <span class="text-sm text-on-surface-variant">2026-06-14 16:22</span>
-                <div class="flex items-center justify-center gap-2">
-                  <button class="btn-detail-toggle text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">展开</button>
-                  <button class="btn-work-order text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">转工单</button>
-                </div>
-              </div>
-              <div class="detail-panel border-t border-outline-variant/10">
-                <div class="px-4 py-4 bg-surface-container/20 space-y-4">
-                  <div class="grid grid-cols-5 gap-4">
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">实时功率</span>
-                      <span class="text-lg font-bold text-on-surface">382kW</span>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">今日累计</span>
-                      <span class="text-lg font-bold text-on-surface">6.8MWh</span>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">温度</span>
-                      <span class="text-lg font-bold text-on-surface">38°C</span>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">负载率</span>
-                      <span class="text-lg font-bold text-success">58.4%</span>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center">
-                      <span class="text-xs text-on-surface-variant block">运行时长</span>
-                      <span class="text-lg font-bold text-on-surface">8,720h</span>
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-surface-container/40 rounded-lg p-3">
-                      <span class="text-xs text-on-surface-variant block mb-2">近7天功率趋势</span>
-                      <div class="trend-line h-16 items-end gap-1">
-                        <div class="bar" style="height:50%"></div><div class="bar" style="height:65%"></div><div class="bar" style="height:45%"></div><div class="bar" style="height:70%"></div><div class="bar" style="height:60%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:62%"></div>
-                      </div>
-                      <div class="flex justify-between text-xs text-on-surface-variant mt-1"><span>6/9</span><span>6/10</span><span>6/11</span><span>6/12</span><span>6/13</span><span>6/14</span><span>6/15</span></div>
-                    </div>
-                    <div class="bg-surface-container/40 rounded-lg p-3">
-                      <span class="text-xs text-on-surface-variant block mb-2">告警历史</span>
-                      <div class="space-y-1.5 max-h-24 overflow-y-auto scrollbar-thin">
-                        <div class="flex items-center justify-between text-xs"><span class="text-warning">⚠ 功率异常</span><span class="text-on-surface-variant">06-13 14:20</span></div>
-                        <div class="flex items-center justify-between text-xs"><span class="text-on-surface-variant">✓ 恢复正常</span><span class="text-on-surface-variant">06-13 15:10</span></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <button class="bg-primary text-on-primary px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-90 transition-all">转工单</button>
-                    <button class="bg-surface-container border border-primary/20 text-primary px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">转AI建议</button>
-                    <button class="bg-surface-container border border-warning/20 text-warning px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">标记检修</button>
-                    <button class="bg-surface-container border border-outline-variant/20 text-on-surface-variant px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">查看3D定位</button>
-                  </div>
-                </div>
+            <!-- 设备-2：教学楼区分项电表 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="2" data-status="normal" data-category="电力计量" data-building="教学楼A" data-name="教学楼区分项电表">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="2">教学楼区分项电表</button>
+              <span class="text-sm text-on-surface-variant">EM-TEACH-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">教学楼A~D总进线</span>
+              <span class="text-sm text-on-surface-variant truncate">10kV/500kVA</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="2">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="2">转工单</button>
               </div>
             </div>
 
-            <!-- 设备-3: 宿舍区分项电表 -->
-            <div class="device-row" data-category="电力计量" data-building="宿舍1~6" data-status="green" data-name="宿舍区分项电表" data-id="EM-DORM-001">
-              <div class="grid grid-cols-[32px_1fr_140px_120px_120px_1fr_140px_120px] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center">
-                <span class="status-dot green"></span>
-                <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 text-left cursor-pointer bg-transparent border-none p-0">宿舍区分项电表</button>
-                <span class="text-sm text-on-surface-variant font-mono text-xs">EM-DORM-001</span>
-                <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs bg-primary/15 text-primary">电力计量</span></span>
-                <span class="text-sm text-on-surface-variant">宿舍1~6号楼总进线</span>
-                <span class="text-sm text-on-surface-variant truncate">10kV/400kVA</span>
-                <span class="text-sm text-on-surface-variant">2026-06-14 22:10</span>
-                <div class="flex items-center justify-center gap-2">
-                  <button class="btn-detail-toggle text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">展开</button>
-                  <button class="btn-work-order text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">转工单</button>
-                </div>
-              </div>
-              <div class="detail-panel border-t border-outline-variant/10">
-                <div class="px-4 py-4 bg-surface-container/20 space-y-4">
-                  <div class="grid grid-cols-5 gap-4">
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">实时功率</span><span class="text-lg font-bold text-on-surface">285kW</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">今日累计</span><span class="text-lg font-bold text-on-surface">5.2MWh</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">温度</span><span class="text-lg font-bold text-on-surface">35°C</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">负载率</span><span class="text-lg font-bold text-success">52.0%</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">运行时长</span><span class="text-lg font-bold text-on-surface">9,240h</span></div>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <button class="bg-primary text-on-primary px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-90 transition-all">转工单</button>
-                    <button class="bg-surface-container border border-primary/20 text-primary px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">转AI建议</button>
-                    <button class="bg-surface-container border border-warning/20 text-warning px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">标记检修</button>
-                    <button class="bg-surface-container border border-outline-variant/20 text-on-surface-variant px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">查看3D定位</button>
-                  </div>
-                </div>
+            <!-- 设备-3：宿舍区分项电表 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="3" data-status="normal" data-category="电力计量" data-building="宿舍1" data-name="宿舍区分项电表">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="3">宿舍区分项电表</button>
+              <span class="text-sm text-on-surface-variant">EM-DORM-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">宿舍1~6号楼总进线</span>
+              <span class="text-sm text-on-surface-variant truncate">10kV/400kVA</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="3">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="3">转工单</button>
               </div>
             </div>
 
-            <!-- 设备-4: 实验楼分项电表 🟡 -->
-            <div class="device-row" data-category="电力计量" data-building="实验楼1~2" data-status="yellow" data-name="实验楼分项电表" data-id="EM-LAB-001">
-              <div class="grid grid-cols-[32px_1fr_140px_120px_120px_1fr_140px_120px] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center">
-                <span class="status-dot yellow"></span>
-                <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 text-left cursor-pointer bg-transparent border-none p-0">实验楼分项电表</button>
-                <span class="text-sm text-on-surface-variant font-mono text-xs">EM-LAB-001</span>
-                <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs bg-primary/15 text-primary">电力计量</span></span>
-                <span class="text-sm text-on-surface-variant">综合实验楼1~2</span>
-                <span class="text-sm text-on-surface-variant truncate">10kV/300kVA</span>
-                <span class="text-sm text-warning">2026-06-15 06:30</span>
-                <div class="flex items-center justify-center gap-2">
-                  <button class="btn-detail-toggle text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">展开</button>
-                  <button class="btn-work-order text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">转工单</button>
-                </div>
-              </div>
-              <div class="detail-panel border-t border-outline-variant/10">
-                <div class="px-4 py-4 bg-surface-container/20 space-y-4">
-                  <div class="grid grid-cols-5 gap-4">
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">实时功率</span><span class="text-lg font-bold text-on-surface">245kW</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">今日累计</span><span class="text-lg font-bold text-on-surface">4.1MWh</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">温度</span><span class="text-lg font-bold text-warning">58°C</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">负载率</span><span class="text-lg font-bold text-warning">82.0%</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">运行时长</span><span class="text-lg font-bold text-on-surface">6,580h</span></div>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <button class="bg-primary text-on-primary px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-90 transition-all">转工单</button>
-                    <button class="bg-surface-container border border-primary/20 text-primary px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">转AI建议</button>
-                    <button class="bg-surface-container border border-warning/20 text-warning px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">标记检修</button>
-                    <button class="bg-surface-container border border-outline-variant/20 text-on-surface-variant px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">查看3D定位</button>
-                  </div>
-                </div>
+            <!-- 设备-4：实验楼分项电表（预警） -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="4" data-status="warning" data-category="电力计量" data-building="实验楼1" data-name="实验楼分项电表">
+              <span class="w-3 h-3 rounded-full bg-warning inline-block" title="预警"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="4">实验楼分项电表</button>
+              <span class="text-sm text-on-surface-variant">EM-LAB-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">综合实验楼1~2</span>
+              <span class="text-sm text-on-surface-variant truncate">10kV/300kVA</span>
+              <span class="text-sm text-warning">2026-04-15 14:22</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="4">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="4">转工单</button>
               </div>
             </div>
 
-            <!-- 设备-5: 食堂分项电表 🟢 -->
-            <div class="device-row" data-category="电力计量" data-building="食堂1~2" data-status="green" data-name="食堂分项电表" data-id="EM-CANTEEN-001">
-              <div class="grid grid-cols-[32px_1fr_140px_120px_120px_1fr_140px_120px] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center">
-                <span class="status-dot green"></span>
-                <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 text-left cursor-pointer bg-transparent border-none p-0">食堂分项电表</button>
-                <span class="text-sm text-on-surface-variant font-mono text-xs">EM-CANTEEN-001</span>
-                <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs bg-primary/15 text-primary">电力计量</span></span>
-                <span class="text-sm text-on-surface-variant">食堂1~2座</span>
-                <span class="text-sm text-on-surface-variant truncate">10kV/200kVA</span>
-                <span class="text-sm text-on-surface-variant">2026-06-14 12:15</span>
-                <div class="flex items-center justify-center gap-2">
-                  <button class="btn-detail-toggle text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">展开</button>
-                  <button class="btn-work-order text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">转工单</button>
-                </div>
-              </div>
-              <div class="detail-panel border-t border-outline-variant/10">
-                <div class="px-4 py-4 bg-surface-container/20 space-y-4">
-                  <div class="grid grid-cols-5 gap-4">
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">实时功率</span><span class="text-lg font-bold text-on-surface">168kW</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">今日累计</span><span class="text-lg font-bold text-on-surface">2.8MWh</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">温度</span><span class="text-lg font-bold text-on-surface">36°C</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">负载率</span><span class="text-lg font-bold text-success">45.0%</span></div>
-                    <div class="bg-surface-container/40 rounded-lg p-3 text-center"><span class="text-xs text-on-surface-variant block">运行时长</span><span class="text-lg font-bold text-on-surface">5,200h</span></div>
-                  </div>
-                  <div class="flex items-center gap-3">
-                    <button class="bg-primary text-on-primary px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-90 transition-all">转工单</button>
-                    <button class="bg-surface-container border border-primary/20 text-primary px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">转AI建议</button>
-                    <button class="bg-surface-container border border-warning/20 text-warning px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">标记检修</button>
-                    <button class="bg-surface-container border border-outline-variant/20 text-on-surface-variant px-3 py-1.5 rounded-md text-xs font-medium hover:bg-surface-container-high transition-all">查看3D定位</button>
-                  </div>
-                </div>
+            <!-- 设备-5：食堂分项电表 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="5" data-status="normal" data-category="电力计量" data-building="食堂1" data-name="食堂分项电表">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="5">食堂分项电表</button>
+              <span class="text-sm text-on-surface-variant">EM-CANTEEN-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">食堂1~2座</span>
+              <span class="text-sm text-on-surface-variant truncate">10kV/200kVA</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="5">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="5">转工单</button>
               </div>
             </div>
 
-            <!-- 设备-6: 行政楼分项电表 🟢 -->
-            <div class="device-row" data-category="电力计量" data-building="行政楼" data-status="green" data-name="行政楼分项电表" data-id="EM-ADMIN-001">
-              <div class="grid grid-cols-[32px_1fr_140px_120px_120px_1fr_140px_120px] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center">
-                <span class="status-dot green"></span>
-                <button class="btn-device-name text-sm font-medium text-primary hover:text-primary/80 text-left cursor-pointer bg-transparent border-none p-0">行政楼分项电表</button>
-                <span class="text-sm text-on-surface-variant font-mono text-xs">EM-ADMIN-001</span>
-                <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs bg-primary/15 text-primary">电力计量</span></span>
-                <span class="text-sm text-on-surface-variant">行政楼</span>
-                <span class="text-sm text-on-surface-variant truncate">10kV/100kVA</span>
-                <span class="text-sm text-on-surface-variant">2026-06-13 18:00</span>
-                <div class="flex items-center justify-center gap-2">
-                  <button class="btn-detail-toggle text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">展开</button>
-                  <button class="btn-work-order text-primary text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">转工单</button>
-                </div>
+            <!-- 设备-6：行政楼分项电表 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="6" data-status="normal" data-category="电力计量" data-building="行政楼" data-name="行政楼分项电表">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="6">行政楼分项电表</button>
+              <span class="text-sm text-on-surface-variant">EM-ADMIN-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">行政楼</span>
+              <span class="text-sm text-on-surface-variant truncate">10kV/100kVA</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="6">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="6">转工单</button>
               </div>
-              <div class="detail-panel border-t border-outline-variant/10">
-                <div class="px
+            </div>
+
+            <!-- 设备-7：体育馆分项电表 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="7" data-status="normal" data-category="电力计量" data-building="体育馆" data-name="体育馆分项电表">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="7">体育馆分项电表</button>
+              <span class="text-sm text-on-surface-variant">EM-GYM-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">体育馆</span>
+              <span class="text-sm text-on-surface-variant truncate">10kV/150kVA</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="7">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="7">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-8：数据中心/机房电表（预警） -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="8" data-status="warning" data-category="电力计量" data-building="行政楼" data-name="数据中心机房电表">
+              <span class="w-3 h-3 rounded-full bg-warning inline-block" title="预警"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="8">数据中心/机房电表</button>
+              <span class="text-sm text-on-surface-variant">EM-DC-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">行政楼B1层机房</span>
+              <span class="text-sm text-on-surface-variant truncate">380V/80kVA</span>
+              <span class="text-sm text-warning">2026-04-14 23:10</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="8">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="8">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-9：宿舍楼层电表 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="9" data-status="normal" data-category="电力计量" data-building="宿舍1" data-name="宿舍楼层电表">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="9">宿舍楼层电表</button>
+              <span class="text-sm text-on-surface-variant">EM-DORM-F-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">宿舍各楼层</span>
+              <span class="text-sm text-on-surface-variant truncate">380V/50A/层</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="9">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="9">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-10：充电桩电表 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="10" data-status="normal" data-category="电力计量" data-building="配电房" data-name="充电桩电表">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="10">充电桩电表</button>
+              <span class="text-sm text-on-surface-variant">EM-EV-001</span>
+              <span class="text-sm text-on-surface-variant">电力计量</span>
+              <span class="text-sm text-on-surface-variant">校园充电桩区域</span>
+              <span class="text-sm text-on-surface-variant truncate">380V/120kW</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="10">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="10">转工单</button>
+              </div>
+            </div>
+
+            <!-- ====== 暖通空调设备（8台，序号11-18） ====== -->
+
+            <!-- 设备-11：中央空调机组-教学区 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="11" data-status="normal" data-category="暖通空调" data-building="教学楼A" data-name="中央空调机组-教学区">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="11">中央空调机组-教学区</button>
+              <span class="text-sm text-on-surface-variant">HVAC-TEACH-001</span>
+              <span class="text-sm text-on-surface-variant">暖通空调</span>
+              <span class="text-sm text-on-surface-variant">教学楼A冷冻站</span>
+              <span class="text-sm text-on-surface-variant truncate">制冷量1200kW×2</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="11">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="11">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-12：中央空调机组-宿舍区 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="12" data-status="normal" data-category="暖通空调" data-building="宿舍1" data-name="中央空调机组-宿舍区">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="12">中央空调机组-宿舍区</button>
+              <span class="text-sm text-on-surface-variant">HVAC-DORM-001</span>
+              <span class="text-sm text-on-surface-variant">暖通空调</span>
+              <span class="text-sm text-on-surface-variant">宿舍区机房</span>
+              <span class="text-sm text-on-surface-variant truncate">制冷量800kW×2</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="12">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="12">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-13：中央空调机组-行政区（检修） -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center bg-primary/5" data-device-id="13" data-status="maintenance" data-category="暖通空调" data-building="行政楼" data-name="中央空调机组-行政区">
+              <span class="w-3 h-3 rounded-full bg-primary inline-block" title="检修"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="13">中央空调机组-行政区</button>
+              <span class="text-sm text-on-surface-variant">HVAC-ADMIN-001</span>
+              <span class="text-sm text-on-surface-variant">暖通空调</span>
+              <span class="text-sm text-on-surface-variant">行政楼机房</span>
+              <span class="text-sm text-on-surface-variant truncate">制冷量400kW×1</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="13">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="13">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-14：中央空调机组-图书馆 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="14" data-status="normal" data-category="暖通空调" data-building="教学楼A" data-name="中央空调机组-图书馆">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="14">中央空调机组-图书馆</button>
+              <span class="text-sm text-on-surface-variant">HVAC-LIB-001</span>
+              <span class="text-sm text-on-surface-variant">暖通空调</span>
+              <span class="text-sm text-on-surface-variant">图书馆冷冻站</span>
+              <span class="text-sm text-on-surface-variant truncate">制冷量600kW×1</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="14">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="14">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-15：东区燃气锅炉 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="15" data-status="normal" data-category="暖通空调" data-building="宿舍1" data-name="东区燃气锅炉">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="15">东区燃气锅炉</button>
+              <span class="text-sm text-on-surface-variant">BLR-EAST-001</span>
+              <span class="text-sm text-on-surface-variant">暖通空调</span>
+              <span class="text-sm text-on-surface-variant">东校区锅炉房</span>
+              <span class="text-sm text-on-surface-variant truncate">蒸汽量10t/h</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="15">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="15">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-16：西区燃气锅炉（预警） -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="16" data-status="warning" data-category="暖通空调" data-building="宿舍2" data-name="西区燃气锅炉">
+              <span class="w-3 h-3 rounded-full bg-warning inline-block" title="预警"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="16">西区燃气锅炉</button>
+              <span class="text-sm text-on-surface-variant">BLR-WEST-001</span>
+              <span class="text-sm text-on-surface-variant">暖通空调</span>
+              <span class="text-sm text-on-surface-variant">西校区锅炉房</span>
+              <span class="text-sm text-on-surface-variant truncate">蒸汽量8t/h</span>
+              <span class="text-sm text-warning">2026-04-15 08:45</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="16">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="16">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-17：换热站设备 -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="17" data-status="normal" data-category="暖通空调" data-building="配电房" data-name="换热站设备">
+              <span class="w-3 h-3 rounded-full bg-success inline-block" title="正常"></span>
+              <button class="btn-device-name text-sm font-medium text-on-surface hover:text-primary text-left truncate" data-device-id="17">换热站设备</button>
+              <span class="text-sm text-on-surface-variant">HEX-MAIN-001</span>
+              <span class="text-sm text-on-surface-variant">暖通空调</span>
+              <span class="text-sm text-on-surface-variant">主校区换热站</span>
+              <span class="text-sm text-on-surface-variant truncate">换热量5MW</span>
+              <span class="text-sm text-on-surface-variant">-</span>
+              <div class="flex items-center gap-2">
+                <button class="btn-expand text-primary text-xs font-medium hover:underline" data-device-id="17">展开</button>
+                <button class="btn-work-order text-primary/70 text-xs font-medium hover:text-primary" data-device-id="17">转工单</button>
+              </div>
+            </div>
+
+            <!-- 设备-18：地源热泵机组（离线） -->
+            <div class="device-row grid grid-cols-[24px_1fr_1fr_0.9fr_0.8fr_1fr_1.1fr_1.1fr] gap-2 px-4 py-2.5 hover:bg-surface-container/30 transition-colors items-center" data-device-id="18" data-status="offline" data-category="暖通空调" data-building

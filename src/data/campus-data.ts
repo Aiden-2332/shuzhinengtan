@@ -56,6 +56,8 @@ export interface BuildingData {
   dept: string;
   /** 碳排放量 tCO₂/年 */
   emission: number;
+  /** 能源目标/理想碳排放量 tCO₂/年 */
+  targetEmission: number;
   /** 碳排等级 */
   emissionLevel: EmissionLevel;
   /** 主色 */
@@ -191,26 +193,26 @@ const BUILDINGS: BuildingData[] = [
   {
     buildingId: "b01", name: "主教学楼", type: "teaching",
     x: -25, z: -55, width: 32, depth: 14, height: 30, floors: 10, floorHeight: 3,
-    rotation: 0, dept: "综合教学", emission: 950, emissionLevel: "high",
+    rotation: 0, dept: "综合教学", emission: 950, targetEmission: 720, emissionLevel: "high",
     color: "#c4956a",
     wings: [{ offsetX: 0, offsetZ: 10, width: 12, depth: 8, height: 24 }],
   },
   {
     buildingId: "b02", name: "第一教学楼", type: "teaching",
     x: 15, z: -55, width: 26, depth: 13, height: 27, floors: 9, floorHeight: 3,
-    rotation: 0, dept: "综合教学", emission: 820, emissionLevel: "high",
+    rotation: 0, dept: "综合教学", emission: 820, targetEmission: 650, emissionLevel: "high",
     color: "#c4956a",
   },
   {
     buildingId: "b03", name: "第二教学楼", type: "teaching",
     x: 50, z: -50, width: 24, depth: 12, height: 24, floors: 8, floorHeight: 3,
-    rotation: 0, dept: "综合教学", emission: 750, emissionLevel: "medium",
+    rotation: 0, dept: "综合教学", emission: 750, targetEmission: 600, emissionLevel: "medium",
     color: "#c4956a",
   },
   {
     buildingId: "b04", name: "第三教学楼", type: "teaching",
     x: -55, z: -40, width: 22, depth: 12, height: 21, floors: 7, floorHeight: 3,
-    rotation: Math.PI / 6, dept: "综合教学", emission: 680, emissionLevel: "medium",
+    rotation: Math.PI / 6, dept: "综合教学", emission: 680, targetEmission: 550, emissionLevel: "medium",
     color: "#c4956a",
   },
 
@@ -218,32 +220,32 @@ const BUILDINGS: BuildingData[] = [
   {
     buildingId: "b05", name: "信息学院楼", type: "lab",
     x: -55, z: -15, width: 22, depth: 15, height: 24, floors: 8, floorHeight: 3,
-    rotation: 0, dept: "信息学院", emission: 780, emissionLevel: "high",
+    rotation: 0, dept: "信息学院", emission: 780, targetEmission: 620, emissionLevel: "high",
     color: "#e8dcc8",
     wings: [{ offsetX: 14, offsetZ: 0, width: 10, depth: 10, height: 18 }],
   },
   {
     buildingId: "b06", name: "机械学院楼", type: "lab",
     x: -30, z: -20, width: 22, depth: 14, height: 24, floors: 8, floorHeight: 3,
-    rotation: 0, dept: "机械学院", emission: 820, emissionLevel: "high",
+    rotation: 0, dept: "机械学院", emission: 820, targetEmission: 650, emissionLevel: "high",
     color: "#e8dcc8",
   },
   {
     buildingId: "b07", name: "材料学院楼", type: "lab",
     x: -5, z: -22, width: 20, depth: 13, height: 21, floors: 7, floorHeight: 3,
-    rotation: 0, dept: "材料学院", emission: 720, emissionLevel: "medium",
+    rotation: 0, dept: "材料学院", emission: 720, targetEmission: 580, emissionLevel: "medium",
     color: "#e8dcc8",
   },
   {
     buildingId: "b08", name: "能源学院楼", type: "lab",
     x: 20, z: -20, width: 20, depth: 13, height: 21, floors: 7, floorHeight: 3,
-    rotation: 0, dept: "能源学院", emission: 680, emissionLevel: "medium",
+    rotation: 0, dept: "能源学院", emission: 680, targetEmission: 560, emissionLevel: "medium",
     color: "#e8dcc8",
   },
   {
     buildingId: "b09", name: "经管学院楼", type: "lab",
     x: 45, z: -18, width: 20, depth: 12, height: 18, floors: 6, floorHeight: 3,
-    rotation: 0, dept: "经管学院", emission: 620, emissionLevel: "medium",
+    rotation: 0, dept: "经管学院", emission: 620, targetEmission: 500, emissionLevel: "medium",
     color: "#e8dcc8",
   },
 
@@ -251,7 +253,7 @@ const BUILDINGS: BuildingData[] = [
   {
     buildingId: "b10", name: "图书馆", type: "library",
     x: -15, z: -5, width: 28, depth: 22, height: 30, floors: 8, floorHeight: 3.5,
-    rotation: 0, dept: "图书馆", emission: 480, emissionLevel: "medium",
+    rotation: 0, dept: "图书馆", emission: 480, targetEmission: 420, emissionLevel: "medium",
     color: "#d4c5b0",
     wings: [
       { offsetX: -18, offsetZ: 0, width: 8, depth: 16, height: 24 },
@@ -261,13 +263,13 @@ const BUILDINGS: BuildingData[] = [
   {
     buildingId: "b11", name: "行政办公楼", type: "admin",
     x: 30, z: -5, width: 22, depth: 15, height: 21, floors: 7, floorHeight: 3,
-    rotation: 0, dept: "行政部门", emission: 420, emissionLevel: "medium",
+    rotation: 0, dept: "行政部门", emission: 420, targetEmission: 350, emissionLevel: "medium",
     color: "#c4956a",
   },
   {
     buildingId: "b12", name: "大礼堂", type: "auditorium",
     x: 55, z: 0, width: 30, depth: 25, height: 18, floors: 3, floorHeight: 5,
-    rotation: 0, dept: "校办", emission: 350, emissionLevel: "low",
+    rotation: 0, dept: "校办", emission: 350, targetEmission: 300, emissionLevel: "low",
     color: "#b8a088",
   },
 
@@ -275,61 +277,61 @@ const BUILDINGS: BuildingData[] = [
   {
     buildingId: "b13", name: "1号宿舍楼", type: "dorm",
     x: -60, z: 25, width: 16, depth: 12, height: 30, floors: 10, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 520, emissionLevel: "medium",
+    rotation: 0, dept: "宿舍管理中心", emission: 520, targetEmission: 430, emissionLevel: "medium",
     color: "#c4956a",
   },
   {
     buildingId: "b14", name: "2号宿舍楼", type: "dorm",
     x: -40, z: 25, width: 16, depth: 12, height: 30, floors: 10, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 500, emissionLevel: "medium",
+    rotation: 0, dept: "宿舍管理中心", emission: 500, targetEmission: 420, emissionLevel: "medium",
     color: "#c4956a",
   },
   {
     buildingId: "b15", name: "3号宿舍楼", type: "dorm",
     x: -20, z: 25, width: 16, depth: 12, height: 27, floors: 9, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 480, emissionLevel: "medium",
+    rotation: 0, dept: "宿舍管理中心", emission: 480, targetEmission: 400, emissionLevel: "medium",
     color: "#c4956a",
   },
   {
     buildingId: "b16", name: "4号宿舍楼", type: "dorm",
     x: 0, z: 25, width: 16, depth: 12, height: 27, floors: 9, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 460, emissionLevel: "medium",
+    rotation: 0, dept: "宿舍管理中心", emission: 460, targetEmission: 380, emissionLevel: "medium",
     color: "#c4956a",
   },
   {
     buildingId: "b17", name: "5号宿舍楼", type: "dorm",
     x: 20, z: 25, width: 16, depth: 12, height: 27, floors: 9, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 440, emissionLevel: "low",
+    rotation: 0, dept: "宿舍管理中心", emission: 440, targetEmission: 370, emissionLevel: "low",
     color: "#c4956a",
   },
   {
     buildingId: "b18", name: "6号宿舍楼", type: "dorm",
     x: 40, z: 25, width: 16, depth: 12, height: 27, floors: 9, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 420, emissionLevel: "low",
+    rotation: 0, dept: "宿舍管理中心", emission: 420, targetEmission: 360, emissionLevel: "low",
     color: "#c4956a",
   },
   {
     buildingId: "b19", name: "7号宿舍楼", type: "dorm",
     x: -50, z: 45, width: 16, depth: 12, height: 30, floors: 10, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 400, emissionLevel: "low",
+    rotation: 0, dept: "宿舍管理中心", emission: 400, targetEmission: 340, emissionLevel: "low",
     color: "#c4956a",
   },
   {
     buildingId: "b20", name: "8号宿舍楼", type: "dorm",
     x: -30, z: 45, width: 16, depth: 12, height: 27, floors: 9, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 380, emissionLevel: "low",
+    rotation: 0, dept: "宿舍管理中心", emission: 380, targetEmission: 330, emissionLevel: "low",
     color: "#c4956a",
   },
   {
     buildingId: "b21", name: "9号宿舍楼", type: "dorm",
     x: -10, z: 45, width: 16, depth: 12, height: 27, floors: 9, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 360, emissionLevel: "low",
+    rotation: 0, dept: "宿舍管理中心", emission: 360, targetEmission: 310, emissionLevel: "low",
     color: "#c4956a",
   },
   {
     buildingId: "b22", name: "10号宿舍楼", type: "dorm",
     x: 10, z: 45, width: 16, depth: 12, height: 24, floors: 8, floorHeight: 3,
-    rotation: 0, dept: "宿舍管理中心", emission: 340, emissionLevel: "low",
+    rotation: 0, dept: "宿舍管理中心", emission: 340, targetEmission: 290, emissionLevel: "low",
     color: "#c4956a",
   },
 
@@ -337,13 +339,13 @@ const BUILDINGS: BuildingData[] = [
   {
     buildingId: "b23", name: "第一食堂", type: "dining",
     x: -35, z: 8, width: 20, depth: 15, height: 12, floors: 3, floorHeight: 4,
-    rotation: 0, dept: "餐饮服务中心", emission: 580, emissionLevel: "high",
+    rotation: 0, dept: "餐饮服务中心", emission: 580, targetEmission: 480, emissionLevel: "high",
     color: "#d4a574",
   },
   {
     buildingId: "b24", name: "第二食堂", type: "dining",
     x: 35, z: 12, width: 20, depth: 15, height: 12, floors: 3, floorHeight: 4,
-    rotation: 0, dept: "餐饮服务中心", emission: 520, emissionLevel: "high",
+    rotation: 0, dept: "餐饮服务中心", emission: 520, targetEmission: 430, emissionLevel: "high",
     color: "#d4a574",
   },
 
@@ -351,13 +353,13 @@ const BUILDINGS: BuildingData[] = [
   {
     buildingId: "b25", name: "综合体育馆", type: "gym",
     x: 70, z: -15, width: 35, depth: 28, height: 16, floors: 3, floorHeight: 5,
-    rotation: 0, dept: "体育部", emission: 380, emissionLevel: "low",
+    rotation: 0, dept: "体育部", emission: 380, targetEmission: 320, emissionLevel: "low",
     color: "#c0c8d4",
   },
   {
     buildingId: "b26", name: "游泳馆", type: "gym",
     x: 70, z: 25, width: 28, depth: 22, height: 12, floors: 2, floorHeight: 6,
-    rotation: 0, dept: "体育部", emission: 320, emissionLevel: "low",
+    rotation: 0, dept: "体育部", emission: 320, targetEmission: 280, emissionLevel: "low",
     color: "#a8c4d4",
   },
 
@@ -365,13 +367,13 @@ const BUILDINGS: BuildingData[] = [
   {
     buildingId: "b27", name: "科研楼A", type: "lab",
     x: -70, z: -5, width: 22, depth: 15, height: 27, floors: 9, floorHeight: 3,
-    rotation: 0, dept: "科研院", emission: 880, emissionLevel: "high",
+    rotation: 0, dept: "科研院", emission: 880, targetEmission: 700, emissionLevel: "high",
     color: "#e8dcc8",
   },
   {
     buildingId: "b28", name: "科研楼B", type: "lab",
     x: -70, z: 20, width: 22, depth: 15, height: 27, floors: 9, floorHeight: 3,
-    rotation: 0, dept: "科研院", emission: 820, emissionLevel: "high",
+    rotation: 0, dept: "科研院", emission: 820, targetEmission: 650, emissionLevel: "high",
     color: "#e8dcc8",
   },
 
@@ -379,7 +381,7 @@ const BUILDINGS: BuildingData[] = [
   {
     buildingId: "b29", name: "光伏配电房", type: "solar",
     x: 70, z: 55, width: 14, depth: 10, height: 6, floors: 1, floorHeight: 6,
-    rotation: 0, dept: "后勤能源", emission: -150, emissionLevel: "low",
+    rotation: 0, dept: "后勤能源", emission: -150, targetEmission: 0, emissionLevel: "low",
     color: "#8b7355",
   },
 ];
