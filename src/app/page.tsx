@@ -57,6 +57,11 @@ export default function L1Dashboard() {
   // 右侧指标面板
   const rightPanel = (
     <div className="space-y-3">
+      {/* 资源消耗分析 */}
+      <IndicatorGroup title="资源消耗分析">
+        <ResourceAnalysis buildings={building3DData} />
+      </IndicatorGroup>
+
       {/* 建筑排名 TOP 5 */}
       <IndicatorGroup title="排放 TOP 5">
         {rankings.slice(0, 5).map((item, index) => (
@@ -145,11 +150,7 @@ export default function L1Dashboard() {
         </IndicatorGroup>
       )}
 
-      {/* 资源消耗分析 */}
-      <IndicatorGroup title="资源消耗分析">
-        <ResourceAnalysis buildings={building3DData} />
-      </IndicatorGroup>
-    </div>
+      </div>
   );
 
   return (
