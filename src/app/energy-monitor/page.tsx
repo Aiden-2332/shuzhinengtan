@@ -322,16 +322,16 @@ export default function EnergyMonitorPage() {
       离线: AllDevices.filter((d) => d.status === "离线").length,
       检修: AllDevices.filter((d) => d.status === "检修").length,
     };
-  }, []);
+  }, [AllDevices]);
 
   const onlineRate = useMemo(() => {
     const online = AllDevices.filter((d) => d.status !== "离线").length;
     return { rate: ((online / AllDevices.length) * 100).toFixed(1), online, total: AllDevices.length };
-  }, []);
+  }, [AllDevices]);
 
   const alarmCount = useMemo(() => {
     return AllDevices.filter((d) => d.status === "预警").length;
-  }, []);
+  }, [AllDevices]);
 
   const filteredDevices = useMemo(() => {
     let list = [...AllDevices];

@@ -31,7 +31,7 @@ const navigation = [
     name: "AI 智能分析",
     icon: Brain,
     children: [
-      { name: "AI 智能分析中心", href: "/ai-hub", icon: Brain },
+      { name: "AI 智能分析中心", href: "/ai-center", icon: Brain },
     ],
   },
   {
