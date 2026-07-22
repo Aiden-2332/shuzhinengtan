@@ -2,13 +2,12 @@
 
 import { useAICenterStore } from '@/stores/ai-center-store';
 import { getMockWelcomeMessage } from '@/data/ai-center-mock';
+import { CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
 
 export default function BottomBar() {
   const activeModule = useAICenterStore((s) => s.activeModule);
   const predictionPeriod = useAICenterStore((s) => s.predictionPeriod);
   const setPredictionPeriod = useAICenterStore((s) => s.setPredictionPeriod);
-  const reductionDimension = useAICenterStore((s) => s.reductionDimension);
-  const setReductionDimension = useAICenterStore((s) => s.setReductionDimension);
   const setChatMessages = useAICenterStore((s) => s.setChatMessages);
 
   const renderBottomContent = () => {
@@ -59,33 +58,7 @@ export default function BottomBar() {
         );
 
       case 'reduction':
-        return (
-          <div className="flex items-center gap-4">
-            <span className="text-xs" style={{ color: '#8c8c8c' }}>维度:</span>
-            {([
-              { key: 'building' as const, label: '建筑' },
-              { key: 'department' as const, label: '院系' },
-              { key: 'energy_type' as const, label: '能源类型' },
-            ]).map((dim) => (
-              <button
-                key={dim.key}
-                onClick={() => setReductionDimension(dim.key)}
-                className="text-xs px-4 py-1.5 rounded-lg transition-all"
-                style={{
-                  color: reductionDimension === dim.key ? '#fff' : '#8c8c8c',
-                  background: reductionDimension === dim.key ? 'rgba(54,217,104,0.2)' : 'rgba(255,255,255,0.06)',
-                  border: `1px solid ${reductionDimension === dim.key ? 'rgba(54,217,104,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                }}
-              >
-                {dim.label}
-              </button>
-            ))}
-            <div className="w-px h-5 mx-2" style={{ background: 'rgba(255,255,255,0.1)' }} />
-            <button className="text-xs px-3 py-1.5 rounded-lg" style={{ color: '#36d968', background: 'rgba(54,217,104,0.1)' }}>
-              导出减排报告
-            </button>
-          </div>
-        );
+        return <ReductionBottomBar />;
 
       case 'policy':
         return (
@@ -115,6 +88,106 @@ export default function BottomBar() {
       }}
     >
       {renderBottomContent()}
+    </div>
+  );
+}
+
+// ---- 减排模块底部栏 ----
+function ReductionBottomBar() {
+  const pageStatus = useAICenterStore((s) => s.reductionPageStatus);
+  const selectedMeasures = useAICenterStore((s) => s.reductionSelectedMeasures);
+  const adoptPlan = useAICenterStore((s) => s.adoptReductionPlan);
+  const rejectPlan = useAICenterStore((s) => s.rejectReductionPlan);
+  const resetPlan = useAICenterStore((s) => s.resetReductionPlan);
+  const confirmAdjust = useAICenterStore((s) => s.confirmReductionAdjust);
+
+  if (pageStatus === 'pending') {
+    return (
+      <div className="flex items-center gap-4">
+        <span className="text-xs" style={{ color: '#8c8c8c' }}>
+          已选 <span style={{ color: '#3488ff' }}>{selectedMeasures.size}</span> 项措施
+        </span>
+        <div className="w-px h-5 mx-1" style={{ background: 'rgba(255,255,255,0.1)' }} />
+        <button
+          onClick={adoptPlan}
+          disabled={selectedMeasures.size === 0}
+          className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-lg transition-all disabled:opacity-30"
+          style={{ color: '#36d968', background: 'rgba(54,217,104,0.12)', border: '1px solid rgba(54,217,104,0.25)' }}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          采纳并转项目
+        </button>
+        <button
+          onClick={rejectPlan}
+          className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-lg transition-all"
+          style={{ color: '#ff3333', background: 'rgba(255,51,51,0.1)', border: '1px solid rgba(255,51,51,0.2)' }}
+        >
+          <XCircle className="w-3.5 h-3.5" />
+          驳回
+        </button>
+      </div>
+    );
+  }
+
+  if (pageStatus === 'adopted') {
+    return (
+      <div className="flex items-center gap-4">
+        <span className="text-xs" style={{ color: '#36d968' }}>项目执行中</span>
+        <div className="w-px h-5 mx-1" style={{ background: 'rgba(255,255,255,0.1)' }} />
+        <button
+          onClick={resetPlan}
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all"
+          style={{ color: '#8c8c8c', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          重新评估
+        </button>
+      </div>
+    );
+  }
+
+  if (pageStatus === 'rejected') {
+    return (
+      <div className="flex items-center gap-4">
+        <span className="text-xs" style={{ color: '#ff3333' }}>方案已驳回</span>
+        <div className="w-px h-5 mx-1" style={{ background: 'rgba(255,255,255,0.1)' }} />
+        <button
+          onClick={resetPlan}
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all"
+          style={{ color: '#8c8c8c', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          返回建议
+        </button>
+      </div>
+    );
+  }
+
+  // adjusting
+  return (
+    <div className="flex items-center gap-4">
+      <span className="text-xs" style={{ color: '#ff7b25' }}>调整中</span>
+      <div className="w-px h-5 mx-1" style={{ background: 'rgba(255,255,255,0.1)' }} />
+      <span className="text-xs" style={{ color: '#8c8c8c' }}>
+        已选 <span style={{ color: '#3488ff' }}>{selectedMeasures.size}</span> 项
+      </span>
+      <div className="w-px h-5 mx-1" style={{ background: 'rgba(255,255,255,0.1)' }} />
+      <button
+        onClick={confirmAdjust}
+        disabled={selectedMeasures.size === 0}
+        className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-lg transition-all disabled:opacity-30"
+        style={{ color: '#ff7b25', background: 'rgba(255,123,37,0.12)', border: '1px solid rgba(255,123,37,0.25)' }}
+      >
+        确认调整
+      </button>
+      <button
+        onClick={resetPlan}
+        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all"
+        style={{ color: '#8c8c8c', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+      >
+        <RotateCcw className="w-3.5 h-3.5" />
+        放弃
+      </button>
     </div>
   );
 }

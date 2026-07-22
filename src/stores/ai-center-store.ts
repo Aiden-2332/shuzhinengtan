@@ -177,6 +177,35 @@ export interface RealtimeDataStream {
   anomalyCount: number;
 }
 
+// ---- AI 减排建议状态 ----
+export type ReductionPageStatus = 'pending' | 'adopted' | 'rejected' | 'adjusting';
+
+export interface SuggestionMeasure {
+  id: string;
+  name: string;
+  icon: string;
+  energySaving: number;
+  cost: number;
+  difficulty: string;
+  description: string;
+  timeline: string;
+}
+
+export interface SuggestionMilestone {
+  id: string;
+  name: string;
+  target: string;
+  status: 'completed' | 'in_progress' | 'pending';
+  date: string;
+}
+
+export interface SuggestionParams {
+  energySavingRate: number;
+  electricityPrice: number;
+  investment: number;
+  lifespan: number;
+}
+
 // ---- Store ----
 interface AICenterStore {
   activeModule: AIModule;
@@ -198,6 +227,17 @@ interface AICenterStore {
   selectedMeasure: ReductionMeasure | null;
   optimizationConstraints: { budget: number; minPayback: number };
   reductionDimension: 'building' | 'department' | 'energy_type';
+  // 模块3 - AI 减排建议
+  reductionPageStatus: ReductionPageStatus;
+  reductionSelectedMeasures: Set<string>;
+  reductionExpandedMeasure: string | null;
+  reductionParams: SuggestionParams;
+  reductionMilestones: SuggestionMilestone[];
+  reductionProjectNote: string;
+  reductionSelectedReasons: Set<string>;
+  reductionRejectNote: string;
+  reductionSelectedAdjustment: string | null;
+  reductionShowAdjustmentPanel: boolean;
   // 模块4
   chatMessages: ChatMessage[];
   conversationId: string | null;
@@ -227,6 +267,22 @@ interface AICenterStore {
   selectMeasure: (measure: ReductionMeasure | null) => void;
   setOptimizationConstraints: (constraints: { budget: number; minPayback: number }) => void;
   setReductionDimension: (dim: 'building' | 'department' | 'energy_type') => void;
+  // 模块3 - AI 减排建议 actions
+  toggleReductionMeasure: (id: string) => void;
+  toggleAllReductionMeasures: () => void;
+  setReductionExpandedMeasure: (id: string | null) => void;
+  setReductionParams: (params: Partial<SuggestionParams>) => void;
+  adoptReductionPlan: () => void;
+  rejectReductionPlan: () => void;
+  advanceReductionMilestone: () => void;
+  toggleReductionRejectReason: (reason: string) => void;
+  setReductionRejectNote: (note: string) => void;
+  setReductionSelectedAdjustment: (id: string | null) => void;
+  startReductionAdjust: () => void;
+  confirmReductionAdjust: () => void;
+  resetReductionPlan: () => void;
+  setReductionProjectNote: (note: string) => void;
+  // 模块4
   sendChatMessage: (message: string) => void;
   setChatMessages: (messages: ChatMessage[]) => void;
   setIsTyping: (typing: boolean) => void;
@@ -235,6 +291,17 @@ interface AICenterStore {
   openDrawer: (type: string, data: unknown) => void;
   closeDrawer: () => void;
 }
+
+const DEFAULT_MEASURE_IDS = ['m1', 'm2'];
+
+const DEFAULT_MILESTONES: SuggestionMilestone[] = [
+  { id: 'ms1', name: '方案评审', target: '完成技术方案内部评审', status: 'pending', date: '第1周' },
+  { id: 'ms2', name: '预算审批', target: '获得财务预算批复', status: 'pending', date: '第2周' },
+  { id: 'ms3', name: '设备采购', target: '完成主要设备招标采购', status: 'pending', date: '第3-4周' },
+  { id: 'ms4', name: '施工安装', target: '完成现场施工与设备安装', status: 'pending', date: '第5-8周' },
+  { id: 'ms5', name: '调试验收', target: '系统联调与节能效果验证', status: 'pending', date: '第9-10周' },
+  { id: 'ms6', name: '运行监测', target: '持续监测节能效果并优化', status: 'pending', date: '第11周起' },
+];
 
 export const useAICenterStore = create<AICenterStore>((set, get) => ({
   activeModule: 'prediction',
@@ -253,6 +320,17 @@ export const useAICenterStore = create<AICenterStore>((set, get) => ({
   selectedMeasure: null,
   optimizationConstraints: { budget: 500, minPayback: 12 },
   reductionDimension: 'building',
+  // 模块3 - AI 减排建议初始值
+  reductionPageStatus: 'pending',
+  reductionSelectedMeasures: new Set(DEFAULT_MEASURE_IDS),
+  reductionExpandedMeasure: null,
+  reductionParams: { energySavingRate: 25, electricityPrice: 0.65, investment: 50, lifespan: 10 },
+  reductionMilestones: DEFAULT_MILESTONES,
+  reductionProjectNote: '',
+  reductionSelectedReasons: new Set<string>(),
+  reductionRejectNote: '',
+  reductionSelectedAdjustment: null,
+  reductionShowAdjustmentPanel: false,
   chatMessages: [],
   conversationId: null,
   complianceChecks: [],
@@ -291,6 +369,80 @@ export const useAICenterStore = create<AICenterStore>((set, get) => ({
   selectMeasure: (measure) => set({ selectedMeasure: measure }),
   setOptimizationConstraints: (constraints) => set({ optimizationConstraints: constraints }),
   setReductionDimension: (dim) => set({ reductionDimension: dim }),
+
+  // 模块3 - AI 减排建议 actions
+  toggleReductionMeasure: (id) =>
+    set((state) => {
+      const next = new Set(state.reductionSelectedMeasures);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return { reductionSelectedMeasures: next };
+    }),
+  toggleAllReductionMeasures: () =>
+    set((state) => {
+      const allIds = ['m1', 'm2', 'm3', 'm4'];
+      if (state.reductionSelectedMeasures.size === allIds.length) {
+        return { reductionSelectedMeasures: new Set<string>() };
+      }
+      return { reductionSelectedMeasures: new Set(allIds) };
+    }),
+  setReductionExpandedMeasure: (id) => set({ reductionExpandedMeasure: id }),
+  setReductionParams: (params) =>
+    set((state) => ({ reductionParams: { ...state.reductionParams, ...params } })),
+  adoptReductionPlan: () =>
+    set((state) => {
+      if (state.reductionSelectedMeasures.size === 0) return state;
+      return {
+        reductionPageStatus: 'adopted',
+        reductionMilestones: state.reductionMilestones.map((m, i) =>
+          i === 0 ? { ...m, status: 'in_progress' as const } : m
+        ),
+      };
+    }),
+  rejectReductionPlan: () =>
+    set({ reductionPageStatus: 'rejected', reductionShowAdjustmentPanel: true }),
+  advanceReductionMilestone: () =>
+    set((state) => {
+      const currentIdx = state.reductionMilestones.findIndex((m) => m.status === 'in_progress');
+      if (currentIdx === -1) return state;
+      return {
+        reductionMilestones: state.reductionMilestones.map((m, i) => {
+          if (i === currentIdx) return { ...m, status: 'completed' as const };
+          if (i === currentIdx + 1) return { ...m, status: 'in_progress' as const };
+          return m;
+        }),
+      };
+    }),
+  toggleReductionRejectReason: (reason) =>
+    set((state) => {
+      const next = new Set(state.reductionSelectedReasons);
+      if (next.has(reason)) { next.delete(reason); } else { next.add(reason); }
+      return { reductionSelectedReasons: next };
+    }),
+  setReductionRejectNote: (note) => set({ reductionRejectNote: note }),
+  setReductionSelectedAdjustment: (id) => set({ reductionSelectedAdjustment: id }),
+  startReductionAdjust: () => set({ reductionPageStatus: 'adjusting' }),
+  confirmReductionAdjust: () =>
+    set({
+      reductionPageStatus: 'pending',
+      reductionSelectedReasons: new Set<string>(),
+      reductionRejectNote: '',
+      reductionSelectedAdjustment: null,
+      reductionShowAdjustmentPanel: false,
+    }),
+  resetReductionPlan: () =>
+    set({
+      reductionPageStatus: 'pending',
+      reductionSelectedMeasures: new Set(DEFAULT_MEASURE_IDS),
+      reductionMilestones: DEFAULT_MILESTONES,
+      reductionSelectedReasons: new Set<string>(),
+      reductionRejectNote: '',
+      reductionSelectedAdjustment: null,
+      reductionShowAdjustmentPanel: false,
+      reductionProjectNote: '',
+      reductionExpandedMeasure: null,
+    }),
+  setReductionProjectNote: (note) => set({ reductionProjectNote: note }),
+
   sendChatMessage: (message) => {
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
