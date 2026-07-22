@@ -4,8 +4,9 @@ import { useState, useMemo, useCallback } from "react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { IndicatorCard, IndicatorGroup } from "@/components/dashboard/indicator-card";
 import { ResourceAnalysis } from "@/components/dashboard/resource-analysis";
+import { EconomicControlZone } from "@/components/dashboard/economic-control-zone";
 import { getBuildingRanking, getAnomalies, getBuilding3DData, getBuildingDetail } from "@/data/mock-data";
-import { AlertTriangle, Zap, TrendingDown, Building2, Target, Shield } from "lucide-react";
+import { AlertTriangle, TrendingDown, Building2 } from "lucide-react";
 
 export default function L1Dashboard() {
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
@@ -14,16 +15,6 @@ export default function L1Dashboard() {
   const rankings = useMemo(() => getBuildingRanking(2026), []);
   const anomalies = useMemo(() => getAnomalies(), []);
   const building3DData = useMemo(() => getBuilding3DData(), []);
-
-  // 计算核心指标
-  const totalEmission = useMemo(() => {
-    return building3DData.reduce((sum, b) => sum + b.emission, 0);
-  }, [building3DData]);
-
-  const quotaProgress = useMemo(() => {
-    const total = 12000; // 年度配额
-    return Math.round((totalEmission / total) * 100);
-  }, [totalEmission]);
 
   const handleBuildingClick = useCallback((buildingId: string) => {
     setSelectedBuilding(buildingId);
@@ -38,35 +29,11 @@ export default function L1Dashboard() {
     return getBuildingDetail(selectedBuilding);
   }, [selectedBuilding]);
 
-  // 左侧指标面板 - 核心KPI + 风险预警
+  // 左侧指标面板 - 经济控制分区 + 风险预警
   const leftPanel = (
     <div className="space-y-3">
-      {/* 核心 KPI 组 */}
-      <IndicatorGroup title="核心指标">
-        <IndicatorCard
-          title="年度累计排放"
-          value={totalEmission}
-          unit="tCO₂"
-          status={quotaProgress > 80 ? "danger" : quotaProgress > 60 ? "warning" : "normal"}
-          trend={-3.2}
-          trendLabel="同比"
-          icon={<Zap className="w-4 h-4" />}
-        />
-        <IndicatorCard
-          title="配额使用进度"
-          value={quotaProgress}
-          unit="%"
-          status={quotaProgress > 80 ? "danger" : quotaProgress > 60 ? "warning" : "success"}
-          icon={<Target className="w-4 h-4" />}
-        />
-        <IndicatorCard
-          title="年度配额余额"
-          value={12000 - totalEmission}
-          unit="tCO₂"
-          status={12000 - totalEmission < 2000 ? "danger" : "normal"}
-          icon={<Shield className="w-4 h-4" />}
-        />
-      </IndicatorGroup>
+      {/* 经济控制分区 */}
+      <EconomicControlZone />
 
       {/* 风险预警组 */}
       <IndicatorGroup title="风险预警">
