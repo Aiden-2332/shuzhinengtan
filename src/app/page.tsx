@@ -6,7 +6,7 @@ import { IndicatorCard, IndicatorGroup } from "@/components/dashboard/indicator-
 import { ResourceAnalysis } from "@/components/dashboard/resource-analysis";
 import { EconomicControlZone } from "@/components/dashboard/economic-control-zone";
 import { getBuildingRanking, getAnomalies, getBuilding3DData, getBuildingDetail } from "@/data/mock-data";
-import { AlertTriangle, TrendingDown, Building2 } from "lucide-react";
+import { AlertTriangle, Building2 } from "lucide-react";
 
 export default function L1Dashboard() {
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
@@ -50,13 +50,7 @@ export default function L1Dashboard() {
           unit="栋"
           status={anomalies.some((a: { severity: string }) => a.severity === "阻断") ? "danger" : "success"}
         />
-        <IndicatorCard
-          title="预测超配风险"
-          value="中"
-          status="warning"
-          icon={<TrendingDown className="w-4 h-4" />}
-        />
-      </IndicatorGroup>
+        </IndicatorGroup>
     </div>
   );
 
