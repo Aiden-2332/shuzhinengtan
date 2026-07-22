@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 
@@ -6,6 +9,8 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
     <div className="flex h-screen bg-slate-950 overflow-hidden">
       {/* Background Grid Effect */}
@@ -21,11 +26,14 @@ export function AppLayout({ children }: AppLayoutProps) {
       />
 
       {/* Sidebar */}
-      <AppSidebar />
+      <AppSidebar collapsed={sidebarCollapsed} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <AppHeader />
+        <AppHeader
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
         <main className="flex-1 overflow-y-auto p-6 relative">
           {children}
         </main>

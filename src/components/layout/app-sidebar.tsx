@@ -91,33 +91,55 @@ const navigation = [{
     }]
 }];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+    collapsed?: boolean;
+}
+
+export function AppSidebar({ collapsed = false }: AppSidebarProps) {
     const pathname = usePathname();
 
     return (
         <aside
-            className="w-64 bg-slate-900/95 backdrop-blur-xl border-r border-cyan-500/20 flex flex-col h-full overflow-hidden">
-            {}
-            <div className="h-16 flex items-center px-6 border-b border-cyan-500/20">
+            className={cn(
+                "bg-slate-900/95 backdrop-blur-xl border-r border-cyan-500/20 flex flex-col h-full overflow-hidden transition-all duration-300",
+                collapsed ? "w-16" : "w-64"
+            )}>
+            {/* Logo */}
+            <div className={cn(
+                "h-16 flex items-center border-b border-cyan-500/20 transition-all duration-300",
+                collapsed ? "px-4 justify-center" : "px-6"
+            )}>
                 <div className="flex items-center gap-3">
                     <div
-                        className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                        className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
                         <Leaf className="w-5 h-5 text-white" />
                     </div>
-                    <div>
-                        <h1 className="text-base font-bold text-white">高校智慧碳管理</h1>
-                        <p className="text-xs text-cyan-400">Smart Carbon Platform</p>
-                    </div>
+                    {!collapsed && (
+                        <div>
+                            <h1 className="text-base font-bold text-white">高校智慧碳管理</h1>
+                            <p className="text-xs text-cyan-400">Smart Carbon Platform</p>
+                        </div>
+                    )}
                 </div>
             </div>
-            {}
-            <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            {/* Navigation */}
+            <nav className={cn(
+                "flex-1 overflow-y-auto py-4 space-y-1 transition-all duration-300",
+                collapsed ? "px-2" : "px-3"
+            )}>
                 {navigation.map(section => <div key={section.name} className="mb-4">
-                    <div
-                        className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-cyan-400 uppercase tracking-wider">
-                        <section.icon className="w-4 h-4" />
-                        <span>{section.name}</span>
-                    </div>
+                    {!collapsed && (
+                        <div
+                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-cyan-400 uppercase tracking-wider">
+                            <section.icon className="w-4 h-4" />
+                            <span>{section.name}</span>
+                        </div>
+                    )}
+                    {collapsed && (
+                        <div className="flex justify-center py-2">
+                            <section.icon className="w-4 h-4 text-cyan-400" />
+                        </div>
+                    )}
                     <div className="space-y-1">
                         {section.children.map(item => {
                             const isActive = pathname === item.href;
@@ -126,8 +148,10 @@ export function AppSidebar() {
                                 <Link
                                     key={item.name}
                                     href={item.href}
+                                    title={collapsed ? item.name : undefined}
                                     className={cn(
-                                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 group",
+                                        "flex items-center gap-3 rounded-lg text-sm transition-all duration-200 group",
+                                        collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
                                         isActive ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 shadow-lg shadow-cyan-500/10" : "text-gray-400 hover:bg-slate-800/50 hover:text-cyan-300"
                                     )}>
                                     <item.icon
@@ -135,19 +159,20 @@ export function AppSidebar() {
                                             "w-4 h-4 flex-shrink-0",
                                             isActive ? "text-cyan-400" : "text-gray-500 group-hover:text-cyan-400"
                                         )} />
-                                    <span className="flex-1">AI 智能分析</span>
-                                    {isActive && <ChevronRight className="w-4 h-4 text-cyan-400" />}
+                                    {!collapsed && <span className="flex-1">{item.name}</span>}
+                                    {!collapsed && isActive && <ChevronRight className="w-4 h-4 text-cyan-400" />}
                                 </Link>
                             );
                         })}
                     </div>
                 </div>)}
             </nav>
-            {}
-            <div className="p-4 border-t border-cyan-500/20">
-                <div className="text-xs text-gray-500 text-center">Demo 模拟数据，不用于申报
-                            </div>
-            </div>
+            {/* Footer */}
+            {!collapsed && (
+                <div className="p-4 border-t border-cyan-500/20">
+                    <div className="text-xs text-gray-500 text-center">Demo 模拟数据，不用于申报</div>
+                </div>
+            )}
         </aside>
     );
 }

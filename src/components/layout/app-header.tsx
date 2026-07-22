@@ -8,17 +8,52 @@ import {
   Bell,
   User,
   ChevronDown,
+  PanelLeftClose,
+  PanelLeft,
+  Leaf,
 } from "lucide-react";
 
-export function AppHeader() {
+interface AppHeaderProps {
+  sidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
+}
+
+export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHeaderProps) {
   const [year, setYear] = useState("2026");
   const [campus, setCampus] = useState("all");
   const [dataStatus, setDataStatus] = useState("realtime");
 
   return (
     <header className="h-16 bg-slate-900/95 backdrop-blur-xl border-b border-cyan-500/20 flex items-center justify-between px-6">
-      {/* Left: Filters */}
+      {/* Left: Platform Name + Toggle + Filters */}
       <div className="flex items-center gap-4">
+        {/* Sidebar Toggle Button */}
+        <button
+          onClick={onToggleSidebar}
+          className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-gray-400 hover:text-cyan-400"
+          title={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+        >
+          {sidebarCollapsed ? (
+            <PanelLeft className="w-5 h-5" />
+          ) : (
+            <PanelLeftClose className="w-5 h-5" />
+          )}
+        </button>
+
+        {/* Platform Name */}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+            <Leaf className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h1 className="text-sm font-bold text-white leading-tight">高校智慧碳管理</h1>
+            <p className="text-[10px] text-cyan-400 leading-tight">Smart Carbon Platform</p>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-700/50" />
+
         {/* Year Filter */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20">
           <Calendar className="w-4 h-4 text-cyan-400" />
