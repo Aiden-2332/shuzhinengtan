@@ -6,7 +6,7 @@ import { IndicatorCard, IndicatorGroup } from "@/components/dashboard/indicator-
 import { ResourceAnalysis } from "@/components/dashboard/resource-analysis";
 import { EconomicControlZone } from "@/components/dashboard/economic-control-zone";
 import { getBuildingRanking, getAnomalies, getBuilding3DData, getBuildingDetail } from "@/data/mock-data";
-import { AlertTriangle, Building2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 export default function L1Dashboard() {
   const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
@@ -121,10 +121,26 @@ export default function L1Dashboard() {
           </div>
         </IndicatorGroup>
       ) : (
-        <IndicatorGroup title="提示">
-          <div className="p-4 rounded-lg bg-gray-900/40 border border-gray-700/30 text-center">
-            <Building2 className="w-8 h-8 mx-auto text-gray-600 mb-2" />
-            <p className="text-gray-500 text-xs">点击场景中的建筑查看详情</p>
+        <IndicatorGroup title="场景图例">
+          <div className="p-3 rounded-lg bg-gray-900/40 border border-gray-700/30">
+            <p className="text-[10px] text-gray-400 mb-2.5">建筑颜色 — 碳排放强度</p>
+            <div className="space-y-1.5">
+              {[
+                { label: "高排放 (&gt;50 kg/m²)", color: "bg-red-500", bar: "w-full" },
+                { label: "中高排放 (30-50)", color: "bg-orange-400", bar: "w-3/4" },
+                { label: "中等排放 (15-30)", color: "bg-yellow-400", bar: "w-1/2" },
+                { label: "低排放 (&lt;15 kg/m²)", color: "bg-green-400", bar: "w-1/4" },
+                { label: "新能源/负排放", color: "bg-cyan-400", bar: "w-1/5" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${item.color} shrink-0`} />
+                  <span className="text-[10px] text-gray-400 truncate">{item.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2.5 pt-2 border-t border-gray-700/30">
+              <p className="text-[10px] text-gray-500">🖱 点击建筑查看详情</p>
+            </div>
           </div>
         </IndicatorGroup>
       )}
