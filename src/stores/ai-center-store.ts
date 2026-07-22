@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 
 // ---- 类型 ----
-export type AIModule = 'prediction' | 'monitoring' | 'reduction' | 'policy';
+export type AIModule = 'prediction' | 'monitoring' | 'reduction' | 'policy' | 'suggestion';
 
 export interface PredictionCurve {
   period: '30d' | '60d' | '90d';

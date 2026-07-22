@@ -20,6 +20,7 @@ import ReductionRight from '@/components/ai-center/ReductionRight';
 import PolicyPanel from '@/components/ai-center/PolicyPanel';
 import PolicyRight from '@/components/ai-center/PolicyRight';
 import BottomBar from '@/components/ai-center/BottomBar';
+import AISuggestionPage from '@/app/ai-suggestion/page';
 
 export default function AICenterPage() {
   const activeModule = useAICenterStore((s) => s.activeModule);
@@ -72,6 +73,7 @@ export default function AICenterPage() {
       case 'monitoring': return <MonitoringPanel key="monitoring" />;
       case 'reduction': return <ReductionPanel key="reduction" />;
       case 'policy': return <PolicyPanel key="policy" />;
+      case 'suggestion': return null;
     }
   };
 
@@ -81,6 +83,7 @@ export default function AICenterPage() {
       case 'monitoring': return <MonitoringRight key="monitoring" />;
       case 'reduction': return <ReductionRight key="reduction" />;
       case 'policy': return <PolicyRight key="policy" />;
+      case 'suggestion': return null;
     }
   };
 
@@ -89,25 +92,34 @@ export default function AICenterPage() {
       {/* 顶部 Tab 栏 */}
       <TopTabBar />
 
-      {/* 主体双栏 */}
-      <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 60px - 72px)' }}>
-        {/* 左侧面板 32% */}
-        <div className="w-[32%] min-w-[380px] border-r overflow-y-auto" style={{ borderColor: 'rgba(52,136,255,0.1)' }}>
-          <AnimatePresence mode="wait">
-            {leftPanel()}
-          </AnimatePresence>
+      {/* AI减排建议 - 全页渲染 */}
+      {activeModule === 'suggestion' ? (
+        <div className="flex-1 overflow-auto" style={{ height: 'calc(100vh - 60px - 72px)' }}>
+          <AISuggestionPage />
         </div>
+      ) : (
+        <>
+          {/* 主体双栏 */}
+          <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 60px - 72px)' }}>
+            {/* 左侧面板 32% */}
+            <div className="w-[32%] min-w-[380px] border-r overflow-y-auto" style={{ borderColor: 'rgba(52,136,255,0.1)' }}>
+              <AnimatePresence mode="wait">
+                {leftPanel()}
+              </AnimatePresence>
+            </div>
 
-        {/* 右侧主面板 68% */}
-        <div className="flex-1 overflow-y-auto">
-          <AnimatePresence mode="wait">
-            {rightPanel()}
-          </AnimatePresence>
-        </div>
-      </div>
+            {/* 右侧主面板 68% */}
+            <div className="flex-1 overflow-y-auto">
+              <AnimatePresence mode="wait">
+                {rightPanel()}
+              </AnimatePresence>
+            </div>
+          </div>
 
-      {/* 底部操作栏 */}
-      <BottomBar />
+          {/* 底部操作栏 */}
+          <BottomBar />
+        </>
+      )}
 
       {/* 水印 */}
       <div className="fixed bottom-2 right-4 text-xs select-none pointer-events-none z-50" style={{ color: 'rgba(140,140,140,0.3)' }}>

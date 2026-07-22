@@ -8,6 +8,7 @@ const MODULE_TABS: { key: AIModule; label: string; icon: string; color: string }
   { key: 'monitoring', label: '异常监控', icon: '🚨', color: '#ff7b25' },
   { key: 'reduction', label: '减排路径', icon: '🌿', color: '#36d968' },
   { key: 'policy', label: '政策助手', icon: '🤖', color: '#9b6bff' },
+  { key: 'suggestion', label: 'AI减排建议', icon: '💡', color: '#f59e0b' },
 ];
 
 export default function TopTabBar() {
