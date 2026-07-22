@@ -83,9 +83,9 @@ export function getCostStructure() {
     ],
     income: [
       { category: "财政补贴", value: 320, color: "#10B981" },
-      { category: "绿证交易", value: 85, color: "#06B6D4" },
-      { category: "碳配额出售", value: 120, color: "#EC4899" },
-      { category: "节能奖励", value: 45, color: "#F59E0B" },
+      { category: "碳配额出售", value: 120, color: "#34D399" },
+      { category: "绿证交易", value: 85, color: "#6EE7B7" },
+      { category: "节能奖励", value: 45, color: "#A7F3D0" },
     ],
   };
 }

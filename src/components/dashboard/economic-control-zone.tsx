@@ -155,6 +155,113 @@ function WarningCard({ type, title, message, value }: {
   );
 }
 
+// ---------- 分叉水平条形图 - 收支结构 ----------
+interface ForkedBarData {
+  expenditure: { category: string; value: number; color: string }[];
+  income: { category: string; value: number; color: string }[];
+}
+
+function ForkedBarChart({ data }: { data: ForkedBarData }) {
+  const maxVal = Math.max(
+    ...data.expenditure.map((d) => d.value),
+    ...data.income.map((d) => d.value)
+  );
+
+  const totalExpenditure = data.expenditure.reduce((s, d) => s + d.value, 0);
+  const totalIncome = data.income.reduce((s, d) => s + d.value, 0);
+  const barHeight = 11;
+  const barGap = 5;
+  const labelWidth = 65; // 标签区宽度
+  const chartHalf = 120; // 每侧条形最大像素
+  const viewWidth = labelWidth * 2 + chartHalf * 2; // 370
+
+  // 排序：支出从大到小，收入从大到小
+  const sortedExp = [...data.expenditure].sort((a, b) => b.value - a.value);
+  const sortedInc = [...data.income].sort((a, b) => b.value - a.value);
+  const maxRows = Math.max(sortedExp.length, sortedInc.length);
+
+  const topPadding = 16;
+  const bottomPadding = 4;
+  const totalHeight = topPadding + maxRows * (barHeight + barGap) + bottomPadding;
+  const axisX = labelWidth + chartHalf; // 中轴 x 位置
+
+  return (
+    <div className="w-full" style={{ height: totalHeight }}>
+      <svg width="100%" height={totalHeight} viewBox={`0 0 ${viewWidth} ${totalHeight}`}>
+        {/* 中轴线 */}
+        <line x1={axisX} y1={topPadding - 4} x2={axisX} y2={totalHeight - bottomPadding} stroke="rgba(148,163,184,0.25)" strokeWidth="1" strokeDasharray="2,2" />
+
+        {/* 支出标题 */}
+        <text x={axisX - chartHalf / 2} y="10" textAnchor="middle" fill="#F87171" fontSize="8" fontWeight="600">
+          支出 {totalExpenditure.toLocaleString()}万
+        </text>
+        {/* 收入标题 */}
+        <text x={axisX + chartHalf / 2} y="10" textAnchor="middle" fill="#34D399" fontSize="8" fontWeight="600">
+          收入 {totalIncome.toLocaleString()}万
+        </text>
+
+        {/* 支出条形（向左延伸） */}
+        {sortedExp.map((item, i) => {
+          const barW = (item.value / maxVal) * chartHalf;
+          const y = topPadding + i * (barHeight + barGap);
+          const textInside = barW > 30;
+          return (
+            <g key={`exp-${i}`}>
+              <rect x={axisX - barW} y={y} width={barW} height={barHeight} rx="2" fill={item.color} opacity="0.85">
+                <title>{`${item.category}: ${item.value}万元`}</title>
+              </rect>
+              {/* 类别名 - 左侧标签区 */}
+              <text x={axisX - chartHalf - 4} y={y + barHeight / 2 + 3} textAnchor="end" fill="#CBD5E1" fontSize="7.5">
+                {item.category}
+              </text>
+              {/* 数值 */}
+              <text
+                x={textInside ? axisX - 4 : axisX - barW - 3}
+                y={y + barHeight / 2 + 3}
+                textAnchor={textInside ? "end" : "start"}
+                fill={textInside ? "white" : "#94A3B8"}
+                fontSize="6.5"
+                fontWeight="500"
+              >
+                {item.value}万
+              </text>
+            </g>
+          );
+        })}
+
+        {/* 收入条形（向右延伸） */}
+        {sortedInc.map((item, i) => {
+          const barW = (item.value / maxVal) * chartHalf;
+          const y = topPadding + i * (barHeight + barGap);
+          const textInside = barW > 30;
+          return (
+            <g key={`inc-${i}`}>
+              <rect x={axisX} y={y} width={barW} height={barHeight} rx="2" fill={item.color} opacity="0.85">
+                <title>{`${item.category}: ${item.value}万元`}</title>
+              </rect>
+              {/* 类别名 - 右侧标签区 */}
+              <text x={axisX + chartHalf + 4} y={y + barHeight / 2 + 3} textAnchor="start" fill="#CBD5E1" fontSize="7.5">
+                {item.category}
+              </text>
+              {/* 数值 */}
+              <text
+                x={textInside ? axisX + 4 : axisX + barW + 3}
+                y={y + barHeight / 2 + 3}
+                textAnchor={textInside ? "start" : "start"}
+                fill={textInside ? "white" : "#94A3B8"}
+                fontSize="6.5"
+                fontWeight="500"
+              >
+                {item.value}万
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 // ---------- 主组件 ----------
 export function EconomicControlZone() {
   const [tab, setTab] = useState<"quota" | "cost">("quota");
@@ -284,32 +391,22 @@ export function EconomicControlZone() {
         {/* ========== 碳经济成本控制 ========== */}
         {tab === "cost" && (
           <>
-            {/* 堆叠柱状图 - 收支结构 */}
+            {/* 分叉水平条形图 - 收支结构 */}
             <div className="bg-gray-800/40 rounded-lg border border-gray-700/30 p-2.5">
-              <h4 className="text-[10px] font-medium text-gray-400 mb-2">碳相关收支结构</h4>
-              <div className="h-[110px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[
-                    { name: "支出", 碳配额购买: 588, 电力采购: 1260, 天然气采购: 420, 热力采购: 340, 设备运维: 180 },
-                    { name: "收入", 财政补贴: 320, 绿证交易: 85, 碳配额出售: 120, 节能奖励: 45 },
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
-                    <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 8, fill: "#64748B" }} axisLine={false} tickLine={false} width={25} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: "8px", color: "#94A3B8" }} />
-                    <Bar dataKey="碳配额购买" stackId="a" fill="#EF4444" />
-                    <Bar dataKey="电力采购" stackId="a" fill="#F59E0B" />
-                    <Bar dataKey="天然气采购" stackId="a" fill="#3B82F6" />
-                    <Bar dataKey="热力采购" stackId="a" fill="#8B5CF6" />
-                    <Bar dataKey="设备运维" stackId="a" fill="#6B7280" />
-                    <Bar dataKey="财政补贴" stackId="b" fill="#10B981" />
-                    <Bar dataKey="绿证交易" stackId="b" fill="#06B6D4" />
-                    <Bar dataKey="碳配额出售" stackId="b" fill="#EC4899" />
-                    <Bar dataKey="节能奖励" stackId="b" fill="#F59E0B" />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-[10px] font-medium text-gray-400">碳相关收支结构</h4>
+                <div className="flex gap-3 text-[9px]">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                    <span className="text-gray-400">支出</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span className="text-gray-400">收入</span>
+                  </span>
+                </div>
               </div>
+              <ForkedBarChart data={costStructure} />
             </div>
 
             {/* 双轴折线联动 - 碳排放量 + 能源支出 */}
