@@ -6,6 +6,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
   CAMPUS_DATA,
   getEmissionColor,
+  getEnergyColorByValue,
   type BuildingData,
   type EmissionLevel,
   type CampusData,
@@ -21,6 +22,10 @@ interface CampusScene3DProps {
   selectedBuilding?: string | null;
   onBuildingClick?: (buildingId: string) => void;
   filterType?: string | null;
+  /** 着色模式: carbon=碳排放热力, energy=能耗强度绿→红梯度 */
+  colorMode?: "carbon" | "energy";
+  /** 夜景模式: 暗色背景+暖窗光 */
+  nightMode?: boolean;
 }
 
 // ============================================================
@@ -1188,12 +1193,18 @@ class InteractionManager {
 
 class EmissionColorManager {
   private buildingMeshes: Map<string, THREE.LOD>;
+  private colorMode: "carbon" | "energy";
 
-  constructor(buildingMeshes: Map<string, THREE.LOD>) {
+  constructor(buildingMeshes: Map<string, THREE.LOD>, colorMode: "carbon" | "energy" = "carbon") {
     this.buildingMeshes = buildingMeshes;
+    this.colorMode = colorMode;
   }
 
-  /** 更新建筑碳排发光层 */
+  setColorMode(mode: "carbon" | "energy"): void {
+    this.colorMode = mode;
+  }
+
+  /** 更新建筑发光层颜色 */
   updateEmissionColors(emissionMap: Map<string, EmissionLevel>): void {
     this.buildingMeshes.forEach((lod, buildingId) => {
       const level = emissionMap.get(buildingId);
@@ -1208,6 +1219,35 @@ class EmissionColorManager {
         }
       });
     });
+  }
+
+  /** 更新建筑发光层颜色 - 能耗模式 */
+  updateEnergyColors(): void {
+    this.buildingMeshes.forEach((lod, buildingId) => {
+      const bData = CAMPUS_DATA.buildings.find((b) => b.buildingId === buildingId);
+      if (!bData) return;
+
+      lod.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.name === "emission-glow") {
+          const color = getEnergyColorByValue(bData.energyIntensity);
+          if (child.material instanceof THREE.MeshBasicMaterial) {
+            child.material.color.set(color);
+            child.material.opacity = 0.15;
+          }
+        }
+      });
+    });
+  }
+
+  /** 刷新所有发光层 (根据当前 colorMode) */
+  refreshAll(): void {
+    if (this.colorMode === "energy") {
+      this.updateEnergyColors();
+    } else {
+      const emissionMap = new Map<string, EmissionLevel>();
+      CAMPUS_DATA.buildings.forEach((b) => emissionMap.set(b.buildingId, b.emissionLevel));
+      this.updateEmissionColors(emissionMap);
+    }
   }
 
   /** 设置建筑高亮状态 */
@@ -1299,6 +1339,8 @@ export function CampusScene3D({
   selectedBuilding,
   onBuildingClick,
   filterType,
+  colorMode = "carbon",
+  nightMode = false,
 }: CampusScene3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{
@@ -1351,8 +1393,13 @@ export function CampusScene3D({
 
     // 场景
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#87ceeb");
-    scene.fog = new THREE.FogExp2("#c8dce8", 0.004);
+    if (nightMode) {
+      scene.background = new THREE.Color("#0a1628");
+      scene.fog = new THREE.FogExp2("#0a1628", 0.0025);
+    } else {
+      scene.background = new THREE.Color("#87ceeb");
+      scene.fog = new THREE.FogExp2("#c8dce8", 0.004);
+    }
 
     // 相机
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.5, 800);
@@ -1384,34 +1431,50 @@ export function CampusScene3D({
     controls.target.set(0, 0, 0);
 
     // ── 光照 ──
-    // 环境光
-    const ambientLight = new THREE.AmbientLight("#ffffff", 0.5);
-    scene.add(ambientLight);
-
-    // 半球光 (天空/地面)
-    const hemiLight = new THREE.HemisphereLight("#b0d4f1", "#5a7247", 0.3);
-    scene.add(hemiLight);
-
-    // 主方向光 (太阳)
-    const sunLight = new THREE.DirectionalLight("#fff8e7", 1.8);
-    sunLight.position.set(50, 60, 50);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = SHADOW_MAP_SIZE;
-    sunLight.shadow.mapSize.height = SHADOW_MAP_SIZE;
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 250;
-    sunLight.shadow.camera.left = -100;
-    sunLight.shadow.camera.right = 100;
-    sunLight.shadow.camera.top = 100;
-    sunLight.shadow.camera.bottom = -100;
-    sunLight.shadow.bias = -0.0001;
-    sunLight.shadow.normalBias = 0.02;
-    scene.add(sunLight);
-
-    // 补光
-    const fillLight = new THREE.DirectionalLight("#b0d4f1", 0.4);
-    fillLight.position.set(-40, 30, -40);
-    scene.add(fillLight);
+    if (nightMode) {
+      // 夜景: 低环境光 + 暖色窗光
+      const ambientLight = new THREE.AmbientLight("#1a2a4a", 0.3);
+      scene.add(ambientLight);
+      const hemiLight = new THREE.HemisphereLight("#1a2a4a", "#0a1628", 0.15);
+      scene.add(hemiLight);
+      // 月光
+      const moonLight = new THREE.DirectionalLight("#4a6fa5", 0.6);
+      moonLight.position.set(30, 50, 30);
+      moonLight.castShadow = true;
+      moonLight.shadow.mapSize.width = SHADOW_MAP_SIZE;
+      moonLight.shadow.mapSize.height = SHADOW_MAP_SIZE;
+      moonLight.shadow.camera.near = 0.5;
+      moonLight.shadow.camera.far = 250;
+      moonLight.shadow.camera.left = -100;
+      moonLight.shadow.camera.right = 100;
+      moonLight.shadow.camera.top = 100;
+      moonLight.shadow.camera.bottom = -100;
+      moonLight.shadow.bias = -0.0001;
+      scene.add(moonLight);
+    } else {
+      // 日景: 标准光照
+      const ambientLight = new THREE.AmbientLight("#ffffff", 0.5);
+      scene.add(ambientLight);
+      const hemiLight = new THREE.HemisphereLight("#b0d4f1", "#5a7247", 0.3);
+      scene.add(hemiLight);
+      const sunLight = new THREE.DirectionalLight("#fff8e7", 1.8);
+      sunLight.position.set(50, 60, 50);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.width = SHADOW_MAP_SIZE;
+      sunLight.shadow.mapSize.height = SHADOW_MAP_SIZE;
+      sunLight.shadow.camera.near = 0.5;
+      sunLight.shadow.camera.far = 250;
+      sunLight.shadow.camera.left = -100;
+      sunLight.shadow.camera.right = 100;
+      sunLight.shadow.camera.top = 100;
+      sunLight.shadow.camera.bottom = -100;
+      sunLight.shadow.bias = -0.0001;
+      sunLight.shadow.normalBias = 0.02;
+      scene.add(sunLight);
+      const fillLight = new THREE.DirectionalLight("#b0d4f1", 0.4);
+      fillLight.position.set(-40, 30, -40);
+      scene.add(fillLight);
+    }
 
     // ── 材质工厂 ──
     const matFactory = new MaterialFactory();
@@ -1460,8 +1523,9 @@ export function CampusScene3D({
       container, camera, buildingMeshes, onBuildingClick, handleHover
     );
 
-    // ── 碳排变色 ──
-    const emissionManager = new EmissionColorManager(buildingMeshes);
+    // ── 碳排/能耗变色 ──
+    const emissionManager = new EmissionColorManager(buildingMeshes, colorMode);
+    emissionManager.refreshAll();
 
     // ── 动画循环 ──
     let animationId = 0;
@@ -1584,9 +1648,146 @@ export function CampusScene3D({
     }
   }, [filterType]);
 
+  // ── 着色模式切换 ──
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.emissionManager.setColorMode(colorMode);
+    engine.emissionManager.refreshAll();
+  }, [colorMode]);
+
+  // ── 夜景模式切换 ──
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (nightMode) {
+      engine.scene.background = new THREE.Color("#0a1628");
+      engine.scene.fog = new THREE.FogExp2("#0a1628", 0.0025);
+      engine.renderer.toneMappingExposure = 0.8;
+    } else {
+      engine.scene.background = new THREE.Color("#87ceeb");
+      engine.scene.fog = new THREE.FogExp2("#c8dce8", 0.004);
+      engine.renderer.toneMappingExposure = 1.1;
+    }
+  }, [nightMode]);
+
+  // ── 建筑标签位置 (3D→2D投影) ──
+  const [buildingLabels, setBuildingLabels] = useState<Array<{
+    buildingId: string;
+    name: string;
+    energyIntensity: number;
+    color: string;
+    value: number;
+    x: number;
+    y: number;
+    visible: boolean;
+  }>>([]);
+
+  // 在动画循环中更新标签位置
+  useEffect(() => {
+    if (!colorMode || colorMode !== "energy") {
+      setBuildingLabels([]);
+      return;
+    }
+    const engine = engineRef.current;
+    if (!engine) return;
+
+    let lastUpdate = 0;
+    const UPDATE_INTERVAL = 200; // 5fps for labels
+
+    const updateLabels = () => {
+      const now = performance.now();
+      if (now - lastUpdate < UPDATE_INTERVAL) return;
+      lastUpdate = now;
+
+      const { camera, buildingMeshes } = engine;
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+
+      const labels: Array<{
+        buildingId: string;
+        name: string;
+        energyIntensity: number;
+        color: string;
+        value: number;
+        x: number;
+        y: number;
+        visible: boolean;
+      }> = [];
+
+      buildingMeshes.forEach((lod, buildingId) => {
+        if (!lod.visible) return;
+        const bData = CAMPUS_DATA.buildings.find((b) => b.buildingId === buildingId);
+        if (!bData) return;
+
+        // 3D world position → 2D screen
+        const worldPos = new THREE.Vector3(bData.x, bData.height + 3, bData.z);
+        const screenPos = worldPos.clone().project(camera);
+
+        const x = (screenPos.x * 0.5 + 0.5) * rect.width;
+        const y = (-screenPos.y * 0.5 + 0.5) * rect.height;
+        const behindCamera = screenPos.z > 1;
+
+        const energyColor = getEnergyColorByValue(bData.energyIntensity);
+
+        labels.push({
+          buildingId,
+          name: bData.name,
+          energyIntensity: bData.energyIntensity,
+          color: energyColor,
+          value: bData.energyIntensity,
+          x,
+          y,
+          visible: !behindCamera && x > 0 && x < rect.width && y > 0 && y < rect.height,
+        });
+      });
+
+      setBuildingLabels(labels);
+    };
+
+    // 在现有动画循环中插入标签更新
+    const originalAnimate = engine.animationId;
+    // 使用独立 interval 而非修改动画循环，避免破坏现有逻辑
+    const intervalId = setInterval(updateLabels, UPDATE_INTERVAL);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [colorMode]);
+
   return (
     <div className="relative w-full h-full" style={{ minHeight: "500px" }}>
       <div ref={containerRef} className="w-full h-full" />
+
+      {/* 能耗模式 - 建筑标签 */}
+      {colorMode === "energy" && buildingLabels.map((label) => (
+        <div
+          key={label.buildingId}
+          className="absolute pointer-events-none transition-opacity duration-300"
+          style={{
+            left: label.x,
+            top: label.y,
+            transform: "translate(-50%, -50%)",
+            opacity: label.visible ? 1 : 0,
+            zIndex: 10,
+          }}
+        >
+          <div
+            className="rounded-lg px-2.5 py-1 text-center whitespace-nowrap"
+            style={{
+              background: "rgba(10, 22, 40, 0.85)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            <div className="text-xs font-medium text-white leading-tight">{label.name}</div>
+            <div className="text-xs font-mono font-bold leading-tight" style={{ color: getEnergyColorByValue(label.energyIntensity) }}>
+              {label.energyIntensity.toFixed(1)} kWh/m²
+            </div>
+          </div>
+        </div>
+      ))}
 
       {/* 悬浮提示 */}
       {tooltip && (() => {
@@ -1854,6 +2055,69 @@ export function CampusScene3D({
       >
         {CAMPUS_DATA.info.name} · {CAMPUS_DATA.info.dataSource}
       </div>
+
+      {/* 能耗图例 (colorMode="energy" 时显示) */}
+      {colorMode === "energy" && (
+        <div
+          className="absolute top-4 left-4 px-4 py-3 rounded-lg text-xs"
+          style={{
+            background: "rgba(10, 22, 40, 0.92)",
+            border: "1px solid rgba(52, 136, 255, 0.25)",
+            color: "#cbd5e1",
+            minWidth: "180px",
+          }}
+        >
+          <div className="font-semibold mb-2 text-sm" style={{ color: "#e2e8f0" }}>
+            校园楼宇能耗分布
+          </div>
+          <div className="text-xs mb-2" style={{ color: "#94a3b8" }}>
+            单位：kWh/m²·月
+          </div>
+          {[
+            { label: "> 25", color: "#DC2626" },
+            { label: "15 - 25", color: "#F97316" },
+            { label: "8 - 15", color: "#EAB308" },
+            { label: "3 - 8", color: "#22C55E" },
+            { label: "≤ 3", color: "#06B6D4" },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-2 mb-1">
+              <span
+                className="inline-block w-4 h-2.5 rounded-sm flex-shrink-0"
+                style={{ background: item.color }}
+              />
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 建筑浮动标签 (colorMode="energy" 时显示) */}
+      {colorMode === "energy" && buildingLabels.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {buildingLabels.map((label) => (
+            <div
+              key={label.buildingId}
+              className="absolute px-2 py-1 rounded text-center text-xs font-medium whitespace-nowrap"
+              style={{
+                left: `${label.x}px`,
+                top: `${label.y}px`,
+                transform: "translate(-50%, -100%)",
+                background: "rgba(10, 22, 40, 0.88)",
+                border: `1px solid ${label.color}40`,
+                color: "#e2e8f0",
+                boxShadow: `0 0 12px ${label.color}20`,
+              }}
+            >
+              <div style={{ color: label.color, fontWeight: 700 }}>
+                {label.value.toFixed(1)}
+              </div>
+              <div style={{ color: "#94a3b8", fontSize: "10px" }}>
+                {label.name}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

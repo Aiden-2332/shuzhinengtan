@@ -663,6 +663,7 @@ export default function L3OperationsView() {
       selectedBuilding={selectedBuilding}
       onBuildingClick={handleBuildingClick}
       filterType={filterType}
+      colorMode="energy"
     />
   );
 }

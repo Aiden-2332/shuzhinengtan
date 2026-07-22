@@ -12,6 +12,7 @@ interface ThreeColumnLayoutProps {
   selectedBuilding?: string | null;
   onBuildingClick?: (buildingId: string) => void;
   filterType?: string | null;
+  colorMode?: "carbon" | "energy";
   year?: number;
   campus?: string;
 }
@@ -50,6 +51,7 @@ export function ThreeColumnLayout({
   selectedBuilding,
   onBuildingClick,
   filterType,
+  colorMode,
   year = 2026,
   campus = "主校区",
 }: ThreeColumnLayoutProps) {
@@ -109,6 +111,7 @@ export function ThreeColumnLayout({
             selectedBuilding={selectedBuilding || null}
             onBuildingClick={onBuildingClick || (() => {})}
             filterType={filterType || null}
+            colorMode={colorMode || "carbon"}
           />
         </div>
 
