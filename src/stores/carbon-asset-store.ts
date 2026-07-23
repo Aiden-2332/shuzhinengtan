@@ -10,10 +10,13 @@ import type {
   MRVNode,
   AuditCheckItem,
   MissingDoc,
+  ComplianceCalendar,
+  ComplianceRadar,
+  AuditPreparation,
 } from "@/data/carbon-asset-mock";
 import {
   getQuotaLedger,
-  simulateGap,
+  simulateGap as calcGap,
   getComplianceTasks,
   getTradeRecords,
   getCarbonAssetValue,
@@ -56,27 +59,23 @@ interface CarbonAssetStore {
   activeStrategy: string | null;
 
   // 履约任务
-  complianceTasks: ComplianceTask[];
+  complianceCalendar: ComplianceCalendar | null;
   expandedTaskId: string | null;
 
   // 交易记录
   tradeRecords: TradeRecord[];
+  tradePage: number;
+  tradeTotal: number;
 
   // 碳资产增值
   assetValue: CarbonAssetValue | null;
 
   // 合规雷达
-  policyChanges: PolicyChange[];
-  selfCheckList: SelfCheckItem[];
+  complianceRadar: ComplianceRadar | null;
 
   // 核查准备
-  mrvChain: MRVNode | null;
-  auditChecklist: AuditCheckItem[];
-  missingDocs: MissingDoc[];
-  auditMrvExpandedIds: string[];
-
-  // 底部Tab
-  activeBottomTab: string;
+  auditPrep: AuditPreparation | null;
+  auditMrvExpandedId: string | null;
 
   // Actions
   setYear: (year: number) => void;
@@ -87,15 +86,21 @@ interface CarbonAssetStore {
   selectStrategy: (id: string | null) => void;
   updateTaskStatus: (taskId: string, status: ComplianceTask["status"]) => void;
   setExpandedTaskId: (id: string | null) => void;
-  setActiveBottomTab: (tab: string) => void;
-  toggleMrvExpanded: (id: string) => void;
-  initializeData: () => void;
-  runSimulation: () => void;
+  setAuditMrvExpandedId: (id: string | null) => void;
+
+  // Async fetch actions
+  fetchQuotaLedger: () => void;
+  fetchComplianceTasks: () => void;
+  fetchAssetValue: () => void;
+  fetchTradeRecords: (page: number) => void;
+  fetchComplianceRadar: () => void;
+  fetchAuditPreparation: () => void;
+  simulateGap: (price: number, emission: number) => void;
 }
 
 export const useCarbonAssetStore = create<CarbonAssetStore>((set, get) => ({
   selectedYear: 2026,
-  selectedCampus: "主校区+东校区",
+  selectedCampus: "全部校区",
   realTimeEstimate: true,
 
   quotaLedger: null,
@@ -105,22 +110,19 @@ export const useCarbonAssetStore = create<CarbonAssetStore>((set, get) => ({
   forecastEmissionInput: 21500,
   activeStrategy: null,
 
-  complianceTasks: [],
+  complianceCalendar: null,
   expandedTaskId: null,
 
   tradeRecords: [],
+  tradePage: 1,
+  tradeTotal: 0,
 
   assetValue: null,
 
-  policyChanges: [],
-  selfCheckList: [],
+  complianceRadar: null,
 
-  mrvChain: null,
-  auditChecklist: [],
-  missingDocs: [],
-  auditMrvExpandedIds: ["mrv1", "mrv2", "mrv3"],
-
-  activeBottomTab: "emission-vs-quota",
+  auditPrep: null,
+  auditMrvExpandedId: null,
 
   setYear: (year) => set({ selectedYear: year }),
   setCampus: (campus) => set({ selectedCampus: campus }),
@@ -137,41 +139,79 @@ export const useCarbonAssetStore = create<CarbonAssetStore>((set, get) => ({
   selectStrategy: (id) => set({ activeStrategy: id }),
 
   updateTaskStatus: (taskId, status) =>
-    set((state) => ({
-      complianceTasks: state.complianceTasks.map((t) =>
-        t.id === taskId ? { ...t, status } : t
-      ),
-    })),
+    set((state) => {
+      if (!state.complianceCalendar) return state;
+      const updatedTasks = state.complianceCalendar.tasks.map((t) =>
+        t.id === taskId ? { ...t, status, completionProgress: status === "completed" ? 100 : t.completionProgress } : t
+      );
+      const completedTasks = updatedTasks.filter((t) => t.status === "completed").length;
+      return {
+        complianceCalendar: {
+          ...state.complianceCalendar,
+          tasks: updatedTasks,
+          completedTasks,
+        },
+      };
+    }),
 
   setExpandedTaskId: (id) => set({ expandedTaskId: id }),
+  setAuditMrvExpandedId: (id) => set({ auditMrvExpandedId: id }),
 
-  setActiveBottomTab: (tab) => set({ activeBottomTab: tab }),
-
-  toggleMrvExpanded: (id) =>
-    set((state) => ({
-      auditMrvExpandedIds: state.auditMrvExpandedIds.includes(id)
-        ? state.auditMrvExpandedIds.filter((x) => x !== id)
-        : [...state.auditMrvExpandedIds, id],
-    })),
-
-  initializeData: () => {
-    set({
-      quotaLedger: getQuotaLedger(),
-      complianceTasks: getComplianceTasks(),
-      tradeRecords: getTradeRecords(),
-      assetValue: getCarbonAssetValue(),
-      policyChanges: getPolicyChanges(),
-      selfCheckList: getSelfCheckList(),
-      mrvChain: getMRVChain(),
-      auditChecklist: getAuditChecklist(),
-      missingDocs: getMissingDocs(),
-    });
-    get().runSimulation();
+  fetchQuotaLedger: () => {
+    set({ quotaLedger: getQuotaLedger() });
   },
 
-  runSimulation: () => {
-    const { carbonPriceInput, forecastEmissionInput } = get();
-    const result = simulateGap(carbonPriceInput, forecastEmissionInput);
+  fetchComplianceTasks: () => {
+    const tasks = getComplianceTasks();
+    set({
+      complianceCalendar: {
+        year: 2026,
+        totalTasks: tasks.length,
+        completedTasks: tasks.filter((t) => t.status === "completed").length,
+        overdueTasks: tasks.filter((t) => t.status === "overdue").length,
+        atRiskTasks: tasks.filter((t) => t.status === "at_risk").length,
+        tasks,
+      },
+    });
+  },
+
+  fetchAssetValue: () => {
+    set({ assetValue: getCarbonAssetValue() });
+  },
+
+  fetchTradeRecords: (page) => {
+    const records = getTradeRecords();
+    set({
+      tradeRecords: records,
+      tradePage: page,
+      tradeTotal: records.length,
+    });
+  },
+
+  fetchComplianceRadar: () => {
+    set({
+      complianceRadar: {
+        policyChanges: getPolicyChanges(),
+        selfCheckList: getSelfCheckList(),
+        complianceScore: 78,
+        riskLevel: "medium",
+      },
+    });
+  },
+
+  fetchAuditPreparation: () => {
+    set({
+      auditPrep: {
+        mrvChain: getMRVChain(),
+        auditChecklist: getAuditChecklist(),
+        missingDocuments: getMissingDocs(),
+        readinessScore: 65,
+      },
+    });
+  },
+
+  simulateGap: (price, emission) => {
+    const result = calcGap(price, emission);
     set({ gapEngine: result });
   },
 }));

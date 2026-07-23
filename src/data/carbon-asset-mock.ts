@@ -117,6 +117,7 @@ export interface SelfCheckItem {
   checkItem: string;
   status: "pass" | "fail" | "warning" | "not_checked";
   lastChecked: string;
+  fixUrl?: string;
 }
 
 export interface MRVNode {
@@ -453,4 +454,64 @@ export function getMissingDocs(): MissingDoc[] {
     { id: "md2", docName: "体育馆柴油发票", requiredBy: "备用发电机燃油消耗凭证", relatedBuilding: "体育馆", severity: "major" },
     { id: "md3", docName: "学生宿舍热力结算单", requiredBy: "集中供热费用分摊凭证", relatedBuilding: "学生宿舍", severity: "minor" },
   ];
+}
+
+/* ========== 聚合类型 ========== */
+
+export interface ComplianceCalendar {
+  year: number;
+  totalTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  atRiskTasks: number;
+  tasks: ComplianceTask[];
+}
+
+export function getComplianceCalendar(): ComplianceCalendar {
+  const tasks = getComplianceTasks();
+  return {
+    year: 2026,
+    totalTasks: tasks.length,
+    completedTasks: tasks.filter((t) => t.status === "completed").length,
+    overdueTasks: tasks.filter((t) => t.status === "overdue").length,
+    atRiskTasks: tasks.filter((t) => t.status === "at_risk").length,
+    tasks,
+  };
+}
+
+export interface ComplianceRadar {
+  policyChanges: PolicyChange[];
+  selfCheckList: SelfCheckItem[];
+  complianceScore: number;
+  riskLevel: "low" | "medium" | "high";
+}
+
+export function getComplianceRadar(): ComplianceRadar {
+  const selfCheck = getSelfCheckList();
+  const passCount = selfCheck.filter((s) => s.status === "pass").length;
+  const score = Math.round((passCount / selfCheck.length) * 100);
+  return {
+    policyChanges: getPolicyChanges(),
+    selfCheckList: selfCheck,
+    complianceScore: score,
+    riskLevel: score >= 80 ? "low" : score >= 60 ? "medium" : "high",
+  };
+}
+
+export interface AuditPreparation {
+  mrvChain: MRVNode;
+  auditChecklist: AuditCheckItem[];
+  missingDocuments: MissingDoc[];
+  readinessScore: number;
+}
+
+export function getAuditPreparation(): AuditPreparation {
+  const checklist = getAuditChecklist();
+  const passCount = checklist.filter((c) => c.status === "pass").length;
+  return {
+    mrvChain: getMRVChain(),
+    auditChecklist: checklist,
+    missingDocuments: getMissingDocs(),
+    readinessScore: Math.round((passCount / checklist.length) * 100),
+  };
 }

@@ -31,7 +31,7 @@
 │   │   ├── calculation/        # 碳核算工作台
 │   │   ├── ai-suggestion/      # AI减排建议
 │   │   ├── ai-center/          # AI智能分析中心（四模块）
-│   │   ├── asset/              # 碳资产管理
+│   │   ├── asset/              # 碳资产管理（六大模块：配额台账/缺口决策/履约看板/碳资产增值/合规雷达/核查准备）
 │   │   └── campus-map/         # 校园碳地图（3D/2.5D MapLibre GL）
 │   ├── components/
 │   │   ├── ui/                 # Shadcn UI 组件库
@@ -41,12 +41,14 @@
 │   │   │   └── ...             # 其他仪表盘组件
 │   │   └── ai-center/          # AI中心组件（16个模块组件）
 │   ├── stores/
-│   │   └── ai-center-store.ts  # AI中心 Zustand 状态管理
+│   │   ├── ai-center-store.ts  # AI中心 Zustand 状态管理
+│   │   └── carbon-asset-store.ts # 碳资产管理 Zustand 状态管理
 │   ├── data/
 │   │   ├── mock-data.ts        # 模拟数据
 │   │   ├── alarm-data.ts       # 告警中心数据（告警列表、解决建议）
 │   │   ├── ai-center-mock.ts   # AI中心 Mock 数据
-│   │   └── campus-geojson.ts   # 校园建筑 GeoJSON 数据（北京科技大学）
+│   │   ├── campus-geojson.ts   # 校园建筑 GeoJSON 数据（北京科技大学）
+│   │   └── carbon-asset-mock.ts # 碳资产管理 Mock 数据（配额/缺口/履约/交易/合规/核查）
 │   ├── types/
 │   │   └── index.ts            # TypeScript 类型定义
 │   └── lib/
@@ -70,7 +72,7 @@
 | 碳核算工作台 | `/calculation` | 五步核算流程、数据追溯、质量检查 |
 | AI减排建议 | `/ai-suggestion` | 证据汇总、措施匹配、效益试算 |
 | AI智能分析中心 | `/ai-center` | 预测性分析、实时监控异常报警、AI减排路径优化、政策咨询AI助手 |
-| 碳资产管理 | `/asset` | 配额台账、缺口预测、履约日历 |
+| 碳资产管理 | `/asset` | 六大模块：配额台账/缺口决策引擎/履约任务看板/碳资产增值/合规雷达/核查准备中心 |
 | 校园碳地图 | `/campus-map` | 北京科技大学3D/2.5D/2D校园建筑碳排放可视化地图 |
 
 ## 用户角色
