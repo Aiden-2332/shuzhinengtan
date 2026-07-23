@@ -30,10 +30,10 @@ export async function GET() {
 
   const standards: StandardDocument[] = [];
 
-  // Parse GB/T 29117-2012 节约型学校评价导则
+  // Parse GB/T 29117-2025 绿色学校评价导则
   try {
     const res1 = await client.fetch(
-      `${process.env.COZE_PROJECT_DOMAIN_DEFAULT || 'http://localhost:5000'}/gb-t29117-2012.pdf`
+      `${process.env.COZE_PROJECT_DOMAIN_DEFAULT || 'http://localhost:5000'}/gb-t29117-2025.pdf`
     );
     const text1 = res1.content
       .filter((item) => item.type === 'text')
@@ -41,18 +41,18 @@ export async function GET() {
       .join('\n');
 
     standards.push({
-      id: 'conservation',
-      name: '节约型学校评价',
+      id: 'green-school',
+      name: '绿色学校评价',
       level: 'conservation',
-      levelLabel: '节约型（基础层）',
-      standardCode: 'GB/T 29117-2012',
+      levelLabel: '绿色学校（基础层）',
+      standardCode: 'GB/T 29117-2025',
       type: 'national',
-      description: '国家标准·节约型学校评价导则。以资源节约为核心，关注学校在节能、节水、节材、节地等方面的管理水平和绩效，是学校绿色发展的基础性评价。',
-      indicators: extractConservationIndicators(text1),
+      description: '国家标准·绿色学校评价导则。以精神文化、物质条件、行为规范和低碳管理为核心，覆盖生态文明教育、绿色规划管理、节能降碳、生活垃圾分类等全维度评价。',
+      indicators: extractGreenSchoolIndicators(text1),
     });
   } catch (e) {
-    console.error('Failed to parse GB/T 29117-2012:', e);
-    standards.push(getFallbackConservationStandard());
+    console.error('Failed to parse GB/T 29117-2025:', e);
+    standards.push(getFallbackGreenSchoolStandard());
   }
 
   // Parse GB/T 51356-2019 绿色校园评价标准
@@ -72,7 +72,7 @@ export async function GET() {
       levelLabel: '绿色（进阶层）',
       standardCode: 'GB/T 51356-2019',
       type: 'national',
-      description: '国家标准·绿色校园评价标准。在节约型基础上，扩展到生态环境、室内环境质量、绿色教育等维度，强调校园与自然和谐共生，是学校绿色发展的综合性评价。',
+      description: '国家标准·绿色校园评价标准。在绿色学校基础上，扩展到生态环境、室内环境质量、绿色教育等维度，强调校园与自然和谐共生，是学校绿色发展的综合性评价。',
       indicators: extractGreenIndicators(text2),
     });
   } catch (e) {
@@ -108,85 +108,155 @@ export async function GET() {
   return NextResponse.json({ standards });
 }
 
-function extractConservationIndicators(text: string): EvaluationIndicator[] {
-  // GB/T 29117-2012 节约型学校评价指标体系
+function extractGreenSchoolIndicators(text: string): EvaluationIndicator[] {
+  // GB/T 29117-2025 绿色学校评价指标体系
   return [
+    // 精神文化 (25%)
     {
-      id: 'c-1', category: '组织管理', name: '组织机构与制度建设',
-      description: '建立节约型学校建设领导小组，制定完善的节能节水管理制度',
-      weight: 10, maxScore: 10,
-      scoringMethod: '查阅文件、会议记录',
-      dataSource: '校办/后勤管理处',
+      id: 'gs-1', category: '精神文化', name: '生态文明教育融入教学',
+      description: '结合课堂教学、专家讲座等多种形式，普及生态文明相关基本理念、生活常识和行为规范；加强教师绿色低碳发展教育培训',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅教学计划、课程大纲、培训记录',
+      dataSource: '教务处/教师发展中心',
     },
     {
-      id: 'c-2', category: '组织管理', name: '宣传教育与培训',
-      description: '开展节约能源资源宣传教育活动，组织节能培训',
-      weight: 8, maxScore: 8,
-      scoringMethod: '查阅活动记录、培训签到',
+      id: 'gs-2', category: '精神文化', name: '学期计划体现绿色建设',
+      description: '学校学期计划中体现建立健全绿色学校管理制度、开展生态文明教育、施行绿色规划管理、建设绿色环保校园、培育绿色校园文化和开展绿色创新研究等内容',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅学校学期计划文件',
+      dataSource: '校办/发展规划处',
+    },
+    {
+      id: 'gs-3', category: '精神文化', name: '宣传教育活动开展',
+      description: '结合全国生态日、全国节能宣传周、全国低碳日等活动，组织开展主题班会、专题讲座等多种形式的宣传教育活动；多渠道多形式宣传报道学校节约能源资源经验做法',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅活动记录、宣传报道',
       dataSource: '宣传部/学工部',
     },
     {
-      id: 'c-3', category: '能源管理', name: '能源计量与统计',
-      description: '建立能源计量体系，实现分类分项计量，定期报送能源统计报表',
-      weight: 12, maxScore: 12,
-      scoringMethod: '查看计量器具台账、统计报表',
-      dataSource: '后勤能源管理平台',
-    },
-    {
-      id: 'c-4', category: '能源管理', name: '综合能耗指标',
-      description: '单位建筑面积综合能耗达到同类型学校先进值',
-      weight: 15, maxScore: 15,
-      scoringMethod: '对比基准值打分',
-      dataSource: '能源监测系统',
-    },
-    {
-      id: 'c-5', category: '能源管理', name: '人均能耗指标',
-      description: '人均综合能耗逐年下降或达到引导值',
-      weight: 10, maxScore: 10,
-      scoringMethod: '对比历年数据',
-      dataSource: '能源监测系统',
-    },
-    {
-      id: 'c-6', category: '水资源管理', name: '用水计量与统计',
-      description: '建立用水计量体系，分区计量，定期统计用水数据',
-      weight: 8, maxScore: 8,
-      scoringMethod: '查看水表台账',
-      dataSource: '后勤水务系统',
-    },
-    {
-      id: 'c-7', category: '水资源管理', name: '人均用水量',
-      description: '人均用水量达到同类型学校先进值',
-      weight: 10, maxScore: 10,
-      scoringMethod: '对比基准值打分',
-      dataSource: '水务监测系统',
-    },
-    {
-      id: 'c-8', category: '资源循环', name: '垃圾分类与回收',
-      description: '建立生活垃圾分类收集体系，可回收物回收利用率达标',
-      weight: 7, maxScore: 7,
-      scoringMethod: '现场检查+台账查阅',
-      dataSource: '后勤物业',
-    },
-    {
-      id: 'c-9', category: '资源循环', name: '中水回用与雨水收集',
-      description: '建设中水回用或雨水收集利用设施',
+      id: 'gs-4', category: '精神文化', name: '节能环保实践活动',
+      description: '定期组织师生参与节能、节水、节粮、废弃物循环利用、生活垃圾分类、校园绿化、生物多样性保护等实践活动；建立志愿者队伍',
       weight: 5, maxScore: 5,
-      scoringMethod: '现场检查设施运行',
-      dataSource: '基建处/后勤',
+      scoringMethod: '查阅活动记录、志愿者名册',
+      dataSource: '团委/后勤管理处',
     },
     {
-      id: 'c-10', category: '绿色建筑', name: '建筑节能改造',
-      description: '实施既有建筑节能改造，采用节能门窗、外墙保温等措施',
-      weight: 8, maxScore: 8,
-      scoringMethod: '查阅改造方案与验收报告',
+      id: 'gs-5', category: '精神文化', name: '发明创造与产学研',
+      description: '组织师生参与节能环保领域发明创造活动，推动成果应用；联合高校、科研院所开展联合教研活动，共建创新实验室、科普站点等培养平台',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅科研成果、合作协议',
+      dataSource: '科研处/教务处',
+    },
+
+    // 物质条件 (25%)
+    {
+      id: 'gs-6', category: '物质条件', name: '绿化用地与养护',
+      description: '学校绿地率不低于35%，人均公共绿地达标；合理采用屋顶绿化、垂直绿化等立体绿化方式；科学选择适生绿化树种草种；采用喷灌、微灌等节水灌溉方式',
+      weight: 5, maxScore: 5,
+      scoringMethod: '现场核查+绿化面积核算',
+      dataSource: '后勤绿化科/基建处',
+    },
+    {
+      id: 'gs-7', category: '物质条件', name: '建筑节能设计与改造',
+      description: '暖通空调、生活热水供应、照明系统等改造符合GB 55015规定；充分利用自然采光，高效照明光源使用率100%；新建建筑达到绿色建筑二星级',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅设计文件+现场检查',
       dataSource: '基建处',
     },
     {
-      id: 'c-11', category: '绿色建筑', name: '可再生能源利用',
-      description: '利用太阳能、地热能等可再生能源',
-      weight: 7, maxScore: 7,
-      scoringMethod: '查看设备台账及发电量',
+      id: 'gs-8', category: '物质条件', name: '绿色产品采购使用',
+      description: '采购使用节能、节水、低碳、环保、循环、再生等绿色产品；停止使用不可降解一次性塑料制品',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅采购记录+现场抽查',
+      dataSource: '采购中心/后勤',
+    },
+    {
+      id: 'gs-9', category: '物质条件', name: '新能源与可再生能源',
+      description: '充分利用建筑屋顶、立面等适宜场地空间安装太阳能、地源热泵和空气源热泵系统；新建建筑可安装光伏屋顶面积光伏覆盖率达到50%；配备电动汽车充电设施',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查看设备台账+发电量数据',
       dataSource: '基建处/后勤',
+    },
+    {
+      id: 'gs-10', category: '物质条件', name: '能源审计与诊断',
+      description: '依据GB/T 31342开展能源审计或节能诊断；依据GB/T 12452开展水平衡测试；合理采用合同能源管理、合同节水管理模式进行改造；建立实施能源管理体系',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅审计报告+合同文件',
+      dataSource: '后勤管理处',
+    },
+
+    // 行为规范 (25%)
+    {
+      id: 'gs-11', category: '行为规范', name: '管理机构与职责',
+      description: '明确分管绿色学校建设工作的领导；建立目标责任制，明确负责绿色学校建设工作的管理机构、工作职责和工作人员',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅组织文件+岗位职责',
+      dataSource: '校办/人事处',
+    },
+    {
+      id: 'gs-12', category: '行为规范', name: '发展目标与保障措施',
+      description: '制定绿色学校建设发展目标和实施方案；提供绿色学校建设资金保障，配套设备设施；将建设目标实现情况纳入学校管理考核',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅规划文件+预算文件',
+      dataSource: '发展规划处/财务处',
+    },
+    {
+      id: 'gs-13', category: '行为规范', name: '节能降碳管理制度',
+      description: '制定节能降碳、节水、生活垃圾分类、反食品浪费、绿色消费以及能源资源消费统计等管理制度；实行能源资源分户、分区、分项计量；定期报送能源资源消费数据',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅制度文件+计量台账',
+      dataSource: '后勤管理处',
+    },
+    {
+      id: 'gs-14', category: '行为规范', name: '节约行为模式推行',
+      description: '倡导师生养成及时关水、关灯习惯；执行夏季空调不低于26℃、冬季不高于20℃的温度控制标准；推行无纸化办公；张贴节约提醒标识',
+      weight: 5, maxScore: 5,
+      scoringMethod: '现场检查+问卷调查',
+      dataSource: '后勤/宣传部',
+    },
+    {
+      id: 'gs-15', category: '行为规范', name: '绿色生活方式倡导',
+      description: '积极践行食堂"光盘行动"；践行"135"绿色出行方式；倡导购买符合绿色低碳要求的服装；适量使用洗涤用品；倡导合理消费',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅活动记录+问卷调查',
+      dataSource: '后勤/工会/学工部',
+    },
+
+    // 低碳管理 (25%)
+    {
+      id: 'gs-16', category: '低碳管理', name: '建筑设备经济运行',
+      description: '围护结构热工性能满足GB 50189要求；暖通空调系统节能运行符合GB/T 36710；照明系统经济运行符合GB/T 29455；节水器具普及率100%，供水管网漏损率≤5%',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查看运行数据+现场检测',
+      dataSource: '后勤能源管理平台',
+    },
+    {
+      id: 'gs-17', category: '低碳管理', name: '碳排放核算与报告',
+      description: '依据相关国家标准核算和报告学校统计范围内的直接二氧化碳排放（化石燃料燃烧排放）和间接二氧化碳排放（购入和输出的电力和热力产生的排放）',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅碳排放报告+核算底稿',
+      dataSource: '碳管理办公室',
+    },
+    {
+      id: 'gs-18', category: '低碳管理', name: '改造项目节能评估',
+      description: '开展暖通空调、生活热水供应、照明、电气与控制、给排水等系统节能节水改造项目节能节水量量化工作',
+      weight: 5, maxScore: 5,
+      scoringMethod: '查阅改造方案+节能量核算',
+      dataSource: '基建处/后勤',
+    },
+    {
+      id: 'gs-19', category: '低碳管理', name: '生活垃圾分类回收',
+      description: '合理配置生活垃圾分类收集容器，规范设置分类标志；对可回收物实行全品类精细化分类收集；有害垃圾单独存放；建立清运台账，定期公示',
+      weight: 5, maxScore: 5,
+      scoringMethod: '现场检查+查阅台账',
+      dataSource: '后勤物业',
+    },
+    {
+      id: 'gs-20', category: '低碳管理', name: '反食品浪费工作',
+      description: '加强食堂反食品浪费管理，在食品采购、储存、加工、消费及餐厨垃圾处理等环节做到节约减损；提供小份、半份菜品服务；开展反食品浪费成效评估',
+      weight: 5, maxScore: 5,
+      scoringMethod: '现场检查+查阅评估报告',
+      dataSource: '后勤饮食中心',
     },
   ];
 }
@@ -217,7 +287,7 @@ function extractGreenIndicators(text: string): EvaluationIndicator[] {
     },
     {
       id: 'g-4', category: '能源与资源', name: '能源利用效率',
-      description: '在节约型基础上进一步提升能效，采用高效用能设备',
+      description: '在绿色学校基础上进一步提升能效，采用高效用能设备',
       weight: 12, maxScore: 12,
       scoringMethod: '查看设备能效标识+运行数据',
       dataSource: '后勤能源管理平台',
@@ -392,16 +462,16 @@ function extractLowCarbonIndicators(text: string): EvaluationIndicator[] {
   ];
 }
 
-function getFallbackConservationStandard(): StandardDocument {
+function getFallbackGreenSchoolStandard(): StandardDocument {
   return {
-    id: 'conservation',
-    name: '节约型学校评价',
+    id: 'green-school',
+    name: '绿色学校评价',
     level: 'conservation',
-    levelLabel: '节约型（基础层）',
-    standardCode: 'GB/T 29117-2012',
+    levelLabel: '绿色学校（基础层）',
+    standardCode: 'GB/T 29117-2025',
     type: 'national',
-    description: '国家标准·节约型学校评价导则。以资源节约为核心，关注学校在节能、节水、节材、节地等方面的管理水平和绩效。',
-    indicators: extractConservationIndicators(''),
+    description: '国家标准·绿色学校评价导则。以精神文化、物质条件、行为规范和低碳管理为核心，覆盖生态文明教育、绿色规划管理、节能降碳、生活垃圾分类等全维度评价。',
+    indicators: extractGreenSchoolIndicators(''),
   };
 }
 
@@ -413,7 +483,7 @@ function getFallbackGreenStandard(): StandardDocument {
     levelLabel: '绿色（进阶层）',
     standardCode: 'GB/T 51356-2019',
     type: 'national',
-    description: '国家标准·绿色校园评价标准。在节约型基础上，扩展到生态环境、室内环境质量、绿色教育等维度。',
+    description: '国家标准·绿色校园评价标准。在绿色学校基础上，扩展到生态环境、室内环境质量、绿色教育等维度。',
     indicators: extractGreenIndicators(''),
   };
 }
