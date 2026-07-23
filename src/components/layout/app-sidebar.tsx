@@ -190,7 +190,7 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
           collapsed ? "px-2" : "px-3"
         )}
       >
-        {navigation.map((section) => {
+        {navigation.map((section, idx) => {
           const SectionIcon = section.icon;
 
           // Check if any child in this section is active
@@ -200,53 +200,40 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
 
           return (
             <div key={section.name} className="mb-3">
+              {/* Category Divider - skip first */}
+              {idx > 0 && (
+                <div className={cn("mb-2", collapsed ? "px-2" : "px-3")}>
+                  <div className="h-px bg-gradient-to-r from-cyan-500/20 via-cyan-500/40 to-cyan-500/20" />
+                </div>
+              )}
               {/* Category Header */}
               {!collapsed ? (
-                <div
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-md mb-1.5 transition-colors",
-                    sectionActive
-                      ? "bg-slate-800/60"
-                      : ""
-                  )}
-                >
-                  <div
+                <div className="flex items-center gap-2 px-3 py-1.5 mb-1.5">
+                  <SectionIcon
                     className={cn(
-                      "w-5 h-5 rounded flex items-center justify-center",
-                      sectionActive
-                        ? "bg-cyan-500/20"
-                        : "bg-slate-800/80"
+                      "w-3.5 h-3.5 shrink-0",
+                      sectionActive ? "text-cyan-400" : "text-slate-500"
                     )}
-                  >
-                    <SectionIcon
-                      className={cn(
-                        "w-3 h-3",
-                        sectionActive ? "text-cyan-400" : "text-gray-500"
-                      )}
-                    />
-                  </div>
+                  />
                   <span
                     className={cn(
                       "text-[11px] font-semibold uppercase tracking-widest",
-                      sectionActive ? "text-cyan-300" : "text-gray-500"
+                      sectionActive ? "text-cyan-300" : "text-slate-500"
                     )}
                   >
                     {section.name}
                   </span>
-                  {sectionActive && (
-                    <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/30 to-transparent ml-2" />
-                  )}
+                  <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/40 via-cyan-500/20 to-transparent ml-1" />
                 </div>
               ) : (
-                <div className="flex justify-center py-2 mb-1">
-                  <div className="w-7 h-7 rounded-lg bg-slate-800/80 flex items-center justify-center">
-                    <SectionIcon
-                      className={cn(
-                        "w-3.5 h-3.5",
-                        sectionActive ? "text-cyan-400" : "text-gray-500"
-                      )}
-                    />
-                  </div>
+                <div className="flex flex-col items-center py-1.5 mb-1 gap-1">
+                  <SectionIcon
+                    className={cn(
+                      "w-4 h-4",
+                      sectionActive ? "text-cyan-400" : "text-slate-500"
+                    )}
+                  />
+                  <div className="w-5 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
                 </div>
               )}
 
