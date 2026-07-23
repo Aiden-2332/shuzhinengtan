@@ -411,10 +411,10 @@ function TierRadarChart({
   const radarData = useMemo(() =>
     activeTier.categories.map((cat) => {
       const sum = cat.items.reduce((a, b) => a + b.score, 0);
-      const max = cat.items.reduce((a, b) => a + b.maxScore, 0);
+      // 使用分类权重作为分母（该分类在标准总分中的占比），封顶100%
       return {
         dimension: cat.name,
-        value: Math.round(max > 0 ? (sum / max) * 100 : 0),
+        value: Math.min(100, Math.round((cat.weight ?? 0) > 0 ? (sum / (cat.weight ?? 0)) * 100 : 0)),
         fullMark: 100,
       };
     }),
@@ -490,8 +490,8 @@ function TierRadarChart({
         <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {activeTier.categories.map((cat) => {
             const sum = cat.items.reduce((a, b) => a + b.score, 0);
-            const max = cat.items.reduce((a, b) => a + b.maxScore, 0);
-            const pct = Math.round(max > 0 ? (sum / max) * 100 : 0);
+            // 使用分类权重作为分母，封顶100%
+            const pct = Math.min(100, Math.round((cat.weight ?? 0) > 0 ? (sum / (cat.weight ?? 0)) * 100 : 0));
             return (
               <div key={cat.name} className="rounded-lg bg-black/20 p-2 border border-white/[0.03]">
                 <div className="flex items-center justify-between mb-1">
@@ -501,7 +501,7 @@ function TierRadarChart({
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color, opacity: 0.6 }} />
                 </div>
-                <div className="text-[9px] text-slate-500 mt-1">{sum}/{max} 分 · {cat.items.length}项</div>
+                <div className="text-[9px] text-slate-500 mt-1">{sum}/{cat.weight} 分 · {cat.items.length}项</div>
               </div>
             );
           })}
