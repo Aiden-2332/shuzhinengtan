@@ -318,6 +318,189 @@ function AdviceCard({ advice }: { advice: EnergySavingAdvice }) {
 }
 
 // ============================================================
+// 紧凑型用电日历（整合到能源诊断页面）
+// ============================================================
+const MONTHS = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"];
+
+function getIntensityColor(level: CalendarHeatmapDay["level"]): string {
+  switch (level) {
+    case "abnormal_high": return "bg-red-600 text-white";
+    case "high": return "bg-orange-500 text-white";
+    case "normal": return "bg-emerald-500 text-white";
+    case "low": return "bg-sky-400 text-white";
+    case "abnormal_low": return "bg-blue-600 text-white";
+    case "holiday": return "bg-violet-400 text-white";
+    case "weekend": return "bg-slate-200 text-slate-600";
+    default: return "bg-slate-100 text-slate-400";
+  }
+}
+
+function CompactCalendar() {
+  const [expanded, setExpanded] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(6);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const heatmapDays = useMemo(() => getCalendarHeatmapDays(), []);
+
+  const monthDays = useMemo(() => {
+    return heatmapDays.filter((d) => {
+      const m = parseInt(d.date.split("-")[1], 10);
+      return m === selectedMonth + 1;
+    });
+  }, [heatmapDays, selectedMonth]);
+
+  const calendarGrid = useMemo(() => {
+    const firstDay = monthDays[0];
+    if (!firstDay) return [];
+    const firstDate = new Date(firstDay.date);
+    const startDow = (firstDate.getDay() + 6) % 7;
+    const weeks: (CalendarHeatmapDay | null)[][] = [];
+    let currentWeek: (CalendarHeatmapDay | null)[] = Array(startDow).fill(null);
+
+    monthDays.forEach((day) => {
+      currentWeek.push(day);
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+    });
+    if (currentWeek.length > 0) {
+      while (currentWeek.length < 7) currentWeek.push(null);
+      weeks.push(currentWeek);
+    }
+    return weeks;
+  }, [monthDays]);
+
+  const selectedDayData = useMemo(() => {
+    if (!selectedDay) return null;
+    return heatmapDays.find((d) => d.date === selectedDay) ?? null;
+  }, [selectedDay, heatmapDays]);
+
+  const monthStats = useMemo(() => {
+    if (monthDays.length === 0) return { totalTce: 0, avgIntensity: 0, abnormalCount: 0, alertCount: 0 };
+    const totalTce = monthDays.reduce((s, d) => s + d.totalTce, 0);
+    const avgIntensity = monthDays.reduce((s, d) => s + d.intensity, 0) / monthDays.length;
+    const abnormalCount = monthDays.filter((d) => d.isAbnormal).length;
+    const alertCount = monthDays.reduce((s, d) => s + (d.alertCount ?? 0), 0);
+    return { totalTce, avgIntensity, abnormalCount, alertCount };
+  }, [monthDays]);
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {/* 标题栏 */}
+      <div
+        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex items-center gap-2">
+          <CalendarDays className="w-4 h-4 text-cyan-500" />
+          <h2 className="text-sm font-semibold text-foreground">用能日历</h2>
+          <span className="text-xs text-muted-foreground">逐日用能热力图</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {!expanded && (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span>月总能耗 <b className="text-foreground">{monthStats.totalTce.toFixed(1)}</b> tce</span>
+              <span>异常 <b className={monthStats.abnormalCount > 0 ? "text-red-500" : "text-green-500"}>{monthStats.abnormalCount}</b> 天</span>
+              <span>告警 <b className={monthStats.alertCount > 0 ? "text-orange-500" : "text-muted-foreground"}>{monthStats.alertCount}</b> 次</span>
+            </div>
+          )}
+          {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+          {/* 月份选择器 + 图例 */}
+          <div className="flex items-center gap-2">
+            <button onClick={() => setSelectedMonth(Math.max(0, selectedMonth - 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">◀</button>
+            <span className="text-sm font-semibold min-w-[60px] text-center">{MONTHS[selectedMonth]}</span>
+            <button onClick={() => setSelectedMonth(Math.min(11, selectedMonth + 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">▶</button>
+            <div className="flex gap-2 ml-3 text-[10px]">
+              {[
+                { color: "bg-red-600", label: "异常偏高" },
+                { color: "bg-orange-500", label: "偏高" },
+                { color: "bg-emerald-500", label: "正常" },
+                { color: "bg-sky-400", label: "偏低" },
+                { color: "bg-violet-400", label: "假期" },
+                { color: "bg-slate-200", label: "周末" },
+              ].map((l) => (
+                <span key={l.label} className="flex items-center gap-1">
+                  <span className={`w-2.5 h-2.5 rounded-sm ${l.color}`} />
+                  {l.label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* 日历网格 + 选中日详情 并排 */}
+          <div className="flex gap-4">
+            {/* 日历网格 */}
+            <div className="flex-1 min-w-0 border border-border rounded-lg overflow-hidden">
+              <div className="grid grid-cols-7 border-b border-border">
+                {WEEKDAYS.map((d) => (
+                  <div key={d} className="text-center text-[10px] text-muted-foreground py-1.5 font-medium">{d}</div>
+                ))}
+              </div>
+              <div>
+                {calendarGrid.map((week, wi) => (
+                  <div key={wi} className="grid grid-cols-7">
+                    {week.map((day, di) => (
+                      <div
+                        key={di}
+                        onClick={() => day && setSelectedDay(day.date)}
+                        className={`aspect-square p-0.5 border-r border-b border-border cursor-pointer transition-all hover:ring-1 hover:ring-cyan-400/50 hover:z-10 ${
+                          selectedDay === day?.date ? "ring-1 ring-cyan-400 z-10" : ""
+                        }`}
+                      >
+                        {day && (
+                          <div className={`h-full rounded flex flex-col items-center justify-center ${getIntensityColor(day.level)}`}>
+                            <span className="text-[10px] font-bold leading-tight">{parseInt(day.date.split("-")[2], 10)}</span>
+                            <span className="text-[8px] opacity-80 leading-tight">{day.totalTce.toFixed(1)}</span>
+                            {day.hasAlert && <span className="w-1 h-1 rounded-full bg-white mt-0.5" />}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 选中日详情 */}
+            {selectedDayData && (
+              <div className="w-52 shrink-0 bg-muted/50 rounded-lg p-3 border border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-foreground">{selectedDayData.date}</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getIntensityColor(selectedDayData.level)}`}>
+                    {selectedDayData.level === "abnormal_high" ? "异常偏高" : selectedDayData.level === "high" ? "偏高" : selectedDayData.level === "normal" ? "正常" : selectedDayData.level === "low" ? "偏低" : selectedDayData.level === "abnormal_low" ? "异常偏低" : selectedDayData.level === "holiday" ? "假期" : "周末"}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {[
+                    { label: "总能耗", value: selectedDayData.totalTce.toFixed(2), unit: "tce" },
+                    { label: "电力", value: selectedDayData.electricity.toFixed(0), unit: "kWh" },
+                    { label: "水耗", value: selectedDayData.water.toFixed(1), unit: "m³" },
+                    { label: "天然气", value: selectedDayData.gas.toFixed(1), unit: "m³" },
+                    { label: "热力", value: selectedDayData.heat.toFixed(1), unit: "GJ" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex justify-between text-[11px]">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-medium text-foreground">{item.value} <span className="text-[10px] text-muted-foreground">{item.unit}</span></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 // 主页面
 // ============================================================
 export default function EnergyDiagnosisPage() {
@@ -374,7 +557,10 @@ export default function EnergyDiagnosisPage() {
       {/* 第三行：桑基图 */}
       <SankeyDiagram sankey={sankey} />
 
-      {/* 第四行：AI根因分析 */}
+      {/* 第四行：用电日历（紧凑可折叠） */}
+      <CompactCalendar />
+
+      {/* 第五行：AI根因分析 */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Zap className="w-4 h-4 text-purple-500" />

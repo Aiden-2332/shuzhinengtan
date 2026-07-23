@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { campusBuildings, type BuildingProperties } from "@/data/campus-geojson";
 
@@ -11,11 +11,11 @@ import { campusBuildings, type BuildingProperties } from "@/data/campus-geojson"
 // ============================================================
 const CAMPUS_CENTER: [number, number] = [116.3498, 39.9912];
 const CAMPUS_ZOOM = 16;
-const IMAGE_COORDS: [number, number][] = [
-  [116.3445, 39.9938], // 左上
-  [116.3548, 39.9938], // 右上
-  [116.3548, 39.9882], // 右下
-  [116.3445, 39.9882], // 左下
+const IMAGE_COORDS: [[number, number], [number, number], [number, number], [number, number]] = [
+  [116.3445, 39.9938],
+  [116.3548, 39.9938],
+  [116.3548, 39.9882],
+  [116.3445, 39.9882],
 ];
 
 const STATUS_COLORS: Record<string, string> = {
