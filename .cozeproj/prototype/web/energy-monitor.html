@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- 字体：Noto Sans SC 中文 -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+  <!-- Recharts CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/recharts@2.12.7/Recharts.js" crossorigin></script>
+
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #3488ff;
+      --color-primary-container:    #1a5cc8;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面（深蓝科技风） === */
+      --color-background:                 #081028;
+      --color-surface-container-lowest:   #0a1535;
+      --color-surface:                    #0d1a3a;
+      --color-surface-container:          #122040;
+      --color-surface-container-high:     #162848;
+      --color-surface-container-highest:  #1a3050;
+      /* === 文字 === */
+      --color-on-surface:           #e8edf5;
+      --color-on-surface-variant:   #8a9bbd;
+      /* === 功能色 === */
+      --color-success:  #36d968;
+      --color-error:    #ff3333;
+      --color-warning:  #ff7b25;
+      --color-info:     #3488ff;
+      /* === 边框（低透明度蓝调） === */
+      --color-outline:          rgba(52, 136, 255, 0.2);
+      --color-outline-variant:  rgba(52, 136, 255, 0.1);
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.5rem;
+      --radius-lg:   0.75rem;
+      --radius-xl:   1rem;
+      --radius-2xl:  1.5rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0, 0, 0, 0.4);
+      --shadow-float:  0 10px 25px rgba(0, 0, 0, 0.5);
+      --shadow-dialog: 0 25px 50px rgba(0, 0, 0, 0.6);
+      /* === 字体 === */
+      --font-sans: "Noto Sans SC", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", "Roboto Mono", ui-monospace, monospace;
+    }
+
+    /* 自定义滚动条样式 */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(52, 136, 255, 0.3);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(52, 136, 255, 0.5);
+    }
+
+    /* KPI卡片发光效果 */
+    .kpi-glow {
+      box-shadow: 0 0 20px rgba(52, 136, 255, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .kpi-glow:hover {
+      box-shadow: 0 0 30px rgba(52, 136, 255, 0.25), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    /* 告警闪烁动画 */
+    @keyframes alert-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .alert-pulse {
+      animation: alert-pulse 2s ease-in-out infinite;
+    }
+
+    /* 数据流动画 */
+    @keyframes data-flow {
+      0% { transform: translateX(-100%); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translateX(100%); opacity: 0; }
+    }
+    .data-flow::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(52, 136, 255, 0.1), transparent);
+      animation: data-flow 3s ease-in-out infinite;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%230d1a3a"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%238a9bbd" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- @main-content:start -->
+  <main class="w-full h-screen overflow-hidden flex flex-col">
+    
+    <!-- ========== 顶部标题栏 ========== -->
+    <header id="top-header" class="h-14 shrink-0 flex items-center justify-between px-6 bg-surface-container-lowest/90 border-b border-outline-variant/20 backdrop-blur-sm">
+      <div class="flex items-center gap-4">
+        <!-- Logo区域 -->
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20">
+            <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-on-surface font-bold text-base tracking-wide">能源监控中心</h1>
+            <p class="text-on-surface-variant text-[10px]">Energy Monitoring Center</p>
+          </div>
+        </div>
+        
+        <div class="h-6 w-px bg-outline-variant/30 mx-1"></div>
+        
+        <!-- 快捷筛选 -->
+        <div class="flex items-center gap-3 ml-2">
+          <select id="time-range-select" class="bg-surface-container border-none rounded-md px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer">
+            <option value="today">今日</option>
+            <option value="week" selected>本周</option>
+            <option value="month">本月</option>
+            <option value="year">本年</option>
+          </select>
+          <select id="area-select" class="bg-surface-container border-none rounded-md px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer">
+            <option value="all" selected>全部区域</option>
+            <option value="building-a">A栋教学楼</option>
+            <option value="building-b">B栋实验楼</option>
+            <option value="canteen">食堂</option>
+            <option value="dorm">宿舍区</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        <!-- 实时状态指示 -->
+        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
+          <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+          <span class="text-success text-xs font-medium">数据实时同步中</span>
+        </div>
+        
+        <!-- 更新时间 -->
+        <div class="flex items-center gap-1.5 text-xs text-on-surface-variant">
+          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+          <span>更新于 <span id="update-time">2026-01-15 14:32:08</span></span>
+        </div>
+        
+        <!-- 页面跳转按钮组 -->
+        <div class="flex items-center gap-2 ml-2 pl-3 border-l border-outline-variant/30">
+          <a href="device-manage.html" class="p-2 rounded-md hover:bg-surface-container transition-colors group" title="设备管理">
+            <i data-lucide="settings" class="w-4 h-4 text-on-surface-variant group-hover:text-primary transition-colors"></i>
+          </a>
+          <a href="alarm.html" class="p-2 rounded-md hover:bg-surface-container transition-colors group relative" title="告警中心">
+            <i data-lucide="bell" class="w-4 h-4 text-on-surface-variant group-hover:text-primary transition-colors"></i>
+            <span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-error rounded-full text-[10px] text-white flex items-center justify-center font-bold">3</span>
+          </a>
+          <a href="reports.html" class="p-2 rounded-md hover:bg-surface-container transition-colors group" title="报表分析">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 text-on-surface-variant group-hover:text-primary transition-colors"></i>
+          </a>
+          <a href="home.html" class="p-2 rounded-md hover:bg-surface-container transition-colors group" title="返回首页">
+            <i data-lucide="home" class="w-4 h-4 text-on-surface-variant group-hover:text-primary transition-colors"></i>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- ========== 主内容区域 ========== -->
+    <div class="flex-1 flex min-h-0 overflow-hidden">
+      
+      <!-- ==================== 左侧面板：四维KPI + 设备状态 ==================== -->
+      <aside class="w-[280px] shrink-0 bg-surface-container-lowest/60 border-r border-outline-variant/20 flex flex-col overflow-hidden">
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+          
+          <!-- ===== 四维KPI卡片组 ===== -->
+          <section class="space-y-3">
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="text-sm font-semibold text-on-surface flex items-center gap-2">
+                <i data-lucide="activity" class="w-4 h-4 text-primary"></i>
+                能源四维指标
+              </h2>
+              <button id="btn-refresh-kpi" class="p-1 rounded hover:bg-surface-container transition-colors" title="刷新数据">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-on-surface-variant"></i>
+              </button>
+            </div>
+            
+            <!-- KPI卡片1：总用电量 -->
+            <div id="kpi-electricity" class="kpi-glow bg-surface rounded-lg p-4 relative overflow-hidden transition-all duration-300 cursor-pointer hover:scale-[1.02] data-flow">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-xs text-on-surface-variant mb-1">总用电量</p>
+                  <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-on-surface">128,456</span>
+                    <span class="text-sm text-on-surface-variant">kWh</span>
+                  </div>
+                  <div class="flex items-center gap-1 mt-2">
+                    <i data-lucide="trending-up" class="w-3 h-3 text-success"></i>
+                    <span class="text-xs text-success font-medium">+3.2%</span>
+                    <span class="text-xs text-on-surface-variant/60">较上周</span>
+                  </div>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <i data-lucide="zap" class="w-5 h-5 text-primary"></i>
+                </div>
+              </div>
+              <!-- 迷你趋势线占位 -->
+              <div id="mini-chart-electricity" class="mt-3 h-10 w-full"></div>
+            </div>
+            
+            <!-- KPI卡片2：总用水量 -->
+            <div id="kpi-water" class="kpi-glow bg-surface rounded-lg p-4 transition-all duration-300 cursor-pointer hover:scale-[1.02]">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-xs text-on-surface-variant mb-1">总用水量</p>
+                  <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-on-surface">23,891</span>
+                    <span class="text-sm text-on-surface-variant">m³</span>
+                  </div>
+                  <div class="flex items-center gap-1 mt-2">
+                    <i data-lucide="trending-down" class="w-3 h-3 text-success"></i>
+                    <span class="text-xs text-success font-medium">-5.8%</span>
+                    <span class="text-xs text-on-surface-variant/60">较上周</span>
+                  </div>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
+                  <i data-lucide="droplets" class="w-5 h-5 text-info"></i>
+                </div>
+              </div>
+              <div id="mini-chart-water" class="mt-3 h-10 w-full"></div>
+            </div>
+            
+            <!-- KPI卡片3：天然气用量 -->
+            <div id="kpi-gas" class="kpi-glow bg-surface rounded-lg p-4 transition-all duration-300 cursor-pointer hover:scale-[1.02]">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-xs text-on-surface-variant mb-1">天然气用量</p>
+                  <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-on-surface">4,562</span>
+                    <span class="text-sm text-on-surface-variant">m³</span>
+                  </div>
+                  <div class="flex items-center gap-1 mt-2">
+                    <i data-lucide="trending-up" class="w-3 h-3 text-warning"></i>
+                    <span class="text-xs text-warning font-medium">+12.4%</span>
+                    <span class="text-xs text-on-surface-variant/60">较上周</span>
+                  </div>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <i data-lucide="flame" class="w-5 h-5 text-warning"></i>
+                </div>
+              </div>
+              <div id="mini-chart-gas" class="mt-3 h-10 w-full"></div>
+            </div>
+            
+            <!-- KPI卡片4：碳排放量 -->
+            <div id="kpi-carbon" class="kpi-glow bg-surface rounded-lg p-4 transition-all duration-300 cursor-pointer hover:scale-[1.02]">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-xs text-on-surface-variant mb-1">碳排放当量</p>
+                  <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-on-surface">68.5</span>
+                    <span class="text-sm text-on-surface-variant">吨CO₂</span>
+                  </div>
+                  <div class="flex items-center gap-1 mt-2">
+                    <i data-lucide="trending-down" class="w-3 h-3 text-success"></i>
+                    <span class="text-xs text-success font-medium">-8.2%</span>
+                    <span class="text-xs text-on-surface-variant/60">较上周</span>
+                  </div>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                  <i data-lucide="leaf" class="w-5 h-5 text-success"></i>
+                </div>
+              </div>
+              <div id="mini-chart-carbon" class="mt-3 h-10 w-full"></div>
+            </div>
+          </section>
+          
+          <!-- ===== 能源结构占比 ===== -->
+          <section class="bg-surface rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-on-surface mb-3 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-primary"></i>
+              能源结构占比
+            </h3>
+            <div id="pie-chart-energy" class="h-40 w-full"></div>
+            <div class="grid grid-cols-2 gap-2 mt-3">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
+                <span class="text-xs text-on-surface-variant">电力 62%</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-info"></span>
+                <span class="text-xs text-on-surface-variant">水力 22%</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-warning"></span>
+                <span class="text-xs text-on-surface-variant">燃气 11%</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-success"></span>
+                <span class="text-xs text-on-surface-variant">其他 5%</span>
+              </div>
+            </div>
+          </section>
+          
+        </div>
+      </aside>
+
+      <!-- ==================== 中间主区域：负荷曲线 + 地图概览 ==================== -->
+      <div class="flex-1 flex flex-col min-w-0 bg-background/50">
+        
+        <!-- 负荷曲线图表区域 -->
+        <section class="shrink-0 p-4 pb-2">
+          <div class="bg-surface rounded-xl shadow-card p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <h2 class="text-base font-semibold text-on-surface flex items-center gap-2">
+                  <i data-lucide="line-chart" class="w-5 h-5 text-primary"></i>
+                  实时负荷曲线
+                </h2>
+                <div class="flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container">
+                  <div class="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></div>
+                  <span class="text-xs text-on-surface-variant">实时</span>
+                </div>
+              </div>
+              
+              <!-- 图表类型切换 -->
+              <div class="flex items-center gap-1 bg-surface-container rounded-lg p-1">
+                <button id="chart-type-line" class="px-3 py-1 rounded-md text-xs font-medium bg-primary/20 text-primary transition-colors">折线图</button>
+                <button id="chart-type-area" class="px-3 py-1 rounded-md text-xs font-medium text-on-surface-variant hover:text-on-surface transition-colors">面积图</button>
+                <button id="chart-type-bar" class="px-3 py-1 rounded-md text-xs font-medium text-on-surface-variant hover:text-on-surface transition-colors">柱状图</button>
+              </div>
+            </div>
+            
+            <!-- 主负荷曲线图 -->
+            <div id="load-curve-chart" class="h-[280px] w-full"></div>
+            
+            <!-- 图例和统计摘要 -->
+            <div class="flex items-center justify-between mt-4 pt-4 border-t border-outline-variant/20">
+              <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-0.5 bg-primary rounded-full"></span>
+                  <span class="text-xs text-on-surface-variant">今日负荷</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-0.5 bg-warning rounded-full"></span>
+                  <span class="text-xs text-on-surface-variant">昨日负荷</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-0.5 bg-success/50 rounded-full border border-dashed border-success"></span>
+                  <span class="text-xs text-on-surface-variant">预测值</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-4 text-xs">
+                <div class="text-on-surface-variant">
+                  峰值: <span class="text-on-surface font-semibold">2,847 kW</span>
+                  <span class="text-success ml-1">14:00</span>
+                </div>
+                <div class="text-on-surface-variant">
+                  谷值: <span class="text-on-surface font-semibold">892 kW</span>
+                  <span class="text-info ml-1">04:00</span>
+                </div>
+                <div class="text-on-surface-variant">
+                  均值: <span class="text-on-surface font-semibold">1,654 kW</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        <!-- 下半部分：分项能耗 + 区域分布 -->
+        <div class="flex-1 flex min-h-0 p-4 pt-2 gap-4">
+          
+          <!-- 分项能耗柱状图 -->
+          <section class="flex-1 bg-surface rounded-xl shadow-card p-5 flex flex-col">
+            <h3 class="text-sm font-semibold text-on-surface mb-3 flex items-center gap-2">
+              <i data-lucide="bar-chart-horizontal" class="w-4 h-4 text-primary"></i>
+              分项能耗对比
+            </h3>
+            <div id="category-chart" class="flex-1 min-h-0 w-full"></div>
+          </section>
+          
+          <!-- 区域热力分布 -->
+          <section class="w-[320px] shrink-0 bg-surface rounded-xl shadow-card p-5 flex flex-col">
+            <h3 class="text-sm font-semibold text-on-surface mb-3 flex items-center gap-2">
+              <i data-lucide="map-pin" class="w-4 h-4 text-primary"></i>
+              区域能耗排名
+            </h3>
+            <div class="flex-1 space-y-2.5 overflow-y-auto custom-scrollbar pr-1">
+              <!-- 列表-区域1 -->
+              <div class="group flex items-center gap-3 p-2.5 rounded-lg bg-surface-container/50 hover:bg-surface-container transition-colors cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-error/20 text-error text-xs font-bold flex items-center justify-center">1</span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-on-surface truncate">A栋教学楼</span>
+                    <span class="text-sm font-semibold text-error">38,520 kWh</span>
+                  </div>
+                  <div class="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-error to-orange-400 rounded-full" style="width: 92%"></div>
+                  </div>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant transition-colors"></i>
+              </div>
+              
+              <!-- 列表-区域2 -->
+              <div class="group flex items-center gap-3 p-2.5 rounded-lg bg-surface-container/50 hover:bg-surface-container transition-colors cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-warning/20 text-warning text-xs font-bold flex items-center justify-center">2</span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-on-surface truncate">B栋实验楼</span>
+                    <span class="text-sm font-semibold text-warning">31,280 kWh</span>
+                  </div>
+                  <div class="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-warning to-yellow-400 rounded-full" style="width: 75%"></div>
+                  </div>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant transition-colors"></i>
+              </div>
+              
+              <!-- 列表-区域3 -->
+              <div class="group flex items-center gap-3 p-2.5 rounded-lg bg-surface-container/50 hover:bg-surface-container transition-colors cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-primary/20 text-primary text-xs font-bold flex items-center justify-center">3</span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-on-surface truncate">学生宿舍区</span>
+                    <span class="text-sm font-semibold text-primary">26,840 kWh</span>
+                  </div>
+                  <div class="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-primary to-blue-400 rounded-full" style="width: 64%"></div>
+                  </div>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant transition-colors"></i>
+              </div>
+              
+              <!-- 列表-区域4 -->
+              <div class="group flex items-center gap-3 p-2.5 rounded-lg bg-surface-container/50 hover:bg-surface-container transition-colors cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-info/20 text-info text-xs font-bold flex items-center justify-center">4</span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-on-surface truncate">食堂</span>
+                    <span class="text-sm font-semibold text-info">18,650 kWh</span>
+                  </div>
+                  <div class="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-info to-cyan-400 rounded-full" style="width: 44%"></div>
+                  </div>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant transition-colors"></i>
+              </div>
+              
+              <!-- 列表-区域5 -->
+              <div class="group flex items-center gap-3 p-2.5 rounded-lg bg-surface-container/50 hover:bg-surface-container transition-colors cursor-pointer">
+                <span class="w-6 h-6 rounded-md bg-success/20 text-success text-xs font-bold flex items-center justify-center">5</span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-sm font-medium text-on-surface truncate">图书馆</span>
+                    <span class="text-sm font-semibold text-success">13,166 kWh</span>
+                  </div>
+                  <div class="h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-success to-emerald-400 rounded-full" style="width: 31%"></div>
+                  </div>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant transition-colors"></i>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ==================== 右侧面板：设备状态 + 告警中心 ==================== -->
+      <aside class="w-[340px] shrink-0 bg-surface-container-lowest/60 border-l border-outline-variant/20 flex flex-col overflow-hidden">
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+          
+          <!-- ===== 设备运行状态面板 ===== -->
+          <section class="bg-surface rounded-xl p-4">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-semibold text-on-surface flex items-center gap-2">
+                <i data-lucide="cpu" class="w-4 h-4 text-primary"></i>
+                设备运行状态
+              </h2>
+              <a href="device-manage.html" class="text-xs text-primary hover:underline flex items-center gap-1">
+                查看全部 <i data-lucide="arrow-right" class="w-3 h-3"></i>
+              </a>
+            </div>
+            
+            <!-- 设备统计概览 -->
+            <div class="grid grid-cols-3 gap-2 mb-4">
+              <div class="text-center p-2 rounded-lg bg-surface-container">
+                <p class="text-lg font-bold text-success">156</p>
+                <p class="text-[10px] text-on-surface-variant">在线正常</p>
+              </div>
+              <div class="text-center p-2 rounded-lg bg-surface-container">
+                <p class="text-lg font-bold text-warning">8</p>
+                <p class="text-[10px] text-on-surface-variant">预警状态</p>
+              </div>
+              <div class="text-center p-2 rounded-lg bg-surface-container">
+                <p class="text-lg font-bold text-error">3</p>
+                <p class="text-[10px] text-on-surface-variant">离线故障</p>
+              </div>
+            </div>
+            
+            <!-- 设备列表 -->
+            <div class="space-y-2">
+              <!-- 列表-设备1 -->
+              <div id="device-item-1" class="flex items-center gap-3 p-2.5 rounded-lg bg-surface-container/50 hover:bg-surface-container transition-colors cursor-pointer group">
+                <div class="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                  <i data-lucide="server" class="w-4 h-4 text-success"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-on-surface truncate">主变压器 T1</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-success/15 text-success">运行中</span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
+                    <span>负载率 72%</span>
+                    <span class="text-on-surface-variant/30">|</span>
+                    <span>1,850 kW</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 列表-设备2 -->
+              <div id="device-item-2" class="flex items-center gap-3 p-2.5 rounded-lg bg-surface-container/50 hover:bg-surface-container transition-colors cursor-pointer group">
+                <div class="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                  <i data-lucide="wind" class="w-4 h-4 text-success"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-on-surface truncate">中央空调系统</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-success/15 text-success">运行中</span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
+                    <span>制冷模式</span>
+                    <span class="text-on-surface-variant/30">|</span>
+                    <span>420 kW</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 列表-设备3 -->
+              <div id="device-item-3" class="flex items-center gap-3 p-2.5 rounded-lg bg-warning/5 hover:bg-warning/10 transition-colors cursor-pointer group border border-warning/20">
+                <div class="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center shrink-0 alert-pulse">
+                  <i data-lucide="thermometer" class="w-4 h-4 text-warning"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-on-surface truncate">锅炉房 B2</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/15 text-warning">预警</span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1 text-xs text-warning">
+                    <span>温度偏高 86°C</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 列表-设备4 -->
+              <div id="device-item-4" class="flex items-center gap-3 p-2.5 rounded-lg bg-surface-container/50 hover:bg-surface-container transition-colors cursor-pointer group">
+                <div class="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                  <i data-lucide="lightbulb" class="w-4 h-4 text-success"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-on-surface truncate">照明控制系统</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-success/15 text-success">自动</span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
+                    <span>节能模式</span>
+                    <span class="text-on-surface-variant/30">|</span>
+                    <span>85 kW</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 列表-设备5 -->
+              <div id="device-item-5" class="flex items-center gap-3 p-2.5 rounded-lg bg-error/5 hover:bg-error/10 transition-colors cursor-pointer group border border-error/20">
+                <div class="w-9 h-9 rounded-lg bg-error/10 flex items-center justify-center shrink-0 alert-pulse">
+                  <i data-lucide="plug-zap" class="w-4 h-4 text-error"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-on-surface truncate">配电柜 P-03</span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-error/15 text-error">离线</span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1 text-xs text-error">
+                    <span>通信中断 2小时前</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          <!-- ===== 告警中心 ===== -->
+          <section class="bg-surface rounded-xl p-4">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-semibold text-on-surface flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-error"></i>
+                告警中心
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-error text-white text-[10px] font-bold">3</span>
+              </h2>
+              <a href="alarm.html" class="text-xs text-primary hover:underline flex items-center gap-1">
+                全部告警 <i data-lucide="arrow-right" class="w-3 h-3"></i>
+              </a>
+            </div>
+            
+            <!-- 告警列表 -->
+            <div class="space-y-2.5">
+              <!-- 列表-告警1：紧急告警 -->
+              <div id="alarm-item-1" class="p-3 rounded-lg bg-error/5 border border-error/20 cursor-pointer hover:bg-error/10 transition-colors group">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-error/15 flex items-center justify-center shrink-0 mt-0.5 alert-pulse">
+                    <i data-lucide="alert-octagon" class="w-4 h-4 text-error"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm font-semibold text-error">紧急告警</span>
+                      <span class="text-[10px] text-on-surface-variant">5分钟前</span>
+                    </div>
+                    <p class="text-xs text-on-surface mb-2 line-clamp-2">A栋教学楼配电室温度超标，当前温度 78°C，阈值 65°C</p>
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-error/15 text-error">未处理</span>
+                      <span class="text-[10px] text-on-surface-variant">来源: 温度传感器 TS-A01</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 列表-告警2：重要告警 -->
+              <div id="alarm-item-2" class="p-3 rounded-lg bg-warning/5 border border-warning/20 cursor-pointer hover:bg-warning/10 transition-colors group">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-warning/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <i data-lucide="alert-circle" class="w-4 h-4 text-warning"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm font-semibold text-warning">重要告警</span>
+                      <span class="text-[10px] text-on-surface-variant">23分钟前</span>
+                    </div>
+                    <p class="text-xs text-on-surface mb-2 line-clamp-2">锅炉房B2供水压力异常下降，当前 0.28MPa，低于安全阈值</p>
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-warning/15 text-warning">处理中</span>
+                      <span class="text-[10px] text-on-surface-variant">来源: 压力传感器 PS-B02</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 列表-告警3：一般告警 -->
+              <div id="alarm-item-3" class="p-3 rounded-lg bg-info/5 border border-info/20 cursor-pointer hover:bg-info/10 transition-colors group">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-info/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <i data-lucide="info" class="w-4 h-4 text-info"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm font-semibold text-info">一般提醒</span>
+                      <span class="text-[10px] text-on-surface-variant">1小时前</span>
+                    </div>
+                    <p class="text-xs text-on-surface mb-2 line-clamp-2">图书馆照明系统检测到非工作时间仍有区域开启，建议检查</p>
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-info/15 text-info">待确认</span>
+                      <span class="text-[10px] text-on-surface-variant">来源: 照明控制器 LC-L01</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 列表-告警4：已解决 -->
+              <div id="alarm-item-4" class="p-3 rounded-lg bg-surface-container/50 cursor-pointer hover:bg-surface-container transition-colors group opacity-70">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-success/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-success"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm font-semibold text-on-surface-variant">已解决</span>
+                      <span class="text-[10px] text-on-surface-variant">3小时前</span>
+                    </div>
+                    <p class="text-xs text-on-surface-variant mb-2 line-clamp-2">B栋实验楼电梯机房电压波动已恢复正常</p>
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-success/15 text-success">已关闭</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          <!-- ===== 今日能耗目标进度 ===== -->
+          <section class="bg-surface rounded-xl p-4">
+            <h3 class="text-sm font-semibold text-on-surface mb-3 flex items-center gap-2">
+              <i data-lucide="target" class="w-4 h-4 text-primary"></i>
+              今日节能目标
+            </h3>
+            <div class="space-y-3">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs text-on-surface-variant">用电量目标</span>
+                  <span class="text-xs font-medium"><span class="text-primary">98,450</span> / 120,000 kWh</span>
+                </div>
+                <div class="h-2 bg-surface-container-high rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-primary to-blue-400 rounded-full transition-all duration-500" style="width: 82%"></div>
+                </div>
+                <p class="text-[10px] text-success mt-1">✓ 目标达成率 82%，预计可完成</p>
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs text-on-surface-variant">碳排放目标</span>
+                  <span class="text-xs font-medium"><span class="text-success">52.3</span> / 80 吨 CO₂</span>
+                </div>
+                <div class="h-2 bg-surface-container-high rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-success to-emerald-400 rounded-full transition-all duration-500" style="width: 65%"></div>
+                </div>
+                <p class="text-[10px] text-success mt-1">✓ 较计划减少 35%，表现优秀</p>
+              </div>
+            </div>
+          </section>
+          
+        </div>
+      </aside>
+      
+    </div>
+  </main>
+  <!-- @main-content:end -->
+
+  <!-- 全页面水印 -->
+  <div class="fixed bottom-2 right-4 text-xs text-on-surface-variant/50 pointer-events-none select-none z-50">
+    Demo模拟数据 仅课题演示
+  </div>
+
+  <!-- ========== Recharts 图表渲染脚本 ========== -->
+  <script type="text/babel">
+    // 使用全局 React 和 Recharts
+    const { useState, useEffect, useRef } = React;
+    const { 
+      LineChart, Line, AreaChart, Area, BarChart, Bar,
+      PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, 
+      Tooltip, Legend, ResponsiveContainer, ReferenceLine
+    } = Recharts;
+
+    // ========== Mock 数据 ==========
+    
+    // 负荷曲线数据（24小时）
+    const loadCurveData = [
+      { time: '00:00', today: 920, yesterday: 980, forecast: 900 },
+      { time: '01:00', today: 850, yesterday: 910, forecast: 860 },
+      { time: '02:00', today: 820, yesterday: 870, forecast: 830 },
+      { time: '03:00', today: 892, yesterday: 850, forecast: 880 },
+      { time: '04:00', today: 910, yesterday: 890, forecast: 920 },
+      { time: '05:00', today: 1050, yesterday: 1020, forecast: 1060 },
+      { time: '06:00', today: 1380, yesterday: 1320, forecast: 1400 },
+      { time: '07:00', today: 1850, yesterday: 1780, forecast: 1900 },
+      { time: '08:00', today: 2350, yesterday: 2280, forecast: 2400 },
+      { time: '09:00', today: 2680, yesterday: 2550, forecast: 2700 },
+      { time: '10:00', today: 2750, yesterday: 2680, forecast: 2780 },
+      { time: '11:00', today: 2820, yesterday: 2750, forecast: 2850 },
+      { time: '12:00', today: 2480, yesterday: 2400, forecast: 2500 },
+      { time: '13:00', today: 2650, yesterday: 2580, forecast: 2680 },
+      { time: '14:00', today: 2847, yesterday: 2720, forecast: 2800 },
+      { time: '15:00', today: 2780, yesterday: 2690, forecast: 2750 },
+      { time: '16:00', today: 2620, yesterday: 2550, forecast: 2600 },
+      { time: '17:00', today: 2450, yesterday: 2380, forecast: 2420 },
+      { time: '18:00', today: 2280, yesterday: 2200, forecast: 2250 },
+      { time: '19:00', today: 2150, yesterday: 2080, forecast: 2120 },
+      { time: '20:00', today: 1980, yesterday: 1920, forecast: 1950 },
+      { time: '21:00', today: 1680, yesterday: 1620, forecast: 1650 },
+      { time: '22:00', today: 1350, yesterday: 1300, forecast: 1320 },
+      { time: '23:00', today: 1080, yesterday: 1050, forecast: 1060 },
+    ];
+
+    // 分项能耗数据
+    const categoryData = [
+      { name: '空调制冷', value: 42500, color: '#3488ff' },
+      { name: '照明用电', value: 18200, color: '#fbbf24' },
+      { name: '动力设备', value: 15800, color: '#36d968' },
+      { name: '办公设备', value: 12500, color: '#a78bfa' },
+      { name: '特殊设备', value: 9800, color: '#f87171' },
+      { name: '其他', value: 29656, color: '#8a9bbd' },
+    ];
+
+    // 能源结构饼图数据
+    const energyStructureData = [
+      { name: '电力', value: 62, color: '#3488ff' },
+      { name: '水力', value: 22, color: '#3488ff' },
+      { name: '燃气', value: 11, color: '#ff7b25' },
+      { name: '其他', value: 5, color: '#36d968' },
+    ];
+
+    // 迷你趋势数据
+    const miniTrendData = [
+      { v: 120 }, { v: 135 }, { v: 128 }, { v: 145 }, { v: 152 },
+      { v: 140 }, { v: 158 }, { v: 165 }, { v: 155 }, { v: 172 },
+    ];
+
+    // ========== 自定义 Tooltip 样式 ==========
+    const CustomTooltip = ({ active, payload, label }) => {
+      if (active && payload && payload.length) {
+        return (
+          <div className="bg-surface-container-high/95 backdrop-blur-sm border border-outline-variant/30 rounded-lg p-3 shadow-float">
+            <p className="text-xs font-semibold text-on-surface mb-2">{label}</p>
+            {payload.map((entry, index) => (
+              <div key={index} className="flex items-center gap-2 text-xs mb-1 last:mb-0">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></span>
+                <span className="text-on-surface-variant">{entry.name}:</span>
+                <span className="font-semibold text-on-surface">{entry.value} kW</span>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return null;
+    };
+
+    // ========== 主负荷曲线组件 ==========
+    function LoadCurveChart({ chartType }) {
+      const renderChart = () => {
+        switch(chartType) {
+          case 'area':
+            return (
+              <AreaChart data={loadCurveData}>
+                <defs>
+                  <linearGradient id="colorToday" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3488ff" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3488ff" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorYesterday" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ff7b25" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#ff7b25" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(52,136,255,0.1)" />
+                <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#8a9bbd' }} axisLine={{ stroke: 'rgba(52,136,255,0.2)' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#8a9bbd' }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="today" name="今日负荷" stroke="#3488ff" strokeWidth={2} fill="url(#colorToday)" />
+                <Area type="monotone" dataKey="yesterday" name="昨日负荷" stroke="#ff7b25" strokeWidth={1.5} fill="url(#colorYesterday)" />
+                <Line type="monotone" dataKey="forecast" name="预测值" stroke="#36d968" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />
+              </AreaChart>
+            );
+          case 'bar':
+            return (
+              <BarChart data={loadCurveData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(52,136,255,0.1)" />
+                <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#8a9bbd' }} axisLine={{ stroke: 'rgba(52,136,255,0.2)' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#8a9bbd' }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="today" name="今日负荷" fill="#3488ff" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="yesterday" name="昨日负荷" fill="#ff7b25" radius={[2, 2, 0, 0]} opacity={0.7} />
+              </BarChart>
+            );
+          default:
+            return (
+              <LineChart data={loadCurveData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(52,136,255,0.1)" />
+                <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#8a9bbd' }} axisLine={{ stroke: 'rgba(52,136,255,0.2)' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#8a9bbd' }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <ReferenceLine y={2500} stroke="#ff3333" strokeDasharray="5 5" label={{ value: '警戒线', position: 'right', fontSize: 10, fill: '#ff3333' }} />
+                <Line type="monotone" dataKey="today" name="今日负荷" stroke="#3488ff" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 2 }} />
+                <Line type="monotone" dataKey="yesterday" name="昨日负荷" stroke="#ff7b25" strokeWidth={1.5} dot={false} />
+                <Line type="monotone" dataKey="forecast" name="预测值" stroke="#36d968" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />
+              </LineChart>
+            );
+        }
+      };
+      
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          {renderChart()}
+        </ResponsiveContainer>
+      );
+    }
+
+    // ========== 分项能耗柱状图 ==========
+    function CategoryChart() {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={categoryData} layout="vertical" margin={{ left: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(52,136,255,0.1)" horizontal={false} />
+            <XAxis type="number" tick={{ fontSize: 11, fill: '#8a9bbd' }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#e8edf5' }} axisLine={false} tickLine={false} width={70} />
+            <Tooltip 
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="bg-surface-container-high/95 backdrop-blur-sm border border-outline-variant/30 rounded-lg p-3 shadow-float">
+                      <p className="text-xs font-semibold text-on-surface mb-1">{payload[0].payload.name}</p>
+                      <p className="text-xs text-on-surface-variant">能耗: <span className="font-semibold text-primary">{payload[0].value.toLocaleString()} kWh</span></p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+              {categoryData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    // ========== 能源结构饼图 ==========
+    function EnergyPieChart() {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={energyStructureData}
+              cx="50%"
+              cy="50%"
+              innerRadius={45}
+              outerRadius={70}
+              paddingAngle={3}
+              dataKey="value"
+            >
+              {energyStructureData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip 
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="bg-surface-container-high/95 backdrop-blur-sm border border-outline-variant/30 rounded-lg p-2 shadow-float">
+                      <p className="text-xs"><span className="text-on-surface-variant">{payload[0].name}:</span> <span className="font-semibold text-on-surface">{payload[0].value}%</span></p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    // ========== 迷你趋势图 ==========
+    function MiniSparkline({ color = '#3488ff' }) {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={miniTrendData}>
+            <defs>
+              <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill={`url(#gradient-${color})`} dot={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    // ========== 主应用组件 ==========
+    function App() {
+      const [chartType, setChartType] = useState('line');
+
+      useEffect(() => {
+        // 监听jQuery触发的图表类型切换事件
+        const handleChartTypeChange = (e, newType) => {
+          setChartType(newType);
+        };
+        $(document).on('chartTypeChange', handleChartTypeChange);
+        
+        return () => {
+          $(document).off('chartTypeChange', handleChartTypeChange);
+        };
+      }, []);
+
+      useEffect(() => {
+        // 渲染主负荷曲线图表到对应容器（带响应式更新）
+        const loadCurveContainer = document.getElementById('load-curve-chart');
+        if (loadCurveContainer) {
+          const root = ReactDOM.createRoot(loadCurveContainer);
+          root.render(React.createElement(LoadCurveChart, { chartType }));
+        }
+        
+        // 渲染分项能耗柱状图
+        const categoryContainer = document.getElementById('category-chart');
+        if (categoryContainer) {
+          ReactDOM.createRoot(categoryContainer).render(React.createElement(CategoryChart));
+        }
+        
+        // 渲染能源结构饼图
+        const pieContainer = document.getElementById('pie-chart-energy');
+        if (pieContainer) {
+          ReactDOM.createRoot(pieContainer).render(React.createElement(EnergyPieChart));
+        }
+
+        // 渲染迷你趋势图 - 用电
+        const miniElecContainer = document.getElementById('mini-chart-electricity');
+        if (miniElecContainer) {
+          ReactDOM.createRoot(miniElecContainer).render(React.createElement(MiniSparkline, { color: '#3488ff' }));
+        }
+        // 渲染迷你趋势图 - 用水
+        const miniWaterContainer = document.getElementById('mini-chart-water');
+        if (miniWaterContainer) {
+          ReactDOM.createRoot(miniWaterContainer).render(React.createElement(MiniSparkline, { color: '#3488ff' }));
+        }
+        // 渲染迷你趋势图 - 燃气
+        const miniGasContainer = document.getElementById('mini-chart-gas');
+        if (miniGasContainer) {
+          ReactDOM.createRoot(miniGasContainer).render(React.createElement(MiniSparkline, { color: '#ff7b25' }));
+        }
+        // 渲染迷你趋势图 - 碳排放
+        const miniCarbonContainer = document.getElementById('mini-chart-carbon');
+        if (miniCarbonContainer) {
+          ReactDOM.createRoot(miniCarbonContainer).render(React.createElement(MiniSparkline, { color: '#36d968' }));
+        }
+      }, [chartType]);
+
+      return null; // 所有图表通过 createRoot 渲染到指定容器
+    }
+
+    // 挂载应用
+    ReactDOM.createRoot(document.body).render(React.createElement(App));
+  </script>
+
+  <!-- ========== jQuery 交互逻辑 ========== -->
+  <script>
+    // 全局状态管理 - 图表类型（供React组件读取）
+    window.appState = { chartType: 'line' };
+
+    $(function() {
+      // ========== 图表类型切换 ==========
+      $('#chart-type-line').on('click', function() {
+        window.appState.chartType = 'line';
+        $(this).addClass('bg-primary/20 text-primary').removeClass('text-on-surface-variant');
+        $('#chart-type-area, #chart-type-bar').removeClass('bg-primary/20 text-primary').addClass('text-on-surface-variant');
+        // 触发重新渲染（通过自定义事件通知React）
+        $(document).trigger('chartTypeChange', ['line']);
+      });
+      
+      $('#chart-type-area').on('click', function() {
+        window.appState.chartType = 'area';
+        $(this).addClass('bg-primary/20 text-primary').removeClass('text-on-surface-variant');
+        $('#chart-type-line, #chart-type-bar').removeClass('bg-primary/20 text-primary').addClass('text-on-surface-variant');
+        $(document).trigger('chartTypeChange', ['area']);
+      });
+      
+      $('#chart-type-bar').on('click', function() {
+        window.appState.chartType = 'bar';
+        $(this).addClass('bg-primary/20 text-primary').removeClass('text-on-surface-variant');
+        $('#chart-type-line, #chart-type-area').removeClass('bg-primary/20 text-primary').addClass('text-on-surface-variant');
+        $(document).trigger('chartTypeChange', ['bar']);
+      });
+
+      // ========== 时间更新 ==========
+      function updateTime() {
+        const now = new Date();
+        const timeStr = now.getFullYear() + '-' + 
+          String(now.getMonth() + 1).padStart(2, '0') + '-' +
+          String(now.getDate()).padStart(2, '0') + ' ' +
+          String(now.getHours()).padStart(2, '0') + ':' +
+          String(now.getMinutes()).padStart(2, '0') + ':' +
+          String(now.getSeconds()).padStart(2, '0');
+        $('#update-time').text(timeStr);
+      }
+      updateTime();
+      setInterval(updateTime, 1000);
+
+      // ========== KPI卡片点击交互 ==========
+      $('.kpi-glow').on('click', function() {
+        // 点击KPI卡片时显示详情弹窗效果（实际项目中应跳转到详情页或弹出模态框）
+        console.log('查看KPI详情:', $(this).attr('id'));
+        $(this).toggleClass('ring-2 ring-primary/50');
+        setTimeout(() => {
+          $(this).removeClass('ring-2 ring-primary/50');
+        }, 500);
+      });
+
+      // ========== 刷新KPI数据按钮 ==========
+      $('#btn-refresh-kpi').on('click', function() {
+        const icon = $(this).find('i');
+        icon.addClass('animate-spin');
+        // 模拟数据刷新动画
+        setTimeout(() => {
+          icon.removeClass('animate-spin');
+          console.log('KPI数据已刷新');
+        }, 1000);
+      });
+
+      // ========== 筛选器变化 ==========
+      $('#time-range-select, #area-select').on('change', function() {
+        console.log('筛选条件变更:', $(this).attr('id'), $(this).val());
+        // 实际项目中应根据筛选条件重新请求并渲染图表数据
+      });
+
+      // ========== 设备列表点击 ==========
+      $('[id^="device-item-"]').on('click', function() {
+        const deviceId = $(this).attr('id').replace('device-item-', '');
+        console.log('查看设备详情:', deviceId);
+        // 跳转到设备管理页面的具体设备
+        window.location.href = 'device-manage.html?device=' + deviceId;
+      });
+
+      // ========== 告警列表点击 ==========
+      $('[id^="alarm-item-"]').on('click', function() {
+        const alarmId = $(this).attr('id').replace('alarm-item-', '');
+        console.log('查看告警详情:', alarmId);
+        // 跳转到告警中心的具体告警
+        window.location.href = 'alarm.html?alarm=' + alarmId;
+      });
+
+      // ========== 区域排行点击 ==========
+      $('.group.cursor-pointer').has('.rounded-md.bg-error\\/20, .rounded-md.bg-warning\\/20, .rounded-md.bg-primary\\/20, .rounded-md.bg-info\\/20, .rounded-md.bg-success\\/20').on('click', function() {
+        console.log('查看区域详情:', $(this).find('.truncate').text());
+      });
+
+      // ========== 图表类型切换已在React组件中实现 ==========
+      // 此处保留jQuery备用方案注释：
+      /*
+      $('#chart-type-line').on('click', function() {
+        // 切换为折线图视图
+        // 应重新渲染Recharts组件，传入不同的chartType参数
+      });
+      */
+
+      // ========== 键盘快捷键支持 ==========
+      $(document).on('keydown', function(e) {
+        // 按 R 键刷新数据
+        if (e.key === 'r' || e.key === 'R') {
+          if (!$(e.target).is('input, textarea, select')) {
+            $('#btn-refresh-kpi').trigger('click');
+          }
+        }
+        // 按 F 键进入全屏
+        if (e.key === 'f' || e.key === 'F') {
+          if (!$(e.target).is('input, textarea, select')) {
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen();
+            } else {
+              document.exitFullscreen();
+            }
+          }
+        }
+      });
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>
