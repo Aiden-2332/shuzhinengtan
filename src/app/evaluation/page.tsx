@@ -1,529 +1,476 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useMemo } from 'react';
 import {
   TrendingUp,
   TrendingDown,
-  Minus,
   CheckCircle2,
   AlertCircle,
   XCircle,
-  FileText,
-  Upload,
-  Clock,
-  ArrowRight,
-  BarChart3,
-  Target,
   Award,
-  Lightbulb,
+  Target,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  BarChart3,
+  Layers,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  ExternalLink,
 } from 'lucide-react';
-import {
-  getEvaluationData,
-  getYearlyTrend,
-  getLevelText,
-  getLevelColor,
-  type EvaluationDimension,
-  type DimensionData,
-  type SubIndicator,
-} from '@/data/evaluation-data';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  RadialBarChart,
-  RadialBar,
-  PolarAngleAxis,
-} from 'recharts';
+
+interface EvaluationIndicator {
+  id: string;
+  category: string;
+  name: string;
+  description: string;
+  weight: number;
+  maxScore: number;
+  scoringMethod: string;
+  dataSource: string;
+}
+
+interface StandardDocument {
+  id: string;
+  name: string;
+  level: 'conservation' | 'green' | 'low-carbon';
+  levelLabel: string;
+  standardCode: string;
+  type: 'national' | 'local';
+  description: string;
+  indicators: EvaluationIndicator[];
+}
+
+interface StandardsResponse {
+  standards: StandardDocument[];
+}
+
+// 模拟评分数据（演示用）
+const MOCK_SCORES: Record<string, Record<string, { score: number; status: 'pass' | 'warn' | 'fail' }>> = {
+  conservation: {
+    'c-1': { score: 8, status: 'pass' },
+    'c-2': { score: 6, status: 'pass' },
+    'c-3': { score: 10, status: 'pass' },
+    'c-4': { score: 11, status: 'pass' },
+    'c-5': { score: 7, status: 'warn' },
+    'c-6': { score: 6, status: 'pass' },
+    'c-7': { score: 8, status: 'pass' },
+    'c-8': { score: 5, status: 'pass' },
+    'c-9': { score: 2, status: 'fail' },
+    'c-10': { score: 5, status: 'warn' },
+    'c-11': { score: 4, status: 'warn' },
+  },
+  green: {
+    'g-1': { score: 6, status: 'pass' },
+    'g-2': { score: 3, status: 'warn' },
+    'g-3': { score: 4, status: 'warn' },
+    'g-4': { score: 9, status: 'pass' },
+    'g-5': { score: 4, status: 'fail' },
+    'g-6': { score: 5, status: 'warn' },
+    'g-7': { score: 6, status: 'pass' },
+    'g-8': { score: 4, status: 'pass' },
+    'g-9': { score: 3, status: 'warn' },
+    'g-10': { score: 6, status: 'pass' },
+    'g-11': { score: 4, status: 'pass' },
+    'g-12': { score: 7, status: 'warn' },
+    'g-13': { score: 3, status: 'warn' },
+    'g-14': { score: 2, status: 'fail' },
+  },
+  'low-carbon': {
+    'lc-1': { score: 7, status: 'warn' },
+    'lc-2': { score: 10, status: 'warn' },
+    'lc-3': { score: 8, status: 'warn' },
+    'lc-4': { score: 4, status: 'fail' },
+    'lc-5': { score: 6, status: 'warn' },
+    'lc-6': { score: 5, status: 'warn' },
+    'lc-7': { score: 3, status: 'fail' },
+    'lc-8': { score: 3, status: 'warn' },
+    'lc-9': { score: 2, status: 'fail' },
+    'lc-10': { score: 3, status: 'warn' },
+    'lc-11': { score: 2, status: 'fail' },
+    'lc-12': { score: 3, status: 'warn' },
+    'lc-13': { score: 1, status: 'fail' },
+  },
+};
+
+const LEVEL_CONFIG = {
+  conservation: {
+    color: 'emerald',
+    bgClass: 'bg-emerald-50 border-emerald-200',
+    textClass: 'text-emerald-700',
+    badgeClass: 'bg-emerald-100 text-emerald-700',
+    icon: '🌱',
+    tier: 1,
+    tierLabel: '基础层',
+  },
+  green: {
+    color: 'blue',
+    bgClass: 'bg-blue-50 border-blue-200',
+    textClass: 'text-blue-700',
+    badgeClass: 'bg-blue-100 text-blue-700',
+    icon: '🌿',
+    tier: 2,
+    tierLabel: '进阶层',
+  },
+  'low-carbon': {
+    color: 'violet',
+    bgClass: 'bg-violet-50 border-violet-200',
+    textClass: 'text-violet-700',
+    badgeClass: 'bg-violet-100 text-violet-700',
+    icon: '🏆',
+    tier: 3,
+    tierLabel: '引领层',
+  },
+} as const;
 
 export default function EvaluationPage() {
-  const [selectedYear, setSelectedYear] = useState(2026);
-  const [expandedDimension, setExpandedDimension] = useState<EvaluationDimension | null>('energy');
+  const [standards, setStandards] = useState<StandardDocument[]>([]);
+  const [activeStandard, setActiveStandard] = useState<string>('conservation');
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const evaluationData = useMemo(() => getEvaluationData(selectedYear), [selectedYear]);
-  const trendData = useMemo(() => getYearlyTrend(), []);
+  useEffect(() => {
+    fetch('/api/evaluation-standards')
+      .then((res) => res.json())
+      .then((data: StandardsResponse) => {
+        setStandards(data.standards);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
-  const levelText = getLevelText(evaluationData.level);
-  const levelColor = getLevelColor(evaluationData.level);
+  const currentStandard = useMemo(
+    () => standards.find((s) => s.id === activeStandard),
+    [standards, activeStandard]
+  );
 
-  // 圆环图数据
-  const radialData = [
-    {
-      name: 'score',
-      value: evaluationData.totalScore,
-      fill: levelColor,
-    },
-  ];
+  // 按类别分组指标
+  const groupedIndicators = useMemo(() => {
+    if (!currentStandard) return {};
+    const groups: Record<string, EvaluationIndicator[]> = {};
+    for (const ind of currentStandard.indicators) {
+      if (!groups[ind.category]) groups[ind.category] = [];
+      groups[ind.category].push(ind);
+    }
+    return groups;
+  }, [currentStandard]);
+
+  // 计算总分
+  const scoreData = useMemo(() => {
+    if (!currentStandard) return { totalScore: 0, maxScore: 0, rate: 0 };
+    const scores = MOCK_SCORES[currentStandard.id] || {};
+    let totalScore = 0;
+    let maxScore = 0;
+    for (const ind of currentStandard.indicators) {
+      maxScore += ind.maxScore;
+      totalScore += scores[ind.id]?.score || 0;
+    }
+    return { totalScore, maxScore, rate: Math.round((totalScore / maxScore) * 100) };
+  }, [currentStandard]);
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pass':
+        return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
+      case 'warn':
+        return <AlertCircle className="w-4 h-4 text-amber-500" />;
+      case 'fail':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      default:
+        return <Minus className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const getScoreBarColor = (score: number, maxScore: number) => {
+    const ratio = score / maxScore;
+    if (ratio >= 0.8) return 'bg-emerald-500';
+    if (ratio >= 0.6) return 'bg-blue-500';
+    if (ratio >= 0.4) return 'bg-amber-500';
+    return 'bg-red-500';
+  };
+
+  const getLevelBadge = (rate: number) => {
+    if (rate >= 90) return { text: '优秀', color: 'bg-emerald-100 text-emerald-700 border-emerald-300' };
+    if (rate >= 75) return { text: '良好', color: 'bg-blue-100 text-blue-700 border-blue-300' };
+    if (rate >= 60) return { text: '合格', color: 'bg-amber-100 text-amber-700 border-amber-300' };
+    return { text: '待改进', color: 'bg-red-100 text-red-700 border-red-300' };
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-gray-400">加载评价标准中...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0f1e] via-[#0d1525] to-[#0a1628] text-white">
-      {/* 顶部标题栏 */}
-      <div className="border-b border-cyan-900/30 bg-[#0a1628]/80 backdrop-blur-sm">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
-                <Award className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">绿色/低碳校园评价看板</h1>
-                <p className="text-sm text-gray-400">
-                  参考标准：GB/T 51356-2019 + GB/T 29117-2012
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="rounded-lg border border-cyan-800/50 bg-[#0d1b2a] px-4 py-2 text-sm text-white outline-none focus:border-cyan-500"
-              >
-                <option value={2026}>2026年</option>
-                <option value={2025}>2025年</option>
-                <option value={2024}>2024年</option>
-              </select>
-              <Link
-                href="/"
-                className="flex items-center gap-2 rounded-lg border border-cyan-800/50 bg-[#0d1b2a] px-4 py-2 text-sm text-white transition-all hover:border-cyan-500 hover:bg-cyan-900/30"
-              >
-                <BarChart3 className="h-4 w-4" />
-                跳转3D控制塔
-              </Link>
-            </div>
+    <div className="h-full overflow-auto bg-gray-50">
+      {/* 页面标题 */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">绿色/低碳校园评价</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              基于国家标准与北京市地方标准的三层递进评价体系
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+              Demo 模拟数据
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="p-6">
-        {/* 主区域：左侧圆环 + 右侧维度列表 */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* 左侧：大型圆环评分 */}
-          <div className="col-span-5">
-            <div className="rounded-2xl border border-cyan-900/30 bg-gradient-to-br from-[#0d1b2a] to-[#0a1628] p-6">
-              <h2 className="mb-4 text-lg font-semibold text-white">综合评分</h2>
-
-              {/* 圆环图 */}
-              <div className="relative flex items-center justify-center" style={{ height: '280px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadialBarChart
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="70%"
-                    outerRadius="90%"
-                    barSize={20}
-                    data={radialData}
-                    startAngle={90}
-                    endAngle={-270}
-                  >
-                    <PolarAngleAxis
-                      type="number"
-                      domain={[0, 100]}
-                      angleAxisId={0}
-                      tick={false}
-                    />
-                    <RadialBar
-                      background={{ fill: '#1a2942' }}
-                      dataKey="value"
-                      cornerRadius={10}
-                      fill={levelColor}
-                    />
-                  </RadialBarChart>
-                </ResponsiveContainer>
-                {/* 中心文字 */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-5xl font-bold" style={{ color: levelColor }}>
-                    {evaluationData.totalScore}
-                  </span>
-                  <span className="mt-2 text-lg font-medium" style={{ color: levelColor }}>
-                    {levelText}
-                  </span>
-                  <span className="mt-1 text-sm text-gray-400">/ 100分</span>
-                </div>
-              </div>
-
-              {/* 同比变化 */}
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <TrendingUp className="h-4 w-4 text-green-400" />
-                <span className="text-sm text-green-400">较上年 +4.0分</span>
-              </div>
-
-              {/* 近三年趋势 */}
-              <div className="mt-6">
-                <h3 className="mb-3 text-sm font-medium text-gray-400">近三年评分趋势</h3>
-                <div style={{ height: '120px' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={trendData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1a2942" />
-                      <XAxis dataKey="year" stroke="#64748b" fontSize={12} />
-                      <YAxis domain={[60, 100]} stroke="#64748b" fontSize={12} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#0d1b2a',
-                          border: '1px solid #1e4976',
-                          borderRadius: '8px',
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="totalScore"
-                        stroke="#3488ff"
-                        strokeWidth={2}
-                        dot={{ fill: '#3488ff', r: 4 }}
-                        name="综合评分"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
+      <div className="p-6 space-y-6">
+        {/* 三层递进说明 */}
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Layers className="w-5 h-5 text-blue-600" />
+            <h2 className="text-base font-semibold text-gray-900">三层递进评价体系</h2>
           </div>
+          <div className="grid grid-cols-3 gap-4">
+            {standards.map((std) => {
+              const cfg = LEVEL_CONFIG[std.level];
+              return (
+                <button
+                  key={std.id}
+                  onClick={() => {
+                    setActiveStandard(std.id);
+                    setExpandedCategory(null);
+                  }}
+                  className={`text-left p-4 rounded-lg border-2 transition-all ${
+                    activeStandard === std.id
+                      ? `${cfg.bgClass} border-current`
+                      : 'border-gray-100 hover:border-gray-200'
+                  }`}
+                  style={activeStandard === std.id ? { borderColor: 'currentcolor' } : {}}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xl">{cfg.icon}</span>
+                    <span className={`text-sm font-semibold ${cfg.textClass}`}>
+                      {cfg.tierLabel}
+                    </span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${cfg.badgeClass}`}>
+                      {std.type === 'national' ? '国标' : '地标'}
+                    </span>
+                  </div>
+                  <div className={`text-sm font-bold ${cfg.textClass} mb-1`}>{std.name}</div>
+                  <div className="text-xs text-gray-400">{std.standardCode}</div>
+                  <div className="text-xs text-gray-500 mt-2 line-clamp-2">{std.description}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-          {/* 右侧：四大维度得分列表 */}
-          <div className="col-span-7">
-            <div className="rounded-2xl border border-cyan-900/30 bg-gradient-to-br from-[#0d1b2a] to-[#0a1628] p-6">
-              <h2 className="mb-4 text-lg font-semibold text-white">四大维度得分</h2>
+        {currentStandard && (
+          <>
+            {/* 当前标准概览 */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-gray-500" />
+                  <div>
+                    <h2 className="text-base font-semibold text-gray-900">
+                      {currentStandard.name}
+                    </h2>
+                    <p className="text-xs text-gray-400">
+                      {currentStandard.standardCode} · {currentStandard.type === 'national' ? '国家标准' : '北京市地方标准'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-gray-900">
+                      {scoreData.totalScore}
+                      <span className="text-sm text-gray-400 font-normal">/{scoreData.maxScore}</span>
+                    </div>
+                    <div className="text-xs text-gray-400">综合得分</div>
+                  </div>
+                  <span className={`text-sm font-semibold px-3 py-1 rounded-full border ${getLevelBadge(scoreData.rate).color}`}>
+                    {getLevelBadge(scoreData.rate).text}
+                  </span>
+                </div>
+              </div>
 
-              <div className="space-y-4">
-                {evaluationData.dimensions.map((dimension) => {
-                  const percentage = (dimension.currentScore / dimension.maxScore) * 100;
-                  const barColor =
-                    percentage >= 80 ? '#36D968' : percentage >= 60 ? '#F59E0B' : '#FF4D4F';
-                  const isExpanded = expandedDimension === dimension.id;
+              {/* 总分进度条 */}
+              <div className="mb-4">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>得分率</span>
+                  <span>{scoreData.rate}%</span>
+                </div>
+                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      scoreData.rate >= 80 ? 'bg-emerald-500' : scoreData.rate >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${scoreData.rate}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 指标列表 */}
+              <div className="space-y-3">
+                {Object.entries(groupedIndicators).map(([category, indicators]) => {
+                  const isExpanded = expandedCategory === category;
+                  const catScores = indicators.map((ind) => {
+                    const s = MOCK_SCORES[currentStandard.id]?.[ind.id];
+                    return { score: s?.score || 0, max: ind.maxScore, status: s?.status || 'fail' };
+                  });
+                  const catTotal = catScores.reduce((a, b) => a + b.score, 0);
+                  const catMax = catScores.reduce((a, b) => a + b.max, 0);
+                  const catRate = Math.round((catTotal / catMax) * 100);
+                  const failCount = catScores.filter((s) => s.status === 'fail').length;
+                  const warnCount = catScores.filter((s) => s.status === 'warn').length;
 
                   return (
-                    <div key={dimension.id}>
-                      <div
-                        className="cursor-pointer rounded-lg border border-cyan-900/20 bg-[#0a1628]/50 p-4 transition-all hover:border-cyan-700/50"
-                        onClick={() =>
-                          setExpandedDimension(isExpanded ? null : dimension.id)
-                        }
+                    <div key={category} className="border border-gray-100 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setExpandedCategory(isExpanded ? null : category)}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3">
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                          )}
+                          <span className="text-sm font-medium text-gray-900">{category}</span>
+                          <span className="text-xs text-gray-400">
+                            {indicators.length}项指标
+                          </span>
+                          {failCount > 0 && (
+                            <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                              {failCount}项不达标
+                            </span>
+                          )}
+                          {warnCount > 0 && (
+                            <span className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded">
+                              {warnCount}项预警
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div
-                              className="flex h-8 w-8 items-center justify-center rounded-lg"
-                              style={{ backgroundColor: `${barColor}20` }}
-                            >
-                              <Target className="h-4 w-4" style={{ color: barColor }} />
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-white">{dimension.name}</h3>
-                              <p className="text-xs text-gray-400">
-                                {dimension.subIndicators.length} 项子指标
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <span className="text-xl font-bold text-white">
-                                {dimension.currentScore}
-                              </span>
-                              <span className="text-sm text-gray-400">
-                                {' '}
-                                / {dimension.maxScore}
-                              </span>
-                            </div>
-                            <ArrowRight
-                              className={`h-4 w-4 text-gray-400 transition-transform ${
-                                isExpanded ? 'rotate-90' : ''
-                              }`}
+                              className={`h-full rounded-full ${getScoreBarColor(catTotal, catMax)}`}
+                              style={{ width: `${catRate}%` }}
                             />
                           </div>
+                          <span className="text-sm font-medium text-gray-700 w-12 text-right">
+                            {catTotal}/{catMax}
+                          </span>
                         </div>
+                      </button>
 
-                        {/* 进度条 */}
-                        <div className="mt-3">
-                          <div className="h-2 overflow-hidden rounded-full bg-[#1a2942]">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{
-                                width: `${percentage}%`,
-                                backgroundColor: barColor,
-                              }}
-                            />
-                          </div>
-                          <div className="mt-1 flex justify-between text-xs">
-                            <span className="text-gray-400">达标率</span>
-                            <span style={{ color: barColor }}>{percentage.toFixed(1)}%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 展开的子指标 */}
                       {isExpanded && (
-                        <div className="mt-2 rounded-lg border border-cyan-900/20 bg-[#0a1628]/30 p-4">
-                          <div className="space-y-3">
-                            {dimension.subIndicators.map((indicator) => (
-                              <SubIndicatorRow key={indicator.id} indicator={indicator} />
-                            ))}
-                          </div>
+                        <div className="border-t border-gray-100">
+                          {indicators.map((ind) => {
+                            const scoreInfo = MOCK_SCORES[currentStandard.id]?.[ind.id];
+                            const score = scoreInfo?.score || 0;
+                            const status = scoreInfo?.status || 'fail';
+                            const ratio = score / ind.maxScore;
+
+                            return (
+                              <div
+                                key={ind.id}
+                                className="px-4 py-3 border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50"
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      {getStatusIcon(status)}
+                                      <span className="text-sm font-medium text-gray-900">
+                                        {ind.name}
+                                      </span>
+                                      <span className="text-xs text-gray-400">
+                                        权重{ind.weight}%
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1 ml-6">
+                                      {ind.description}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2 ml-4">
+                                    <span className={`text-sm font-bold ${
+                                      ratio >= 0.8 ? 'text-emerald-600' :
+                                      ratio >= 0.6 ? 'text-blue-600' :
+                                      ratio >= 0.4 ? 'text-amber-600' : 'text-red-600'
+                                    }`}>
+                                      {score}
+                                    </span>
+                                    <span className="text-xs text-gray-400">/{ind.maxScore}</span>
+                                  </div>
+                                </div>
+                                <div className="ml-6 flex items-center gap-4 text-xs text-gray-400">
+                                  <span>评分方法：{ind.scoringMethod}</span>
+                                  <span>数据来源：{ind.dataSource}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
                   );
                 })}
               </div>
-
-              {/* 总分汇总 */}
-              <div className="mt-4 rounded-lg border border-cyan-700/30 bg-gradient-to-r from-cyan-900/20 to-blue-900/20 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-medium text-white">总分</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold" style={{ color: levelColor }}>
-                      {evaluationData.totalScore}
-                    </span>
-                    <span className="text-gray-400">/ 100</span>
-                  </div>
-                </div>
-              </div>
             </div>
-          </div>
-        </div>
 
-        {/* 下部区域：失分项 + 整改建议 + 材料完备度 */}
-        <div className="mt-6 grid grid-cols-12 gap-6">
-          {/* 失分项 TOP5 */}
-          <div className="col-span-5">
-            <div className="rounded-2xl border border-cyan-900/30 bg-gradient-to-br from-[#0d1b2a] to-[#0a1628] p-6">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-                <AlertCircle className="h-5 w-5 text-orange-400" />
-                失分项 TOP5
-              </h2>
-
+            {/* 层级对比 */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="w-5 h-5 text-blue-600" />
+                <h2 className="text-base font-semibold text-gray-900">三层标准得分对比</h2>
+              </div>
               <div className="space-y-3">
-                {evaluationData.topGaps.map((gap, index) => (
-                  <div
-                    key={gap.indicatorId}
-                    className="rounded-lg border border-cyan-900/20 bg-[#0a1628]/50 p-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
-                          {index + 1}
+                {standards.map((std) => {
+                  const cfg = LEVEL_CONFIG[std.level];
+                  const scores = MOCK_SCORES[std.id] || {};
+                  let total = 0;
+                  let max = 0;
+                  for (const ind of std.indicators) {
+                    max += ind.maxScore;
+                    total += scores[ind.id]?.score || 0;
+                  }
+                  const rate = Math.round((total / max) * 100);
+                  const isActive = std.id === activeStandard;
+
+                  return (
+                    <div key={std.id} className="flex items-center gap-4">
+                      <div className="w-24 text-right">
+                        <span className={`text-xs font-semibold ${cfg.textClass}`}>
+                          {cfg.tierLabel}
                         </span>
-                        <div>
-                          <h4 className="font-medium text-white">{gap.indicatorName}</h4>
-                          <p className="text-xs text-gray-400">{gap.dimension}</p>
-                        </div>
+                        <div className="text-xs text-gray-400">{std.name}</div>
                       </div>
-                      <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs text-red-400">
-                        差距 {gap.gap}
-                      </span>
+                      <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden relative">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            isActive ? 'ring-2 ring-offset-1 ring-blue-400' : ''
+                          } ${
+                            rate >= 80 ? 'bg-emerald-500' : rate >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${rate}%` }}
+                        />
+                        <span className="absolute inset-0 flex items-center px-3 text-xs font-medium text-white text-shadow">
+                          {total}/{max} ({rate}%)
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400 w-16">{std.standardCode.split('-')[0]}</span>
                     </div>
-                    <div className="mt-2 flex items-start gap-2 rounded bg-[#1a2942]/50 p-2">
-                      <Lightbulb className="h-4 w-4 flex-shrink-0 text-yellow-400" />
-                      <p className="text-xs text-gray-300">{gap.suggestion}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+              <p className="text-xs text-gray-400 mt-4 text-center">
+                三层标准逐级递进：节约型（基础）→ 绿色（进阶）→ 低碳（引领），要求逐步提高
+              </p>
             </div>
-          </div>
-
-          {/* 材料完备度 */}
-          <div className="col-span-4">
-            <div className="rounded-2xl border border-cyan-900/30 bg-gradient-to-br from-[#0d1b2a] to-[#0a1628] p-6">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-                <FileText className="h-5 w-5 text-cyan-400" />
-                材料完备度
-              </h2>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between rounded-lg bg-green-500/10 p-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-400" />
-                    <span className="text-sm text-white">已上传</span>
-                  </div>
-                  <span className="text-lg font-bold text-green-400">
-                    {evaluationData.evidenceCompleteness.uploaded}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg bg-yellow-500/10 p-3">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-yellow-400" />
-                    <span className="text-sm text-white">待上传</span>
-                  </div>
-                  <span className="text-lg font-bold text-yellow-400">
-                    {evaluationData.evidenceCompleteness.pending}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg bg-red-500/10 p-3">
-                  <div className="flex items-center gap-2">
-                    <XCircle className="h-5 w-5 text-red-400" />
-                    <span className="text-sm text-white">缺失</span>
-                  </div>
-                  <span className="text-lg font-bold text-red-400">
-                    {evaluationData.evidenceCompleteness.missing}
-                  </span>
-                </div>
-              </div>
-
-              {/* 完备度进度 */}
-              <div className="mt-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">总体完备度</span>
-                  <span className="text-cyan-400">
-                    {(
-                      (evaluationData.evidenceCompleteness.uploaded /
-                        (evaluationData.evidenceCompleteness.uploaded +
-                          evaluationData.evidenceCompleteness.pending +
-                          evaluationData.evidenceCompleteness.missing)) *
-                      100
-                    ).toFixed(1)}
-                    %
-                  </span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#1a2942]">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500"
-                    style={{
-                      width: `${
-                        (evaluationData.evidenceCompleteness.uploaded /
-                          (evaluationData.evidenceCompleteness.uploaded +
-                            evaluationData.evidenceCompleteness.pending +
-                            evaluationData.evidenceCompleteness.missing)) *
-                        100
-                      }%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 行动区 */}
-          <div className="col-span-3">
-            <div className="rounded-2xl border border-cyan-900/30 bg-gradient-to-br from-[#0d1b2a] to-[#0a1628] p-6">
-              <h2 className="mb-4 text-lg font-semibold text-white">快捷操作</h2>
-
-              <div className="space-y-3">
-                <button className="flex w-full items-center justify-between rounded-lg border border-cyan-800/50 bg-[#0a1628] p-3 text-left transition-all hover:border-cyan-500 hover:bg-cyan-900/20">
-                  <div className="flex items-center gap-2">
-                    <Upload className="h-4 w-4 text-cyan-400" />
-                    <span className="text-sm text-white">上传佐证材料</span>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                </button>
-
-                <button className="flex w-full items-center justify-between rounded-lg border border-cyan-800/50 bg-[#0a1628] p-3 text-left transition-all hover:border-cyan-500 hover:bg-cyan-900/20">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-cyan-400" />
-                    <span className="text-sm text-white">生成自评报告</span>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                </button>
-
-                <button className="flex w-full items-center justify-between rounded-lg border border-cyan-800/50 bg-[#0a1628] p-3 text-left transition-all hover:border-cyan-500 hover:bg-cyan-900/20">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-cyan-400" />
-                    <span className="text-sm text-white">年度对比分析</span>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                </button>
-
-                <Link
-                  href="/calculation"
-                  className="flex w-full items-center justify-between rounded-lg border border-cyan-800/50 bg-[#0a1628] p-3 text-left transition-all hover:border-cyan-500 hover:bg-cyan-900/20"
-                >
-                  <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-cyan-400" />
-                    <span className="text-sm text-white">碳核算工作台</span>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                </Link>
-              </div>
-
-              {/* 申报状态 */}
-              <div className="mt-4 rounded-lg border border-green-800/30 bg-green-900/10 p-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-400" />
-                  <span className="text-sm text-green-400">申报准备就绪</span>
-                </div>
-                <p className="mt-1 text-xs text-gray-400">
-                  综合评分达到&ldquo;良好&rdquo;等级，具备申报条件
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 水印 */}
-      <div className="fixed bottom-4 right-4 text-xs text-gray-500/50">
-        Demo模拟数据 仅课题演示
-      </div>
-    </div>
-  );
-}
-
-// 子指标行组件
-function SubIndicatorRow({ indicator }: { indicator: SubIndicator }) {
-  const percentage = (indicator.currentValue / indicator.targetValue) * 100;
-  const statusColor =
-    indicator.status === 'compliant'
-      ? '#36D968'
-      : indicator.status === 'near'
-      ? '#F59E0B'
-      : '#FF4D4F';
-
-  const StatusIcon =
-    indicator.status === 'compliant'
-      ? CheckCircle2
-      : indicator.status === 'near'
-      ? AlertCircle
-      : XCircle;
-
-  const TrendIcon =
-    indicator.trend === 'up' ? TrendingUp : indicator.trend === 'down' ? TrendingDown : Minus;
-
-  const trendColor =
-    indicator.trend === 'up' ? '#36D968' : indicator.trend === 'down' ? '#FF4D4F' : '#94A3B8';
-
-  const EvidenceIcon =
-    indicator.evidenceStatus === 'uploaded'
-      ? CheckCircle2
-      : indicator.evidenceStatus === 'pending'
-      ? Clock
-      : XCircle;
-
-  const evidenceColor =
-    indicator.evidenceStatus === 'uploaded'
-      ? '#36D968'
-      : indicator.evidenceStatus === 'pending'
-      ? '#F59E0B'
-      : '#FF4D4F';
-
-  return (
-    <div className="flex items-center gap-3 rounded-lg bg-[#0a1628]/50 p-2">
-      <StatusIcon className="h-4 w-4 flex-shrink-0" style={{ color: statusColor }} />
-      <div className="flex-1">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-white">{indicator.name}</span>
-          <div className="flex items-center gap-2">
-            <TrendIcon className="h-3 w-3" style={{ color: trendColor }} />
-            <span className="text-xs text-gray-400">
-              {indicator.currentValue} / {indicator.targetValue} {indicator.unit}
-            </span>
-          </div>
-        </div>
-        <div className="mt-1 flex items-center gap-2">
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-[#1a2942]">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.min(percentage, 100)}%`,
-                backgroundColor: statusColor,
-              }}
-            />
-          </div>
-          <EvidenceIcon className="h-3 w-3" style={{ color: evidenceColor }} />
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
