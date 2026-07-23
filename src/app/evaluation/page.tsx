@@ -7,14 +7,8 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
-  Cell,
+  Tooltip,
 } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +36,7 @@ interface StandardTier {
   description: string;
   totalScore: number;
   maxScore: number;
-  grade: string; // A/B/C/D/E or 一星/二星/三星 or 甲级/乙级/丙级
+  grade: string;
   categories: {
     name: string;
     weight?: number;
@@ -200,18 +194,8 @@ const TIERS: StandardTier[] = [
         name: "碳排放强度",
         weight: 30,
         items: [
-          {
-            name: "单位建筑面积碳排放",
-            score: 21,
-            maxScore: 30,
-            status: "pass",
-          },
-          {
-            name: "人均碳排放",
-            score: 19,
-            maxScore: 25,
-            status: "pass",
-          },
+          { name: "单位建筑面积碳排放", score: 21, maxScore: 30, status: "pass" },
+          { name: "人均碳排放", score: 19, maxScore: 25, status: "pass" },
         ],
       },
       {
@@ -292,46 +276,9 @@ function StatusBadge({ status }: { status: IndicatorItem["status"] }) {
   );
 }
 
-function TierProgressRing({
-  score,
-  maxScore,
-  color,
-  size = 80,
-}: {
-  score: number;
-  maxScore: number;
-  color: string;
-  size?: number;
-}) {
-  const pct = Math.min(100, (score / maxScore) * 100);
-  const r = (size - 12) / 2;
-  const c = 2 * Math.PI * r;
-  const dash = (pct / 100) * c;
-  return (
-    <div className="relative flex items-center justify-center">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="6" />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${c - dash}`}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: "stroke-dasharray .8s ease" }}
-        />
-      </svg>
-      <span className="absolute text-sm font-bold" style={{ color }}>
-        {score.toFixed(1)}
-      </span>
-    </div>
-  );
-}
+/* ── Large Hero Tier Card ─────────────────────────────────────── */
 
-function TierStepCard({
+function HeroTierCard({
   tier,
   index,
   isExpanded,
@@ -343,110 +290,276 @@ function TierStepCard({
   onToggle: () => void;
 }) {
   const color = TIER_COLORS[index];
-  const isTop = index === 0;
-  const isBottom = index === TIERS.length - 1;
+  const pct = Math.round((tier.totalScore / tier.maxScore) * 100);
+  const r = 52;
+  const c = 2 * Math.PI * r;
+  const dash = (pct / 100) * c;
 
   return (
     <div
       className={cn(
-        "relative rounded-xl border transition-all duration-300 cursor-pointer group",
-        "hover:border-white/20 hover:shadow-lg hover:shadow-black/20",
-        isExpanded ? "border-white/25 bg-white/[0.06]" : "border-white/[0.08] bg-white/[0.03]"
+        "relative rounded-2xl border transition-all duration-300 cursor-pointer group overflow-hidden",
+        "hover:border-white/25 hover:shadow-2xl hover:shadow-black/40 hover:-translate-y-1",
+        isExpanded ? "border-white/20 bg-white/[0.07]" : "border-white/[0.08] bg-white/[0.03]"
       )}
       onClick={onToggle}
     >
-      {/* Level connector line */}
-      {!isBottom && (
-        <div
-          className="absolute left-1/2 -bottom-4 w-[2px] h-4 z-10"
-          style={{ background: `linear-gradient(to bottom, ${color}, rgba(255,255,255,.08))` }}
-        />
-      )}
+      {/* Top color accent bar */}
+      <div className="absolute top-0 inset-x-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${color}00, ${color}, ${color}00)` }} />
 
-      <CardContent className="pt-5 pb-4 px-5">
-        {/* Tier header */}
-        <div className="flex items-start gap-4 mb-3">
-          <TierProgressRing score={tier.totalScore} maxScore={tier.maxScore} color={color} size={76} />
+      <div className="p-6">
+        {/* Header row */}
+        <div className="flex items-start gap-5 mb-4">
+          {/* Large ring */}
+          <div className="relative flex-shrink-0">
+            <svg width={120} height={120} viewBox="0 0 120 120" className="-rotate-90">
+              <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,.04)" strokeWidth="8" />
+              <circle cx="60" cy="60" r={r} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round"
+                strokeDasharray={`${dash} ${c - dash}`}
+                style={{ transition: "stroke-dasharray .8s ease" }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center rotate-0">
+              <span className="text-2xl font-black tabular-nums" style={{ color }}>{tier.totalScore.toFixed(1)}</span>
+              <span className="text-[9px] text-slate-500">满分{tier.maxScore}</span>
+            </div>
+          </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span
-                className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-black"
-                style={{ backgroundColor: color }}
-              >
-                {index + 1}
+          <div className="flex-1 min-w-0 pt-1">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold text-black" style={{ backgroundColor: color }}>
+                L{index + 1}
               </span>
-              <h3 className="font-bold text-base text-white">{tier.shortName}</h3>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-[10px]",
-                  tier.type === "national"
-                    ? "border-blue-400/40 text-blue-300 bg-blue-400/10"
-                    : "border-purple-400/40 text-purple-300 bg-purple-400/10"
-                )}
-              >
+              <h3 className="text-xl font-bold text-white tracking-tight">{tier.shortName}</h3>
+              <Badge variant="outline" className={cn(
+                "text-[10px]",
+                tier.type === "national"
+                  ? "border-cyan-400/40 text-cyan-300 bg-cyan-400/10"
+                  : "border-purple-400/40 text-purple-300 bg-purple-400/10"
+              )}>
                 {tier.type === "national" ? "国标" : "地标"}
               </Badge>
             </div>
-            <p className="text-[11px] text-slate-400 font-mono">{tier.code}</p>
-            <p className="text-xs text-slate-300 mt-1 leading-relaxed line-clamp-2">
-              {tier.description}
-            </p>
-          </div>
+            <p className="text-xs font-mono text-slate-400 mb-2">{tier.code} · {tier.year}</p>
+            <p className="text-sm text-slate-300 leading-relaxed">{tier.description}</p>
 
-          <div className="text-right shrink-0">
-            <div className="text-lg font-bold" style={{ color }}>
-              {tier.grade.split("（")[0]}
-            </div>
-            <div className="text-[10px] text-slate-500 mt-0.5">
-              {tier.totalScore}/{tier.maxScore} 分
+            {/* Grade badge */}
+            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ backgroundColor: `${color}15`, border: `1px solid ${color}30` }}>
+              <span className="text-sm font-bold" style={{ color }}>{tier.grade.split("（")[0]}</span>
+              <span className="text-[10px] text-slate-400">{tier.grade.includes("（") ? tier.grade.match(/（(.+?)）/)?.[1] || "" : ""}</span>
             </div>
           </div>
         </div>
 
         {/* Expandable categories */}
-        <div
-          className={cn(
-            "grid gap-1 overflow-hidden transition-all duration-400 ease-out",
-            isExpanded ? "max-h-[800px] opacity-100 mt-3 pt-3 border-t border-white/[0.06]" : "max-h-0 opacity-0"
-          )}
-        >
-          {tier.categories.map((cat) => (
-            <div key={cat.name} className="rounded-lg bg-black/20 p-2.5">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-slate-200">{cat.name}</span>
-                {cat.weight !== undefined && (
-                  <span className="text-[10px] text-slate-500 font-mono">权重 {(cat.weight * 100).toFixed(0)}%</span>
-                )}
-              </div>
-              <div className="space-y-1">
-                {cat.items.map((item) => (
-                  <div key={item.name} className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-400 truncate flex-1 min-w-0">
-                      {item.name}
+        <div className={cn(
+          "grid gap-2 overflow-hidden transition-all duration-400 ease-out",
+          isExpanded ? "max-h-[900px] opacity-100 mt-4 pt-4 border-t border-white/[0.06]" : "max-h-0 opacity-0"
+        )}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            {tier.categories.map((cat) => (
+              <div key={cat.name} className="rounded-xl bg-black/30 p-3 border border-white/[0.04]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-slate-200 truncate">{cat.name}</span>
+                  {cat.weight !== undefined && (
+                    <span className="text-[9px] text-slate-500 font-mono shrink-0 ml-1">
+                      {(cat.weight * 100).toFixed(0)}%
                     </span>
-                    <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden shrink-0">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${(item.score / item.maxScore) * 100}%`,
-                          backgroundColor: color,
-                          opacity: 0.75,
-                        }}
-                      />
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {cat.items.map((item) => (
+                    <div key={item.name}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[10px] text-slate-400 truncate">{item.name}</span>
+                        <StatusBadge status={item.status} />
+                      </div>
+                      <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${(item.score / item.maxScore) * 100}%`,
+                            backgroundColor: color,
+                            opacity: 0.7,
+                          }}
+                        />
+                      </div>
                     </div>
-                    <span className="text-[10px] text-slate-400 w-12 text-right tabular-nums shrink-0">
-                      {item.score}/{item.maxScore}
-                    </span>
-                    <StatusBadge status={item.status} />
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Switchable Radar Chart ─────────────────────────────────── */
+
+function TierRadarChart({
+  activeTierIndex,
+  onSwitchTier,
+}: {
+  activeTierIndex: number;
+  onSwitchTier: (idx: number) => void;
+}) {
+  const activeTier = TIERS[activeTierIndex];
+  const color = TIER_COLORS[activeTierIndex];
+
+  const radarData = useMemo(() =>
+    activeTier.categories.map((cat) => {
+      const sum = cat.items.reduce((a, b) => a + b.score, 0);
+      const max = cat.items.reduce((a, b) => a + b.maxScore, 0);
+      return {
+        dimension: cat.name,
+        value: Math.round(max > 0 ? (sum / max) * 100 : 0),
+        fullMark: 100,
+      };
+    }),
+    [activeTier]
+  );
+
+  return (
+    <Card className="border-white/[0.08] bg-white/[0.03]">
+      <CardContent className="pt-5 pb-4 px-5">
+        {/* Header with switcher */}
+        <div className="flex items-start justify-between mb-1">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-200">评价指标体系雷达图</h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">切换标准查看各维度指标框架得分</p>
+          </div>
+          <div className="flex gap-1.5 shrink-0">
+            {TIERS.map((t, i) => (
+              <button
+                key={t.id}
+                onClick={() => onSwitchTier(i)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-[11px] font-medium transition-all duration-200",
+                  i === activeTierIndex
+                    ? "text-black shadow-md"
+                    : "bg-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.1]"
+                )}
+                style={i === activeTierIndex ? { backgroundColor: color } : {}}
+              >
+                {t.shortName}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Active tier info */}
+        <div className="flex items-center gap-3 mt-3 mb-2 px-3 py-2 rounded-lg bg-black/20 border border-white/[0.04]">
+          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+          <span className="text-xs font-mono text-slate-300">{activeTier.code}</span>
+          <span className="text-xs text-slate-400">—</span>
+          <span className="text-xs text-slate-200">{activeTier.fullName}</span>
+          <span className="ml-auto text-xs font-semibold tabular-nums" style={{ color }}>
+            {activeTier.totalScore}/{activeTier.maxScore} 分
+          </span>
+        </div>
+
+        {/* Radar */}
+        <ResponsiveContainer width="100%" height={320}>
+          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
+            <PolarGrid stroke="rgba(255,255,255,.05)" />
+            <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: "#94A3B8" }} />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 9, fill: "#64748B" }} axisLine={false} tickCount={5} />
+            <Radar
+              name={activeTier.shortName}
+              dataKey="value"
+              stroke={color}
+              fill={color}
+              fillOpacity={0.15}
+              strokeWidth={2.5}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "#1E293B",
+                border: "1px solid rgba(255,255,255,.1)",
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+              formatter={(v: number) => [`${v}%`, "得分率"]}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+
+        {/* Category detail list */}
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {activeTier.categories.map((cat) => {
+            const sum = cat.items.reduce((a, b) => a + b.score, 0);
+            const max = cat.items.reduce((a, b) => a + b.maxScore, 0);
+            const pct = Math.round(max > 0 ? (sum / max) * 100 : 0);
+            return (
+              <div key={cat.name} className="rounded-lg bg-black/20 p-2 border border-white/[0.03]">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-medium text-slate-300 truncate">{cat.name}</span>
+                  <span className="text-[11px] font-bold tabular-nums" style={{ color }}>{pct}%</span>
+                </div>
+                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color, opacity: 0.6 }} />
+                </div>
+                <div className="text-[9px] text-slate-500 mt-1">{sum}/{max} 分 · {cat.items.length}项</div>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
+    </Card>
+  );
+}
+
+/* ── Benchmark Scale Bar ───────────────────────────────────── */
+
+function BenchmarkBar({ bm }: { bm: BenchmarkValue }) {
+  const range = bm.constraint - bm.advanced;
+  const pos = ((bm.current - bm.advanced) / range) * 100;
+  const avgPos = ((bm.average - bm.advanced) / range) * 100;
+  const clampedPos = Math.min(100, Math.max(0, pos));
+
+  let zoneColor: string;
+  if (bm.current <= bm.advanced) zoneColor = "#22C55E";
+  else if (bm.current <= bm.average) zoneColor = "#F59E0B";
+  else zoneColor = "#EF4444";
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-slate-300">{bm.label}</span>
+        <span className="text-sm font-bold tabular-nums" style={{ color: zoneColor }}>
+          {bm.current} <span className="text-[10px] font-normal text-slate-500">{bm.unit}</span>
+        </span>
+      </div>
+      <div className="relative h-6 rounded-full overflow-hidden" style={{
+        background: "linear-gradient(90deg, #22C55E 0%, #84CC16 33%, #F59E0B 66%, #EF4444 100%)",
+      }}>
+        {/* Zone labels */}
+        <div className="absolute inset-x-0 top-0 bottom-0 flex items-center justify-between px-2 pointer-events-none">
+          <span className="text-[8px] text-white/70 font-medium">先进</span>
+          <span className="text-[8px] text-white/70 font-medium">平均</span>
+          <span className="text-[8px] text-white/70 font-medium">约束</span>
+        </div>
+        {/* Average marker */}
+        <div className="absolute top-0 bottom-0 w-[2px] bg-white/60 z-10" style={{ left: `${avgPos}%` }} />
+        {/* Current value pointer */}
+        <div
+          className="absolute top-0 bottom-0 w-[3px] z-20 shadow-lg shadow-current/50"
+          style={{ left: `${clampedPos}%`, backgroundColor: zoneColor }}
+        >
+          <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-black" style={{ backgroundColor: zoneColor }}>
+              当前 {bm.current}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-between text-[9px] text-slate-600 font-mono">
+        <span>{bm.advanced}</span>
+        <span>{bm.average}</span>
+        <span>{bm.constraint}</span>
+      </div>
     </div>
   );
 }
@@ -457,64 +570,15 @@ function TierStepCard({
 
 export default function EvaluationPage() {
   const [expandedTier, setExpandedTier] = useState<number | null>(null);
-
-  // Radar data — each dimension = category avg score %
-  const radarData = useMemo(() => {
-    const dims = ["管理与制度", "建筑设备", "资源利用", "环境健康", "教育文化"];
-    return dims.map((dim) => {
-      const vals: Record<string, number> = {};
-      TIERS.forEach((t) => {
-        let sum = 0,
-          max = 0;
-        t.categories.forEach((c) => {
-          c.items.forEach((i) => {
-            sum += i.score;
-            max += i.maxScore;
-          });
-        });
-        vals[t.id] = max > 0 ? (sum / max) * 100 : 0;
-      });
-      return { dimension: dim, ...vals };
-    });
-  }, []);
-
-  // Stacked bar data for score comparison
-  const barData = useMemo(() =>
-    TIERS.map((t) => ({
-      name: t.shortName,
-      得分: t.totalScore,
-      满分: t.maxScore - t.totalScore,
-      color: TIER_COLORS[t.level - 1],
-    })),
-  []
-  );
-
-  // Category-level comparison bar chart
-  const catCompareData = useMemo(() => {
-    const allCats = [...new Set(TIERS.flatMap((t) => t.categories.map((c) => c.name)))].slice(0, 6);
-    return allCats.map((catName) => {
-      const row: Record<string, string | number> = { name: catName };
-      TIERS.forEach((t) => {
-        const cat = t.categories.find((c) => c.name === catName);
-        if (cat) {
-          const s = cat.items.reduce((a, b) => a + b.score, 0);
-          const m = cat.items.reduce((a, b) => a + b.maxScore, 0);
-          row[t.shortName] = m > 0 ? +((s / m) * 100).toFixed(1) : 0;
-        } else {
-          row[t.shortName] = 0;
-        }
-      });
-      return row;
-    });
-  }, []);
+  const [radarTierIdx, setRadarTierIdx] = useState(0);
 
   return (
-    <div className="min-h-screen bg-[#0A0E27] text-white p-4 md:p-6 space-y-5">
+    <div className="min-h-screen bg-[#0A0E27] text-white p-4 md:p-6 space-y-6">
       {/* ── Page header ── */}
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">绿色 / 低碳校园评价</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">绿色 / 低碳校园评价</h1>
+          <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">
             基于国家标准 GB/T 29117-2012、GB/T 51356-2019 与北京市地方标准 DB11/T 1404-2025 的三层递进评价体系
           </p>
         </div>
@@ -525,299 +589,78 @@ export default function EvaluationPage() {
       </header>
 
       {/* ════════════════════════════════════════════ */}
-      {/*  ROW 1 – Three-tier Progressive Architecture   */}
+      {/*  HERO — Three-tier Progressive Architecture   */}
       {/* ════════════════════════════════════════════ */}
       <section>
-        <h2 className="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 bg-cyan-400 rounded-full" />
-          三层递进评价体系
-        </h2>
-        <div className="relative grid gap-6 max-w-3xl mx-auto">
-          {/* Background gradient line */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className="w-1.5 h-6 bg-cyan-400 rounded-full" />
+          <h2 className="text-base font-semibold text-cyan-400 uppercase tracking-wider">三层递进评价体系</h2>
+          <span className="text-[10px] text-slate-500 ml-auto">点击卡片展开详细指标</span>
+        </div>
+
+        {/* Staggered ascending layout */}
+        <div className="relative grid gap-5">
+          {/* Background gradient track */}
           <div
-            className="absolute left-1/2 top-0 bottom-0 w-[2px] -translate-x-1/2 z-0 hidden sm:block"
+            className="absolute left-8 top-0 bottom-0 w-[3px] rounded-full hidden lg:block"
             style={{
-              background:
-                "linear-gradient(to bottom, #22C55E 0%, #F59E0B 50%, #EF4444 100%)",
-              opacity: 0.35,
+              background: "linear-gradient(to bottom, #22C55E 0%, #F59E0B 45%, #EF4444 100%)",
+              opacity: 0.2,
             }}
           />
 
           {TIERS.map((tier, i) => (
-            <TierStepCard
+            <div
               key={tier.id}
-              tier={tier}
-              index={i}
-              isExpanded={expandedTier === i}
-              onToggle={() => setExpandedTier(expandedTier === i ? null : i)}
-            />
+              className={cn(
+                "relative transition-all duration-300",
+                i === 0 && "lg:ml-0",
+                i === 1 && "lg:ml-12",
+                i === 2 && "lg:ml-24",
+              )}
+            >
+              {/* Connector dot */}
+              <div className="hidden lg:flex absolute -left-[19px] top-8 w-3 h-3 rounded-full border-2 z-10"
+                style={{ borderColor: TIER_COLORS[i], backgroundColor: "#0A0E27" }}
+              />
+
+              <HeroTierCard
+                tier={tier}
+                index={i}
+                isExpanded={expandedTier === i}
+                onToggle={() => setExpandedTier(expandedTier === i ? null : i)}
+              />
+            </div>
           ))}
         </div>
       </section>
 
       {/* ════════════════════════════════════════════ */}
-      {/*  ROW 2 – Score Comparison (Advanced Visual)     */}
+      {/*  ROW 2 — Switchable Radar Chart               */}
       {/* ════════════════════════════════════════════ */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Left: Stacked horizontal bars */}
-        <Card className="border-white/[0.08] bg-white/[0.03]">
-          <CardContent className="pt-5 pb-4 px-5">
-            <h3 className="text-sm font-semibold text-slate-200 mb-1">三层标准总得分对比</h3>
-            <p className="text-[10px] text-slate-500 mb-4">得分越高代表该标准下综合表现越好</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "#CBD5E1" }} width={70} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: "#1E293B",
-                    border: "1px solid rgba(255,255,255,.1)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(v: number) => [`${v.toFixed(1)} 分`, ""]}
-                />
-                <Bar dataKey="得分" stackId="a" radius={[0, 4, 4, 0]}>
-                  {barData.map((entry, idx) => (
-                    <Cell key={idx} fill={entry.color} />
-                  ))}
-                </Bar>
-                <Bar dataKey="满分" stackId="a" fill="rgba(255,255,255,.05)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Right: Radar chart */}
-        <Card className="border-white/[0.08] bg-white/[0.03]">
-          <CardContent className="pt-5 pb-4 px-5">
-            <h3 className="text-sm font-semibold text-slate-200 mb-1">多维度能力雷达图</h3>
-            <p className="text-[10px] text-slate-500 mb-4">覆盖面越广、得分越高说明综合能力越强</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                <PolarGrid stroke="rgba(255,255,255,.06)" />
-                <PolarAngleAxis
-                  dataKey="dimension"
-                  tick={{ fontSize: 10, fill: "#94A3B8" }}
-                />
-                <PolarRadiusAxis
-                  angle={90}
-                  domain={[0, 100]}
-                  tick={{ fontSize: 9, fill: "#64748B" }}
-                  axisLine={false}
-                  tickCount={5}
-                />
-                {TIERS.map((t, i) => (
-                  <Radar
-                    key={t.id}
-                    name={t.shortName}
-                    dataKey={t.id}
-                    stroke={TIER_COLORS[i]}
-                    fill={TIER_COLORS[i]}
-                    fillOpacity={0.12}
-                    strokeWidth={2}
-                  />
-                ))}
-                <Tooltip
-                  contentStyle={{
-                    background: "#1E293B",
-                    border: "1px solid rgba(255,255,255,.1)",
-                    borderRadius: 8,
-                    fontSize: 11,
-                  }}
-                  formatter={(v: number) => [`${v.toFixed(1)}%`, ""]}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
-            <div className="flex items-center justify-center gap-4 mt-2">
-              {TIERS.map((t, i) => (
-                <div key={t.id} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TIER_COLORS[i] }} />
-                  <span className="text-[10px] text-slate-400">{t.shortName}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <section>
+        <TierRadarChart activeTierIndex={radarTierIdx} onSwitchTier={setRadarTierIdx} />
       </section>
 
       {/* ════════════════════════════════════════════ */}
-      {/*  ROW 3 – Category-level Comparison             */}
+      {/*  ROW 3 — Carbon Intensity Benchmark (DB11)     */}
       {/* ════════════════════════════════════════════ */}
       <Card className="border-white/[0.08] bg-white/[0.03]">
-        <CardContent className="pt-5 pb-4 px-5">
-          <h3 className="text-sm font-semibold text-slate-200 mb-1">分类维度逐项对比</h3>
-          <p className="text-[10px] text-slate-500 mb-4">同一维度在不同标准下的得分率差异一目了然</p>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={catCompareData} barGap={4} barCategoryGap={12}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} interval={0} angle={-15} textAnchor="end" height={45} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} unit="%" />
-              <Tooltip
-                contentStyle={{
-                  background: "#1E293B",
-                  border: "1px solid rgba(255,255,255,.1)",
-                  borderRadius: 8,
-                  fontSize: 11,
-                }}
-                formatter={(v: number) => [`${v.toFixed(1)}%`, ""]}
-              />
-              {TIERS.map((t, i) => (
-                <Bar key={t.id} dataKey={t.shortName} fill={TIER_COLORS[i]} radius={[3, 3, 0, 0]} opacity={0.85} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* ════════════════════════════════════════════ */}
-      {/*  ROW 4 – Carbon Intensity Benchmark (DB11)     */}
-      {/* ════════════════════════════════════════════ */}
-      <Card className="border-white/[0.08] bg-white/[0.03]">
-        <CardContent className="pt-5 pb-4 px-5">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-sm font-semibold text-slate-200">碳排放强度基准对标（DB11/T 1404-2025）</h3>
+        <CardContent className="pt-5 pb-5 px-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-200">碳排放强度基准对标</h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">DB11/T 1404-2025 北京市地方标准 · 约束值 → 平均值 → 先进值</p>
+            </div>
             <Badge variant="outline" className="text-[10px] border-purple-400/40 text-purple-300 bg-purple-400/10">
-              北京市地方标准
+              北京地标
             </Badge>
           </div>
-          <p className="text-[10px] text-slate-500 mb-4">
-            约束值（底线）→ 平均值（行业）→ 先进值（目标），当前值位置反映低碳水平
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {BENCHMARKS.map((bm) => {
-              const range = bm.constraint - bm.advanced;
-              const pos = ((bm.constraint - bm.current) / range) * 100;
-              const clampedPos = Math.max(0, Math.min(100, pos));
-              const isGood = bm.current <= bm.average;
-              return (
-                <div key={bm.label} className="rounded-lg bg-black/20 p-4">
-                  <p className="text-xs font-medium text-slate-300 mb-3">{bm.label}</p>
-                  <div className="relative h-8 bg-white/5 rounded-md overflow-hidden mb-2">
-                    {/* Gradient zone: red → yellow → green */}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background: `linear-gradient(to right, #EF4444 0%, #F59E0B 50%, #22C55E 100%)`,
-                        opacity: 0.25,
-                      }}
-                    />
-                    {/* Constraint marker */}
-                    <div className="absolute top-0 bottom-0 left-0 w-[1px] bg-red-400/60" style={{ left: "0%" }} />
-                    <span className="absolute -top-4 left-0 text-[9px] text-red-400 whitespace-nowrap">
-                      约束{bm.constraint}
-                    </span>
-                    {/* Average marker */}
-                    <div
-                      className="absolute top-0 bottom-0 w-[1px] bg-yellow-400/60"
-                      style={{ left: `${((bm.constraint - bm.average) / range) * 100}%` }}
-                    />
-                    <span
-                      className="absolute -top-4 text-[9px] text-yellow-400 whitespace-nowrap"
-                      style={{ left: `${((bm.constraint - bm.average) / range) * 100}%`, transform: "translateX(-50%)" }}
-                    >
-                      平均{bm.average}
-                    </span>
-                    {/* Advanced marker */}
-                    <div
-                      className="absolute top-0 bottom-0 w-[1px] bg-green-400/60"
-                      style={{ left: `${((bm.constraint - bm.advanced) / range) * 100}%` }}
-                    />
-                    <span
-                      className="absolute -top-4 text-[9px] text-green-400 whitespace-nowrap"
-                      style={{ left: `${((bm.constraint - bm.advanced) / range) * 100}%`, transform: "translateX(-50%)" }}
-                    >
-                      先进{bm.advanced}
-                    </span>
-                    {/* Current value pointer */}
-                    <div
-                      className="absolute top-0 bottom-0 w-[3px] rounded-full shadow-lg z-10"
-                      style={{ left: `${clampedPos}%`, backgroundColor: isGood ? "#22C55E" : "#F59E0B" }}
-                    />
-                    <div
-                      className="absolute -top-5 text-[10px] font-bold whitespace-nowrap z-10"
-                      style={{ left: `${clampedPos}%`, transform: "translateX(-50%)", color: isGood ? "#22C55E" : "#F59E0B" }}
-                    >
-                      当前 {bm.current} {bm.unit}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className={cn(isGood ? "text-green-400" : "text-yellow-400")}>
-                      {isGood ? "✓ 达到平均值以上" : "△ 未达平均值"}
-                    </span>
-                    <span className="text-slate-500">{bm.unit}</span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-5">
+            {BENCHMARKS.map((bm) => <BenchmarkBar key={bm.label} bm={bm} />)}
           </div>
         </CardContent>
       </Card>
-
-      {/* ════════════════════════════════════════════ */}
-      {/*  ROW 5 – Progression Summary                     */}
-      {/* ════════════════════════════════════════════ */}
-      <Card className="border-white/[0.08] bg-white/[0.03]">
-        <CardContent className="pt-5 pb-4 px-5">
-          <h3 className="text-sm font-semibold text-slate-200 mb-4">层级递进关系总览</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-white/[0.06]">
-                  <th className="text-left py-2.5 px-3 text-slate-400 font-medium">层级</th>
-                  <th className="text-left py-2.5 px-3 text-slate-400 font-medium">标准编号</th>
-                  <th className="text-left py-2.5 px-3 text-slate-400 font-medium">性质</th>
-                  <th className="text-right py-2.5 px-3 text-slate-400 font-medium">总分</th>
-                  <th className="text-right py-2.5 px-3 text-slate-400 font-medium">等级</th>
-                  <th className="text-left py-2.5 px-3 text-slate-400 font-medium">核心关注</th>
-                </tr>
-              </thead>
-              <tbody>
-                {TIERS.map((t, i) => (
-                  <tr key={t.id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
-                    <td className="py-2.5 px-3">
-                      <span
-                        className="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-black"
-                        style={{ backgroundColor: TIER_COLORS[i] }}
-                      >
-                        L{i + 1}
-                      </span>
-                      <span className="ml-2 text-slate-200 font-medium">{t.shortName}</span>
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-slate-400">{t.code}</td>
-                    <td className="py-2.5 px-3">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px]",
-                          t.type === "national"
-                            ? "border-blue-400/40 text-blue-300"
-                            : "border-purple-400/40 text-purple-300"
-                        )}
-                      >
-                        {t.type === "national" ? "国标" : "地标"}
-                      </Badge>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-mono tabular-nums" style={{ color: TIER_COLORS[i] }}>
-                      {t.totalScore.toFixed(1)}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-slate-300">{t.grade}</td>
-                    <td className="py-2.5 px-3 text-slate-400">
-                      {i === 0 && "资源节约、能源管理"}
-                      {i === 1 && "生态规划、健康环境、教育推广"}
-                      {i === 2 && "碳排放强度、低碳文化与运行"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Watermark */}
-      <p className="text-center text-[10px] text-slate-600 pb-4">Demo 模拟数据，不用于申报</p>
     </div>
   );
 }
