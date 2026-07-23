@@ -108,32 +108,28 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
                 collapsed ? "px-2" : "px-3"
             )}>
                 {navigation.map(section => {
-                    // Direct-link section (no children)
+                    // Direct-link section (no children) — same header style as sections with children
                     if ("href" in section && section.href) {
-                        const isActive = pathname === section.href;
+                        const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
                         return (
                             <div key={section.name} className="mb-4">
                                 {!collapsed && (
                                     <Link
                                         href={section.href}
                                         className={cn(
-                                            "flex items-center gap-3 rounded-lg text-sm transition-all duration-200 group px-3 py-2.5",
-                                            isActive ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 shadow-lg shadow-cyan-500/10" : "text-gray-400 hover:bg-slate-800/50 hover:text-cyan-300"
+                                            "flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors duration-200",
+                                            isActive ? "text-cyan-400" : "text-cyan-400 hover:text-cyan-300"
                                         )}>
-                                        <section.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-cyan-400" : "text-gray-500 group-hover:text-cyan-400")} />
-                                        <span className="flex-1">{section.name}</span>
-                                        {isActive && <ChevronRight className="w-4 h-4 text-cyan-400" />}
+                                        <section.icon className="w-4 h-4" />
+                                        <span>{section.name}</span>
                                     </Link>
                                 )}
                                 {collapsed && (
                                     <Link
                                         href={section.href}
                                         title={section.name}
-                                        className={cn(
-                                            "flex items-center justify-center rounded-lg text-sm transition-all duration-200 group px-2 py-2.5",
-                                            isActive ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 shadow-lg shadow-cyan-500/10" : "text-gray-400 hover:bg-slate-800/50 hover:text-cyan-300"
-                                        )}>
-                                        <section.icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-cyan-400" : "text-gray-500 group-hover:text-cyan-400")} />
+                                        className="flex justify-center py-2">
+                                        <section.icon className="w-4 h-4 text-cyan-400" />
                                     </Link>
                                 )}
                             </div>
