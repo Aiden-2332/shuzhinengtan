@@ -15,8 +15,8 @@ function getIntensityColor(level: CalendarHeatmapDay["level"]): string {
     case "low": return "bg-sky-400 text-white";
     case "abnormal_low": return "bg-blue-600 text-white";
     case "holiday": return "bg-violet-400 text-white";
-    case "weekend": return "bg-slate-300 text-slate-600";
-    default: return "bg-slate-200 text-slate-500";
+    case "weekend": return "bg-slate-200 text-slate-600";
+    default: return "bg-slate-100 text-slate-400";
   }
 }
 
@@ -34,7 +34,7 @@ function getLevelLabel(level: CalendarHeatmapDay["level"]): string {
 }
 
 export default function EnergyCalendarPage() {
-  const [selectedMonth, setSelectedMonth] = useState(6); // July (0-indexed)
+  const [selectedMonth, setSelectedMonth] = useState(6);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<"calendar" | "profile" | "typical" | "semester">("calendar");
 
@@ -43,7 +43,6 @@ export default function EnergyCalendarPage() {
   const semesterComparison = useMemo(() => getSemesterComparison(), []);
   const energyProfile = useMemo(() => getEnergyProfile(), []);
 
-  // Filter days for selected month
   const monthDays = useMemo(() => {
     return heatmapDays.filter((d) => {
       const m = parseInt(d.date.split("-")[1], 10);
@@ -51,12 +50,11 @@ export default function EnergyCalendarPage() {
     });
   }, [heatmapDays, selectedMonth]);
 
-  // Build calendar grid
   const calendarGrid = useMemo(() => {
     const firstDay = monthDays[0];
     if (!firstDay) return [];
     const firstDate = new Date(firstDay.date);
-    const startDow = (firstDate.getDay() + 6) % 7; // Monday = 0
+    const startDow = (firstDate.getDay() + 6) % 7;
     const weeks: (CalendarHeatmapDay | null)[][] = [];
     let currentWeek: (CalendarHeatmapDay | null)[] = Array(startDow).fill(null);
 
@@ -79,7 +77,6 @@ export default function EnergyCalendarPage() {
     return heatmapDays.find((d) => d.date === selectedDay) ?? null;
   }, [selectedDay, heatmapDays]);
 
-  // Stats
   const monthStats = useMemo(() => {
     if (monthDays.length === 0) return { totalTce: 0, avgIntensity: 0, abnormalCount: 0, alertCount: 0 };
     const totalTce = monthDays.reduce((s, d) => s + d.totalTce, 0);
@@ -90,20 +87,20 @@ export default function EnergyCalendarPage() {
   }, [monthDays]);
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-100 overflow-auto">
+    <div className="flex flex-col h-full bg-white text-slate-800 overflow-auto">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
         <div>
           <h1 className="text-xl font-bold">用能日历</h1>
-          <p className="text-sm text-slate-400 mt-0.5">逐日用能热力图 · 用能画像 · 典型日对比 · 学期对比</p>
+          <p className="text-sm text-slate-500 mt-0.5">逐日用能热力图 · 用能画像 · 典型日对比 · 学期对比</p>
         </div>
-        <div className="flex gap-1 bg-slate-800 rounded-lg p-1">
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
           {(["calendar", "profile", "typical", "semester"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setViewTab(tab)}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                viewTab === tab ? "bg-cyan-500/20 text-cyan-400" : "text-slate-400 hover:text-slate-200"
+                viewTab === tab ? "bg-cyan-500 text-white" : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {{ calendar: "热力图", profile: "用能画像", typical: "典型日对比", semester: "学期对比" }[tab]}
@@ -124,11 +121,11 @@ export default function EnergyCalendarPage() {
                 { label: "异常天数", value: `${monthStats.abnormalCount}`, unit: "天", warn: monthStats.abnormalCount > 0 },
                 { label: "告警次数", value: `${monthStats.alertCount}`, unit: "次", warn: monthStats.alertCount > 0 },
               ].map((stat, i) => (
-                <div key={i} className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                  <div className="text-xs text-slate-400 mb-1">{stat.label}</div>
-                  <div className={`text-2xl font-bold ${stat.warn ? "text-red-400" : "text-slate-100"}`}>
+                <div key={i} className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                  <div className="text-xs text-slate-500 mb-1">{stat.label}</div>
+                  <div className={`text-2xl font-bold ${stat.warn ? "text-red-500" : "text-slate-800"}`}>
                     {stat.value}
-                    <span className="text-sm font-normal text-slate-500 ml-1">{stat.unit}</span>
+                    <span className="text-sm font-normal text-slate-400 ml-1">{stat.unit}</span>
                   </div>
                 </div>
               ))}
@@ -136,11 +133,11 @@ export default function EnergyCalendarPage() {
 
             {/* Month Selector */}
             <div className="flex items-center gap-2">
-              <button onClick={() => setSelectedMonth(Math.max(0, selectedMonth - 1))} className="p-1.5 rounded hover:bg-slate-800 text-slate-400">
+              <button onClick={() => setSelectedMonth(Math.max(0, selectedMonth - 1))} className="p-1.5 rounded hover:bg-slate-100 text-slate-500">
                 ◀
               </button>
               <span className="text-lg font-semibold min-w-[80px] text-center">{MONTHS[selectedMonth]}</span>
-              <button onClick={() => setSelectedMonth(Math.min(11, selectedMonth + 1))} className="p-1.5 rounded hover:bg-slate-800 text-slate-400">
+              <button onClick={() => setSelectedMonth(Math.min(11, selectedMonth + 1))} className="p-1.5 rounded hover:bg-slate-100 text-slate-500">
                 ▶
               </button>
               <div className="flex gap-2 ml-4 text-xs">
@@ -150,7 +147,7 @@ export default function EnergyCalendarPage() {
                   { color: "bg-emerald-500", label: "正常" },
                   { color: "bg-sky-400", label: "偏低" },
                   { color: "bg-violet-400", label: "假期" },
-                  { color: "bg-slate-300", label: "周末" },
+                  { color: "bg-slate-200", label: "周末" },
                 ].map((l) => (
                   <span key={l.label} className="flex items-center gap-1">
                     <span className={`w-3 h-3 rounded-sm ${l.color}`} />
@@ -161,10 +158,10 @@ export default function EnergyCalendarPage() {
             </div>
 
             {/* Calendar Grid */}
-            <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden">
-              <div className="grid grid-cols-7 border-b border-slate-700/50">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="grid grid-cols-7 border-b border-slate-200">
                 {WEEKDAYS.map((d) => (
-                  <div key={d} className="text-center text-xs text-slate-500 py-2 font-medium">{d}</div>
+                  <div key={d} className="text-center text-xs text-slate-400 py-2 font-medium">{d}</div>
                 ))}
               </div>
               <div>
@@ -174,7 +171,7 @@ export default function EnergyCalendarPage() {
                       <div
                         key={di}
                         onClick={() => day && setSelectedDay(day.date)}
-                        className={`aspect-square p-1.5 border-r border-b border-slate-700/30 cursor-pointer transition-all hover:ring-2 hover:ring-cyan-400/50 hover:z-10 ${
+                        className={`aspect-square p-1.5 border-r border-b border-slate-100 cursor-pointer transition-all hover:ring-2 hover:ring-cyan-400/50 hover:z-10 ${
                           selectedDay === day?.date ? "ring-2 ring-cyan-400 z-10" : ""
                         }`}
                       >
@@ -194,9 +191,9 @@ export default function EnergyCalendarPage() {
 
             {/* Selected Day Detail */}
             {selectedDayData && (
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">{selectedDayData.date} 用能详情</h3>
+                  <h3 className="text-lg font-semibold text-slate-800">{selectedDayData.date} 用能详情</h3>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${getIntensityColor(selectedDayData.level)}`}>
                     {getLevelLabel(selectedDayData.level)}
                   </span>
@@ -209,10 +206,10 @@ export default function EnergyCalendarPage() {
                     { label: "天然气", value: selectedDayData.gas.toFixed(1), unit: "m³" },
                     { label: "热力", value: selectedDayData.heat.toFixed(1), unit: "GJ" },
                   ].map((item, i) => (
-                    <div key={i} className="bg-slate-900/50 rounded-lg p-3 text-center">
-                      <div className="text-xs text-slate-400">{item.label}</div>
-                      <div className="text-lg font-bold text-slate-100 mt-1">{item.value}</div>
-                      <div className="text-[10px] text-slate-500">{item.unit}</div>
+                    <div key={i} className="bg-slate-50 rounded-lg p-3 text-center border border-slate-100">
+                      <div className="text-xs text-slate-500">{item.label}</div>
+                      <div className="text-lg font-bold text-slate-800 mt-1">{item.value}</div>
+                      <div className="text-[10px] text-slate-400">{item.unit}</div>
                     </div>
                   ))}
                 </div>
@@ -242,22 +239,22 @@ function EnergyProfileView({ profile }: { profile: EnergyProfile }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <div className="text-xs text-slate-400">峰谷比</div>
-          <div className="text-2xl font-bold text-slate-100 mt-1">{profile.peakValleyRatio.toFixed(1)}</div>
-          <div className="text-[10px] text-slate-500">峰时/谷时</div>
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+          <div className="text-xs text-slate-500">峰谷比</div>
+          <div className="text-2xl font-bold text-slate-800 mt-1">{profile.peakValleyRatio.toFixed(1)}</div>
+          <div className="text-[10px] text-slate-400">峰时/谷时</div>
         </div>
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <div className="text-xs text-slate-400">峰时段</div>
-          <div className="text-sm font-medium text-orange-400 mt-1">{profile.peakHours.join(", ")}</div>
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+          <div className="text-xs text-slate-500">峰时段</div>
+          <div className="text-sm font-medium text-orange-500 mt-1">{profile.peakHours.join(", ")}</div>
         </div>
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <div className="text-xs text-slate-400">谷时段</div>
-          <div className="text-sm font-medium text-sky-400 mt-1">{profile.valleyHours.join(", ")}</div>
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+          <div className="text-xs text-slate-500">谷时段</div>
+          <div className="text-sm font-medium text-sky-500 mt-1">{profile.valleyHours.join(", ")}</div>
         </div>
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-          <div className="text-xs text-slate-400">季节模式</div>
-          <div className="text-sm font-medium text-slate-300 mt-1">
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+          <div className="text-xs text-slate-500">季节模式</div>
+          <div className="text-sm font-medium text-slate-700 mt-1">
             {profile.seasonalPattern.map((s) => s.dominantEnergy).join(" → ")}
           </div>
         </div>
@@ -269,7 +266,7 @@ function EnergyProfileView({ profile }: { profile: EnergyProfile }) {
             key={p}
             onClick={() => setSelectedPattern(p)}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              selectedPattern === p ? "bg-cyan-500/20 text-cyan-400" : "text-slate-400 hover:text-slate-200"
+              selectedPattern === p ? "bg-cyan-500 text-white" : "text-slate-500 hover:text-slate-700 bg-slate-100"
             }`}
           >
             {{ workday: "工作日", weekend: "周末", holiday: "节假日" }[p]}
@@ -277,20 +274,16 @@ function EnergyProfileView({ profile }: { profile: EnergyProfile }) {
         ))}
       </div>
 
-      {/* SVG Line Chart */}
-      <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-6">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <svg viewBox="0 0 800 250" className="w-full h-64">
-          {/* Grid */}
           {[0, 0.25, 0.5, 0.75, 1].map((r) => (
-            <line key={r} x1={40} y1={20 + r * 200} x2={780} y2={20 + r * 200} stroke="#334155" strokeWidth="0.5" />
+            <line key={r} x1={40} y1={20 + r * 200} x2={780} y2={20 + r * 200} stroke="#e2e8f0" strokeWidth="0.5" />
           ))}
-          {/* Y labels */}
           {[0, 0.25, 0.5, 0.75, 1].map((r) => (
-            <text key={r} x={35} y={24 + r * 200} textAnchor="end" className="text-[10px] fill-slate-500">
+            <text key={r} x={35} y={24 + r * 200} textAnchor="end" className="text-[10px] fill-slate-400">
               {(maxVal * (1 - r)).toFixed(0)}
             </text>
           ))}
-          {/* Line */}
           <polyline
             fill="none"
             stroke="#06B6D4"
@@ -304,7 +297,6 @@ function EnergyProfileView({ profile }: { profile: EnergyProfile }) {
               })
               .join(" ")}
           />
-          {/* Area fill */}
           <polygon
             fill="url(#areaGrad)"
             points={`${40},220 ${currentCurve
@@ -318,29 +310,27 @@ function EnergyProfileView({ profile }: { profile: EnergyProfile }) {
           />
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#06B6D4" stopOpacity="0.3" />
+              <stop offset="0%" stopColor="#06B6D4" stopOpacity="0.2" />
               <stop offset="100%" stopColor="#06B6D4" stopOpacity="0" />
             </linearGradient>
           </defs>
-          {/* X labels */}
           {[0, 3, 6, 9, 12, 15, 18, 21, 23].map((h) => (
-            <text key={h} x={40 + (h / 23) * 740} y={240} textAnchor="middle" className="text-[10px] fill-slate-500">
+            <text key={h} x={40 + (h / 23) * 740} y={240} textAnchor="middle" className="text-[10px] fill-slate-400">
               {`${h}:00`}
             </text>
           ))}
         </svg>
       </div>
 
-      {/* Seasonal Pattern */}
-      <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5">
-        <h3 className="text-sm font-semibold mb-3">季节用能模式</h3>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h3 className="text-sm font-semibold text-slate-700 mb-3">季节用能模式</h3>
         <div className="grid grid-cols-4 gap-3">
           {profile.seasonalPattern.map((s) => (
-            <div key={s.season} className="bg-slate-900/50 rounded-lg p-3 text-center">
-              <div className="text-xs text-slate-400">{{ spring: "春季", summer: "夏季", autumn: "秋季", winter: "冬季" }[s.season]}</div>
-              <div className="text-lg font-bold text-slate-100 mt-1">{s.avgDaily.toFixed(1)}</div>
-              <div className="text-[10px] text-slate-500">tce/日</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">峰值 {s.peakDemand.toFixed(0)} kW</div>
+            <div key={s.season} className="bg-slate-50 rounded-lg p-3 text-center border border-slate-100">
+              <div className="text-xs text-slate-500">{{ spring: "春季", summer: "夏季", autumn: "秋季", winter: "冬季" }[s.season]}</div>
+              <div className="text-lg font-bold text-slate-800 mt-1">{s.avgDaily.toFixed(1)}</div>
+              <div className="text-[10px] text-slate-400">tce/日</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">峰值 {s.peakDemand.toFixed(0)} kW</div>
             </div>
           ))}
         </div>
@@ -363,7 +353,7 @@ function TypicalDayView({ data }: { data: TypicalDayComparison }) {
             key={i}
             onClick={() => setSelectedDay(i)}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              selectedDay === i ? "bg-cyan-500/20 text-cyan-400" : "text-slate-400 hover:text-slate-200"
+              selectedDay === i ? "bg-cyan-500 text-white" : "text-slate-500 hover:text-slate-700 bg-slate-100"
             }`}
           >
             {d.label} ({d.date})
@@ -371,10 +361,10 @@ function TypicalDayView({ data }: { data: TypicalDayComparison }) {
         ))}
       </div>
 
-      <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-6">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <svg viewBox="0 0 800 250" className="w-full h-64">
           {[0, 0.25, 0.5, 0.75, 1].map((r) => (
-            <line key={r} x1={40} y1={20 + r * 200} x2={780} y2={20 + r * 200} stroke="#334155" strokeWidth="0.5" />
+            <line key={r} x1={40} y1={20 + r * 200} x2={780} y2={20 + r * 200} stroke="#e2e8f0" strokeWidth="0.5" />
           ))}
           <polyline
             fill="none"
@@ -390,7 +380,7 @@ function TypicalDayView({ data }: { data: TypicalDayComparison }) {
               .join(" ")}
           />
           {[0, 3, 6, 9, 12, 15, 18, 21, 23].map((h) => (
-            <text key={h} x={40 + (h / 23) * 740} y={240} textAnchor="middle" className="text-[10px] fill-slate-500">
+            <text key={h} x={40 + (h / 23) * 740} y={240} textAnchor="middle" className="text-[10px] fill-slate-400">
               {`${h}:00`}
             </text>
           ))}
@@ -405,46 +395,45 @@ function SemesterView({ data }: { data: SemesterComparison }) {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         {data.semesters.map((sem, i) => (
-          <div key={i} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-5">
-            <h3 className="text-lg font-semibold text-slate-100 mb-3">{sem.name}</h3>
-            <div className="text-xs text-slate-500 mb-2">{sem.startDate} ~ {sem.endDate}</div>
+          <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h3 className="text-lg font-semibold text-slate-800 mb-3">{sem.name}</h3>
+            <div className="text-xs text-slate-400 mb-2">{sem.startDate} ~ {sem.endDate}</div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400">总能耗</div>
-                <div className="text-xl font-bold text-slate-100">{sem.totalTce.toFixed(1)} <span className="text-sm font-normal text-slate-500">tce</span></div>
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <div className="text-xs text-slate-500">总能耗</div>
+                <div className="text-xl font-bold text-slate-800">{sem.totalTce.toFixed(1)} <span className="text-sm font-normal text-slate-400">tce</span></div>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400">日均能耗</div>
-                <div className="text-xl font-bold text-slate-100">{sem.avgDailyTce.toFixed(2)} <span className="text-sm font-normal text-slate-500">tce</span></div>
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <div className="text-xs text-slate-500">日均能耗</div>
+                <div className="text-xl font-bold text-slate-800">{sem.avgDailyTce.toFixed(2)} <span className="text-sm font-normal text-slate-400">tce</span></div>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400">电力</div>
-                <div className="text-lg font-bold text-sky-400">{sem.electricity.toFixed(0)} <span className="text-xs font-normal text-slate-500">kWh</span></div>
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <div className="text-xs text-slate-500">电力</div>
+                <div className="text-lg font-bold text-sky-600">{sem.electricity.toFixed(0)} <span className="text-xs font-normal text-slate-400">kWh</span></div>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400">水耗</div>
-                <div className="text-lg font-bold text-blue-400">{sem.water.toFixed(0)} <span className="text-xs font-normal text-slate-500">m³</span></div>
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <div className="text-xs text-slate-500">水耗</div>
+                <div className="text-lg font-bold text-blue-600">{sem.water.toFixed(0)} <span className="text-xs font-normal text-slate-400">m³</span></div>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400">天然气</div>
-                <div className="text-lg font-bold text-orange-400">{sem.gas.toFixed(0)} <span className="text-xs font-normal text-slate-500">m³</span></div>
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <div className="text-xs text-slate-500">天然气</div>
+                <div className="text-lg font-bold text-orange-600">{sem.gas.toFixed(0)} <span className="text-xs font-normal text-slate-400">m³</span></div>
               </div>
-              <div className="bg-slate-900/50 rounded-lg p-3">
-                <div className="text-xs text-slate-400">热力</div>
-                <div className="text-lg font-bold text-red-400">{sem.heat.toFixed(0)} <span className="text-xs font-normal text-slate-500">GJ</span></div>
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <div className="text-xs text-slate-500">热力</div>
+                <div className="text-lg font-bold text-red-600">{sem.heat.toFixed(0)} <span className="text-xs font-normal text-slate-400">GJ</span></div>
               </div>
             </div>
-            <div className="mt-3 text-xs text-slate-500">
+            <div className="mt-3 text-xs text-slate-400">
               峰值日: {sem.peakDemandDay} ({sem.peakDemandValue.toFixed(0)} kW)
             </div>
           </div>
         ))}
       </div>
 
-      {/* Comparison bars */}
       {data.semesters.length >= 2 && (
-        <div className="bg-slate-800/30 rounded-xl border border-slate-700/50 p-5">
-          <h3 className="text-sm font-semibold mb-4">学期能耗对比</h3>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-slate-700 mb-4">学期能耗对比</h3>
           <div className="space-y-3">
             {(["electricity", "water", "gas", "heat"] as const).map((key) => {
               const v0 = data.semesters[0]?.[key] ?? 0;
