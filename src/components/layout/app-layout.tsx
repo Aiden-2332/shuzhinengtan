@@ -13,7 +13,7 @@ interface AppLayoutProps {
 const COCKPIT_ROUTES = ["/", "/operations"];
 
 // 能源管理页面 - 白色背景
-const ENERGY_ROUTES = ["/energy", "/energy-monitor", "/energy/calendar", "/energy-diagnosis"];
+const ENERGY_ROUTES = ["/energy-monitor", "/energy-diagnosis"];
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

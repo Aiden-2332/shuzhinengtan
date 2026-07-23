@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
-  CalendarDays,
   Calculator,
   Brain,
   Cpu,
@@ -47,32 +46,6 @@ interface PortalItem {
 }
 
 const categories: PortalCategory[] = [
-  {
-    id: "energy",
-    title: "能源分析",
-    description: "能耗数据挖掘与可视化分析",
-    icon: Zap,
-    gradient: "from-cyan-500/20 to-blue-600/10",
-    borderColor: "border-cyan-500/30",
-    color: "text-cyan-400",
-    items: [
-      {
-        title: "能源分析",
-        description: "建筑排名、小时负荷热力图、异常详情",
-        href: "/energy",
-        icon: BarChart3,
-        color: "text-cyan-400",
-        badge: "核心",
-      },
-      {
-        title: "用电日历",
-        description: "月历热力图、逐时负荷曲线、TOP10排名",
-        href: "/energy/calendar",
-        icon: CalendarDays,
-        color: "text-blue-400",
-      },
-    ],
-  },
   {
     id: "monitor",
     title: "能源监测",
