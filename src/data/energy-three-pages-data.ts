@@ -1,549 +1,429 @@
 // ============================================================
 // 能源管理三页面 — 完整 Mock 数据
 // ============================================================
+
 import type {
-  EnergyType, CampusId, AlertLevel, AlertCategory, AlertStatus,
-  DeviceStatus, BuildingType, EnergyOverview, BuildingEnergySnapshot,
-  LoadCurvePoint, LoadCurveSeries, EnergyAlert, DeviceStatusPanel,
-  DeviceItem, DiagnosisSummary, SankeyNode, SankeyLink, EnergyFlowSankey,
-  BenchmarkComparison, BenchmarkBuildingItem, BenchmarkLine,
-  AIRootCauseAnalysis, RootCauseItem, EvidenceItem, EnergySavingAdvice,
-  TrendSeries, EnergyTrendComparison, MonthlyEnergySummary,
-  CalendarHeatmapDay, EnergyProfile, SeasonalData, DayDetail,
-  PeakValleyResult, HourlyBreakdown, TypicalDayComparison,
-  SemesterComparison, TimeOfUseAdvice, ConversionFactors
+  EnergyOverview,
+  BuildingEnergySnapshot,
+  LoadCurvePoint,
+  LoadCurveSeries,
+  EnergyAlert,
+  DeviceStatusPanel,
+  DeviceItem,
+  DiagnosisSummary,
+  EnergyFlowSankey,
+  BenchmarkComparison,
+  AIRootCauseAnalysis,
+  EnergySavingAdvice,
+  MonthlyEnergySummary,
+  CalendarHeatmapDay,
+  EnergyProfile,
+  DayDetail,
+  TypicalDayComparison,
+  SemesterComparison,
+  TimeOfUseAdvice,
+  ConversionFactors,
 } from '@/types/energy';
 
 // ============================================================
-// 全局常量 & 折算因子
+// 标煤折算 & 碳排放因子
 // ============================================================
-
-export const CONVERSION_FACTORS: ConversionFactors = {
-  electricity: { coalEquivalent: 0.1229, carbonFactor: 0.5839 },
-  water: { coalEquivalent: 0.0002571, carbonFactor: 0.00091 },
+export const conversionFactors: ConversionFactors = {
+  electricity: { coalEquivalent: 0.1229, carbonFactor: 0.5810 },
+  water: { coalEquivalent: 0.0857, carbonFactor: 0.1680 },
   gas: { coalEquivalent: 1.2143, carbonFactor: 2.1622 },
-  heat: { coalEquivalent: 0.03412, carbonFactor: 0.11 },
-  updatedAt: '2026-01-15',
-};
-
-export const ENERGY_TYPE_LABELS: Record<EnergyType, string> = {
-  electricity: '电力',
-  water: '水',
-  gas: '天然气',
-  heat: '热力',
-};
-
-export const CAMPUS_LABELS: Record<CampusId, string> = {
-  main_campus: '主校区',
-  east_campus: '东校区',
-  south_campus: '南校区',
-};
-
-export const BUILDING_TYPE_LABELS: Record<BuildingType, string> = {
-  teaching: '教学楼',
-  dormitory: '宿舍楼',
-  laboratory: '实验楼',
-  library: '图书馆',
-  administrative: '行政楼',
-  canteen: '食堂',
-};
-
-export const ALERT_LEVEL_CONFIG: Record<AlertLevel, { label: string; color: string; bgColor: string }> = {
-  info: { label: '提示', color: '#06B6D4', bgColor: '#06B6D420' },
-  warning: { label: '警告', color: '#F59E0B', bgColor: '#F59E0B20' },
-  critical: { label: '严重', color: '#EF4444', bgColor: '#EF444420' },
-  emergency: { label: '紧急', color: '#DC2626', bgColor: '#DC262630' },
-};
-
-export const ALERT_CATEGORY_CONFIG: Record<AlertCategory, { label: string; icon: string }> = {
-  energy: { label: '能源异常', icon: '⚡' },
-  device: { label: '设备异常', icon: '🔧' },
-  environment: { label: '环境异常', icon: '🌡️' },
-  data: { label: '数据异常', icon: '📡' },
+  heat: { coalEquivalent: 0.0341, carbonFactor: 0.1100 },
+  updatedAt: '2026-07-23T10:00:00',
 };
 
 // ============================================================
-// 页面1：能源监控中心 — Mock 数据
+// 建筑基础信息
+// ============================================================
+const buildings: BuildingEnergySnapshot[] = [
+  { buildingId: 'b01', buildingName: '主教学楼', buildingType: 'teaching', currentPower: 156.2, todayCumulative: 1874, floorCount: 6, area: 18500, intensity: 8.43 },
+  { buildingId: 'b02', buildingName: '第二教学楼', buildingType: 'teaching', currentPower: 98.7, todayCumulative: 1184, floorCount: 5, area: 12000, intensity: 8.22 },
+  { buildingId: 'b03', buildingName: '第三教学楼', buildingType: 'teaching', currentPower: 112.3, todayCumulative: 1348, floorCount: 5, area: 13500, intensity: 8.31 },
+  { buildingId: 'b04', buildingName: '第四教学楼', buildingType: 'teaching', currentPower: 87.5, todayCumulative: 1050, floorCount: 4, area: 9800, intensity: 8.93 },
+  { buildingId: 'b05', buildingName: '综合实验楼A', buildingType: 'laboratory', currentPower: 234.8, todayCumulative: 2818, floorCount: 8, area: 22000, intensity: 10.67 },
+  { buildingId: 'b06', buildingName: '综合实验楼B', buildingType: 'laboratory', currentPower: 198.3, todayCumulative: 2380, floorCount: 6, area: 16500, intensity: 10.02 },
+  { buildingId: 'b07', buildingName: '材料实验楼', buildingType: 'laboratory', currentPower: 267.1, todayCumulative: 3205, floorCount: 5, area: 14000, intensity: 15.89 },
+  { buildingId: 'b08', buildingName: '图书馆', buildingType: 'library', currentPower: 178.6, todayCumulative: 2143, floorCount: 5, area: 28000, intensity: 6.37 },
+  { buildingId: 'b09', buildingName: '行政办公楼', buildingType: 'administrative', currentPower: 67.2, todayCumulative: 806, floorCount: 8, area: 15000, intensity: 4.48 },
+  { buildingId: 'b10', buildingName: '学生宿舍1号楼', buildingType: 'dormitory', currentPower: 89.4, todayCumulative: 1073, floorCount: 7, area: 12000, intensity: 7.45 },
+  { buildingId: 'b11', buildingName: '学生宿舍2号楼', buildingType: 'dormitory', currentPower: 92.1, todayCumulative: 1105, floorCount: 7, area: 12000, intensity: 7.68 },
+  { buildingId: 'b12', buildingName: '学生宿舍3号楼', buildingType: 'dormitory', currentPower: 78.6, todayCumulative: 943, floorCount: 6, area: 10000, intensity: 7.86 },
+  { buildingId: 'b13', buildingName: '学生宿舍4号楼', buildingType: 'dormitory', currentPower: 85.3, todayCumulative: 1024, floorCount: 6, area: 10500, intensity: 8.12 },
+  { buildingId: 'b14', buildingName: '学生宿舍5号楼', buildingType: 'dormitory', currentPower: 71.2, todayCumulative: 854, floorCount: 6, area: 9500, intensity: 7.49 },
+  { buildingId: 'b15', buildingName: '第一食堂', buildingType: 'canteen', currentPower: 145.6, todayCumulative: 1747, floorCount: 2, area: 4500, intensity: 26.96 },
+  { buildingId: 'b16', buildingName: '第二食堂', buildingType: 'canteen', currentPower: 128.3, todayCumulative: 1540, floorCount: 2, area: 4000, intensity: 26.73 },
+  { buildingId: 'b17', buildingName: '体育馆', buildingType: 'administrative', currentPower: 56.8, todayCumulative: 682, floorCount: 2, area: 8000, intensity: 5.92 },
+  { buildingId: 'b18', buildingName: '游泳馆', buildingType: 'administrative', currentPower: 89.2, todayCumulative: 1070, floorCount: 1, area: 5000, intensity: 14.87 },
+  { buildingId: 'b19', buildingName: '校医院', buildingType: 'administrative', currentPower: 42.3, todayCumulative: 508, floorCount: 3, area: 3500, intensity: 10.07 },
+  { buildingId: 'b20', buildingName: '信息中心', buildingType: 'laboratory', currentPower: 312.5, todayCumulative: 3750, floorCount: 4, area: 6000, intensity: 43.40 },
+  { buildingId: 'b21', buildingName: '留学生公寓', buildingType: 'dormitory', currentPower: 65.8, todayCumulative: 790, floorCount: 8, area: 9000, intensity: 6.09 },
+  { buildingId: 'b22', buildingName: '青年教师公寓', buildingType: 'dormitory', currentPower: 58.4, todayCumulative: 701, floorCount: 10, area: 11000, intensity: 4.42 },
+  { buildingId: 'b23', buildingName: '东校区教学楼', buildingType: 'teaching', currentPower: 72.3, todayCumulative: 868, floorCount: 5, area: 10000, intensity: 6.03 },
+  { buildingId: 'b24', buildingName: '东校区实验楼', buildingType: 'laboratory', currentPower: 156.7, todayCumulative: 1880, floorCount: 6, area: 12000, intensity: 10.89 },
+  { buildingId: 'b25', buildingName: '东校区宿舍楼', buildingType: 'dormitory', currentPower: 67.2, todayCumulative: 806, floorCount: 7, area: 10000, intensity: 5.60 },
+  { buildingId: 'b26', buildingName: '东校区食堂', buildingType: 'canteen', currentPower: 78.5, todayCumulative: 942, floorCount: 2, area: 3000, intensity: 21.81 },
+  { buildingId: 'b27', buildingName: '南校区综合楼', buildingType: 'teaching', currentPower: 95.6, todayCumulative: 1147, floorCount: 6, area: 14000, intensity: 5.69 },
+  { buildingId: 'b28', buildingName: '南校区宿舍楼', buildingType: 'dormitory', currentPower: 54.3, todayCumulative: 652, floorCount: 6, area: 8000, intensity: 5.66 },
+  { buildingId: 'b29', buildingName: '光伏发电站', buildingType: 'administrative', currentPower: -45.2, todayCumulative: -542, floorCount: 1, area: 2000, intensity: -18.83 },
+];
+
+// ============================================================
+// 页面1：能源监控中心
 // ============================================================
 
-function generateHourlyPoints(base: number, variance: number, peakHours: number[], count: number): LoadCurvePoint[] {
+export function getEnergyOverview(): EnergyOverview[] {
+  return [
+    {
+      energyType: 'electricity', campus: 'main_campus', timestamp: new Date().toISOString(),
+      currentPower: 2345.6, todayCumulative: 28147, monthCumulative: 591087, yearCumulative: 3546522,
+      yoyChange: -3.2, momChange: 5.8, carbonIntensity: 0.48,
+      byBuilding: buildings,
+    },
+    {
+      energyType: 'water', campus: 'main_campus', timestamp: new Date().toISOString(),
+      currentPower: 45.2, todayCumulative: 542, monthCumulative: 11382, yearCumulative: 68292,
+      yoyChange: -5.1, momChange: 2.3, carbonIntensity: 0.06,
+      byBuilding: buildings.map(b => ({ ...b, currentPower: b.currentPower * 0.019, todayCumulative: b.todayCumulative * 0.019 })),
+    },
+    {
+      energyType: 'gas', campus: 'main_campus', timestamp: new Date().toISOString(),
+      currentPower: 12.8, todayCumulative: 154, monthCumulative: 3234, yearCumulative: 19404,
+      yoyChange: -8.5, momChange: -12.3, carbonIntensity: 0.15,
+      byBuilding: buildings.map(b => ({ ...b, currentPower: b.currentPower * 0.0055, todayCumulative: b.todayCumulative * 0.0055 })),
+    },
+    {
+      energyType: 'heat', campus: 'main_campus', timestamp: new Date().toISOString(),
+      currentPower: 0, todayCumulative: 0, monthCumulative: 0, yearCumulative: 18450,
+      yoyChange: -2.8, momChange: 0, carbonIntensity: 0,
+      byBuilding: buildings.map(b => ({ ...b, currentPower: 0, todayCumulative: 0 })),
+    },
+  ];
+}
+
+function generateHourlyCurve(multiplier = 1): LoadCurvePoint[] {
   const points: LoadCurvePoint[] = [];
-  for (let i = 0; i < count; i++) {
-    const hour = i % 24;
-    const isPeak = peakHours.includes(hour);
-    const factor = isPeak ? 1.4 : (hour >= 22 || hour <= 5 ? 0.35 : 0.85);
-    const noise = (Math.sin(i * 0.7) * 0.08 + Math.cos(i * 1.3) * 0.05);
-    const val = base * factor * (1 + noise) * (1 + variance * ((i % 17 - 8) / 100));
+  for (let h = 0; h < 24; h++) {
+    const base = 800 + 400 * Math.sin((h - 6) * Math.PI / 12);
+    const noise = (Math.sin(h * 1.7) * 80 + Math.cos(h * 3.1) * 60);
+    const val = Math.max(200, base + noise);
     points.push({
-      timestamp: `${String(Math.floor(i / 24)).padStart(2, '0')}:${String(hour).padStart(2, '0')}:00`,
-      electricity: Math.round(val * 10) / 10,
-      water: Math.round(val * 0.15 * 10) / 10,
-      gas: Math.round(val * 0.05 * 100) / 100,
-      heat: Math.round(val * 0.02 * 100) / 100,
+      timestamp: `2026-07-23T${String(h).padStart(2, '0')}:00:00`,
+      electricity: val * multiplier,
+      water: (val * 0.018) * multiplier,
+      gas: (val * 0.004) * multiplier,
+      heat: 0,
     });
   }
   return points;
 }
 
-const PEAK_HOURS = [9, 10, 11, 14, 15, 16, 19, 20];
-
-export function getEnergyOverview(): EnergyOverview {
-  return {
-    energyType: 'electricity',
-    campus: 'main_campus',
-    timestamp: new Date().toISOString(),
-    currentPower: 4826,
-    todayCumulative: 38420,
-    monthCumulative: 1152600,
-    yearCumulative: 13831200,
-    yoyChange: -3.2,
-    momChange: 1.8,
-    carbonIntensity: 0.42,
-    byBuilding: [
-      { buildingId: 'b01', buildingName: '教学楼A', buildingType: 'teaching', currentPower: 520, todayCumulative: 4160, floorCount: 6, area: 12000, intensity: 0.35 },
-      { buildingId: 'b04', buildingName: '实验楼A', buildingType: 'laboratory', currentPower: 680, todayCumulative: 5440, floorCount: 8, area: 15000, intensity: 0.45 },
-      { buildingId: 'b07', buildingName: '图书馆', buildingType: 'library', currentPower: 380, todayCumulative: 3040, floorCount: 5, area: 20000, intensity: 0.19 },
-      { buildingId: 'b09', buildingName: '学生宿舍1', buildingType: 'dormitory', currentPower: 290, todayCumulative: 2320, floorCount: 6, area: 8000, intensity: 0.36 },
-      { buildingId: 'b13', buildingName: '食堂', buildingType: 'canteen', currentPower: 450, todayCumulative: 3600, floorCount: 3, area: 5000, intensity: 0.90 },
-      { buildingId: 'b18', buildingName: '体育馆', buildingType: 'teaching', currentPower: 180, todayCumulative: 1440, floorCount: 3, area: 8000, intensity: 0.23 },
-    ],
-  };
-}
-
-export function getLoadCurveData(buildingId?: string): LoadCurveSeries[] {
-  if (!buildingId) {
-    return [
-      { buildingId: 'all', buildingName: '全校总负荷', color: '#0099FF', data: generateHourlyPoints(4800, 0.3, PEAK_HOURS, 72) },
-    ];
-  }
+export function getLoadCurveSeries(): LoadCurveSeries[] {
   return [
-    { buildingId, buildingName: `建筑${buildingId}`, color: '#0099FF', data: generateHourlyPoints(500, 0.25, PEAK_HOURS, 72) },
+    { buildingId: 'all', buildingName: '全校总计', color: '#3B82F6', data: generateHourlyCurve(1) },
+    { buildingId: 'b01', buildingName: '主教学楼', color: '#10B981', data: generateHourlyCurve(0.15) },
+    { buildingId: 'b05', buildingName: '综合实验楼A', color: '#F59E0B', data: generateHourlyCurve(0.18) },
+    { buildingId: 'b15', buildingName: '第一食堂', color: '#EF4444', data: generateHourlyCurve(0.12) },
+    { buildingId: 'b10', buildingName: '学生宿舍1号楼', color: '#8B5CF6', data: generateHourlyCurve(0.10) },
   ];
 }
 
-export function getEnergyAlerts(category?: AlertCategory): EnergyAlert[] {
-  const allAlerts: EnergyAlert[] = [
-    { id: 'a001', alertTime: '2026-07-23T14:32:00', category: 'energy', level: 'critical', title: '实验楼A用电突增异常', description: '当前功率较昨日同期高出45%，疑似空调系统故障或新增大功率设备', buildingId: 'b04', buildingName: '实验楼A', deviceName: '主配电柜', energyType: 'electricity', metric: '实时功率', metricValue: 1240, threshold: 850, unit: 'kW', status: 'pending', assignee: '张工' },
-    { id: 'a002', alertTime: '2026-07-23T13:15:00', category: 'device', level: 'warning', title: '食堂燃气表通讯中断', description: '燃气计量仪表连续30分钟无数据上报，请检查现场设备状态', buildingId: 'b13', buildingName: '食堂', deviceName: '燃气流量计', energyType: 'gas', metric: '心跳间隔', metricValue: 3600, threshold: 300, unit: 's', status: 'acknowledged', assignee: '李工' },
-    { id: 'a003', alertTime: '2026-07-23T12:40:00', category: 'environment', level: 'warning', title: '图书馆温度超标', description: '室内温度持续高于28°C超过2小时，建议检查空调运行参数', buildingId: 'b07', buildingName: '图书馆', energyType: 'heat', metric: '室内温度', metricValue: 29.2, threshold: 27, unit: '°C', status: 'processing', assignee: '王工' },
-    { id: 'a004', alertTime: '2026-07-23T11:20:00', category: 'data', level: 'info', title: '宿舍区部分水表数据延迟', description: '学生宿舍3#、4#共12个采集点数据延迟超过5分钟', buildingId: 'b11', buildingName: '学生宿舍3', energyType: 'water', metric: '数据延迟', metricValue: 320, threshold: 300, unit: 's', status: 'resolved', resolvedTime: '2026-07-23T11:35:00' },
-    { id: 'a005', alertTime: '2026-07-23T10:50:00', category: 'energy', level: 'warning', title: '教学楼A夜间用水异常', description: '凌晨2:00-4:00期间用水量超出正常值3倍，可能存在管道泄漏', buildingId: 'b01', buildingName: '教学楼A', energyType: 'water', metric: '小时用水量', metricValue: 85, threshold: 25, unit: 'm³/h', status: 'pending', workOrderId: 'WO-2026072301' },
-    { id: 'a006', alertTime: '2026-07-23T09:30:00', category: 'device', level: 'critical', title: '体育馆照明回路跳闸', description: '主馆照明C相断路器跳闸，影响约40%照明区域', buildingId: 'b18', buildingName: '体育馆', deviceName: '照明配电箱', energyType: 'electricity', metric: '电流', metricValue: 0, threshold: 80, unit: 'A', status: 'processing', assignee: '赵工' },
-    { id: 'a007', alertTime: '2026-07-23T08:15:00', category: 'environment', level: 'critical', title: '实验室CO₂浓度超限', description: '化学实验楼A区CO₂浓度达到1200ppm，已触发通风系统联动', buildingId: 'b04', buildingName: '实验楼A', energyType: 'electricity', metric: 'CO₂浓度', metricValue: 1200, threshold: 1000, unit: 'ppm', status: 'resolved', resolvedTime: '2026-07-23T08:45:00' },
-    { id: 'a008', alertTime: '2026-07-22T22:10:00', category: 'energy', level: 'info', title: '行政楼夜间待机能耗偏高', description: '非工作时间仍有约120kW待机负载，建议排查未关闭的办公设备', buildingId: 'b21', buildingName: '行政办公楼', energyType: 'electricity', metric: '夜间基载', metricValue: 120, threshold: 50, unit: 'kW', status: 'pending' },
+export function getEnergyAlerts(): EnergyAlert[] {
+  return [
+    { id: 'alt-001', alertTime: '2026-07-23T09:15:00', category: 'energy', level: 'warning', title: '用电突增告警', description: '主教学楼当前用电功率超出基准值35%', buildingId: 'b01', buildingName: '主教学楼', energyType: 'electricity', metric: 'currentPower', metricValue: 156.2, threshold: 115, unit: 'kW', status: 'pending', assignee: '张工' },
+    { id: 'alt-002', alertTime: '2026-07-23T08:30:00', category: 'device', level: 'critical', title: '变压器温度过高', description: '综合实验楼A 2#变压器温度达92°C，超过安全阈值', buildingId: 'b05', buildingName: '综合实验楼A', deviceName: '2#变压器', energyType: 'electricity', metric: 'temperature', metricValue: 92, threshold: 85, unit: '°C', status: 'processing', assignee: '李工', workOrderId: 'WO-20260723-001' },
+    { id: 'alt-003', alertTime: '2026-07-23T07:45:00', category: 'environment', level: 'warning', title: 'CO₂浓度超限', description: '图书馆3层阅览室CO₂浓度达1200ppm', buildingId: 'b08', buildingName: '图书馆', metric: 'co2', metricValue: 1200, threshold: 1000, unit: 'ppm', status: 'acknowledged', assignee: '王工' },
+    { id: 'alt-004', alertTime: '2026-07-23T06:20:00', category: 'data', level: 'info', title: '仪表离线', description: '学生宿舍3号楼水表离线超过2小时', buildingId: 'b12', buildingName: '学生宿舍3号楼', deviceName: '水表-3F', energyType: 'water', metric: 'heartbeat', metricValue: 0, threshold: 1, unit: '次', status: 'pending' },
+    { id: 'alt-005', alertTime: '2026-07-23T05:10:00', category: 'energy', level: 'critical', title: '用水连续异常', description: '游泳馆用水量连续3天超基准值50%', buildingId: 'b18', buildingName: '游泳馆', energyType: 'water', metric: 'dailyUsage', metricValue: 85, threshold: 55, unit: 'm³', status: 'processing', assignee: '赵工', workOrderId: 'WO-20260723-002' },
+    { id: 'alt-006', alertTime: '2026-07-23T04:00:00', category: 'data', level: 'warning', title: '数据采集延迟', description: '信息中心电力数据采集延迟超过15分钟', buildingId: 'b20', buildingName: '信息中心', energyType: 'electricity', metric: 'delay', metricValue: 18, threshold: 5, unit: 'min', status: 'pending' },
+    { id: 'alt-007', alertTime: '2026-07-22T22:30:00', category: 'device', level: 'warning', title: '水泵运行异常', description: '第一食堂供水泵振动值超标', buildingId: 'b15', buildingName: '第一食堂', deviceName: '供水泵A', energyType: 'water', metric: 'vibration', metricValue: 7.8, threshold: 5, unit: 'mm/s', status: 'resolved', resolvedTime: '2026-07-23T01:00:00', assignee: '李工' },
+    { id: 'alt-008', alertTime: '2026-07-22T20:00:00', category: 'environment', level: 'info', title: '温度异常', description: '体育馆室内温度28°C，超出舒适范围', buildingId: 'b17', buildingName: '体育馆', metric: 'temperature', metricValue: 28, threshold: 26, unit: '°C', status: 'resolved', resolvedTime: '2026-07-22T22:00:00' },
   ];
-  return category ? allAlerts.filter(a => a.category === category) : allAlerts;
 }
 
-export function getDeviceStatusData(): DeviceStatusPanel {
+export function getDeviceStatusPanel(): DeviceStatusPanel {
+  const devices: DeviceItem[] = [
+    { deviceId: 'dev-001', deviceName: '主教学楼进线柜', deviceType: '进线柜', energyType: 'electricity', buildingId: 'b01', buildingName: '主教学楼', status: 'online', lastHeartbeat: '2026-07-23T10:00:00', currentValue: 156.2, unit: 'kW', batteryLevel: 95 },
+    { deviceId: 'dev-002', deviceName: '综合实验楼A 2#变压器', deviceType: '变压器', energyType: 'electricity', buildingId: 'b05', buildingName: '综合实验楼A', status: 'fault', lastHeartbeat: '2026-07-23T09:55:00', currentValue: 234.8, unit: 'kW' },
+    { deviceId: 'dev-003', deviceName: '图书馆空调主机', deviceType: '空调主机', energyType: 'electricity', buildingId: 'b08', buildingName: '图书馆', status: 'online', lastHeartbeat: '2026-07-23T10:00:00', currentValue: 78.6, unit: 'kW' },
+    { deviceId: 'dev-004', deviceName: '第一食堂燃气表', deviceType: '燃气表', energyType: 'gas', buildingId: 'b15', buildingName: '第一食堂', status: 'online', lastHeartbeat: '2026-07-23T10:00:00', currentValue: 6.5, unit: 'm³/h', batteryLevel: 72 },
+    { deviceId: 'dev-005', deviceName: '学生宿舍3号楼水表-3F', deviceType: '水表', energyType: 'water', buildingId: 'b12', buildingName: '学生宿舍3号楼', status: 'offline', lastHeartbeat: '2026-07-23T07:30:00', currentValue: 0, unit: 'm³/h', batteryLevel: 15 },
+    { deviceId: 'dev-006', deviceName: '信息中心UPS', deviceType: 'UPS', energyType: 'electricity', buildingId: 'b20', buildingName: '信息中心', status: 'online', lastHeartbeat: '2026-07-23T10:00:00', currentValue: 312.5, unit: 'kW', batteryLevel: 88 },
+    { deviceId: 'dev-007', deviceName: '材料实验楼排风系统', deviceType: '排风系统', energyType: 'electricity', buildingId: 'b07', buildingName: '材料实验楼', status: 'maintenance', lastHeartbeat: '2026-07-23T08:00:00', currentValue: 45.2, unit: 'kW' },
+    { deviceId: 'dev-008', deviceName: '游泳馆热泵机组', deviceType: '热泵', energyType: 'heat', buildingId: 'b18', buildingName: '游泳馆', status: 'online', lastHeartbeat: '2026-07-23T10:00:00', currentValue: 2.8, unit: 'GJ/h' },
+    { deviceId: 'dev-009', deviceName: '第一食堂供水泵A', deviceType: '水泵', energyType: 'water', buildingId: 'b15', buildingName: '第一食堂', status: 'online', lastHeartbeat: '2026-07-23T10:00:00', currentValue: 3.2, unit: 'm³/h' },
+    { deviceId: 'dev-010', deviceName: '东校区教学楼进线柜', deviceType: '进线柜', energyType: 'electricity', buildingId: 'b23', buildingName: '东校区教学楼', status: 'online', lastHeartbeat: '2026-07-23T10:00:00', currentValue: 72.3, unit: 'kW', batteryLevel: 91 },
+    { deviceId: 'dev-011', deviceName: '光伏逆变器1#', deviceType: '逆变器', energyType: 'electricity', buildingId: 'b29', buildingName: '光伏发电站', status: 'online', lastHeartbeat: '2026-07-23T10:00:00', currentValue: -45.2, unit: 'kW' },
+    { deviceId: 'dev-012', deviceName: '行政办公楼电梯', deviceType: '电梯', energyType: 'electricity', buildingId: 'b09', buildingName: '行政办公楼', status: 'online', lastHeartbeat: '2026-07-23T10:00:00', currentValue: 12.5, unit: 'kW' },
+  ];
   return {
-    totalDevices: 156,
-    onlineCount: 147,
-    offlineCount: 5,
-    faultCount: 3,
-    maintenanceCount: 1,
-    devices: [
-      { deviceId: 'dev001', deviceName: '教学楼A主电表', deviceType: '智能电表', energyType: 'electricity', buildingId: 'b01', buildingName: '教学楼A', status: 'online', lastHeartbeat: '2026-07-23T14:55:00', currentValue: 520, unit: 'kW' },
-      { deviceId: 'dev002', deviceName: '实验楼A主电表', deviceType: '智能电表', energyType: 'electricity', buildingId: 'b04', buildingName: '实验楼A', status: 'online', lastHeartbeat: '2026-07-23T14:54:30', currentValue: 1240, unit: 'kW' },
-      { deviceId: 'dev003', deviceName: '图书馆主电表', deviceType: '智能电表', energyType: 'electricity', buildingId: 'b07', buildingName: '图书馆', status: 'online', lastHeartbeat: '2026-07-23T14:53:00', currentValue: 380, unit: 'kW' },
-      { deviceId: 'dev004', deviceName: '食堂燃气表', deviceType: '气体流量计', energyType: 'gas', buildingId: 'b13', buildingName: '食堂', status: 'fault', lastHeartbeat: '2026-07-23T13:15:00', currentValue: 0, unit: 'm³/h' },
-      { deviceId: 'dev005', deviceName: '宿舍1冷水表', deviceType: '超声波水表', energyType: 'water', buildingId: 'b09', buildingName: '学生宿舍1', status: 'offline', lastHeartbeat: '2026-07-23T13:20:00', currentValue: 0, unit: 'm³/h' },
-      { deviceId: 'dev006', deviceName: '体育馆照明控制器', deviceType: '智能照明控制', energyType: 'electricity', buildingId: 'b18', buildingName: '体育馆', status: 'maintenance', lastHeartbeat: '2026-07-23T09:30:00', currentValue: 0, unit: 'kW' },
-      { deviceId: 'dev007', deviceName: '热力站出口热量表', deviceType: '超声波热量表', energyType: 'heat', buildingId: 'b25', buildingName: '热力站', status: 'online', lastHeartbeat: '2026-07-23T14:56:00', currentValue: 2.8, unit: 'GJ/h' },
-      { deviceId: 'dev008', deviceName: '光伏逆变器#1', deviceType: '光伏并网逆变', energyType: 'electricity', buildingId: 'b29', buildingName: '光伏房', status: 'online', lastHeartbeat: '2026-07-23T14:57:00', currentValue: 86, unit: 'kW' },
-    ],
+    totalDevices: 35,
+    onlineCount: 30,
+    offlineCount: 2,
+    faultCount: 1,
+    maintenanceCount: 2,
+    devices,
   };
 }
 
 // ============================================================
-// 页面2：能源诊断中心 — Mock 数据
+// 页面2：能源诊断中心
 // ============================================================
 
 export function getDiagnosisSummary(): DiagnosisSummary {
   return {
-    efficiencyScore: 78,
-    overStandardBuildings: 6,
-    totalOverStandard: 20.7,
+    efficiencyScore: 72.5,
+    overStandardBuildings: 8,
+    totalOverStandard: 27.6,
     estimatedSavingPotential: {
-      electricity: 125600,
+      electricity: 425000,
       water: 18500,
-      gas: 3200,
-      heat: 850,
-      totalCostSaving: 892000,
-      totalCarbonSaving: 168.5,
+      gas: 4200,
+      heat: 1250,
+      totalCostSaving: 523000,
+      totalCarbonSaving: 312,
     },
   };
 }
 
-export function getSankeyFlowData(): EnergyFlowSankey {
+export function getEnergyFlowSankey(): EnergyFlowSankey {
   return {
     period: '2026年7月',
     nodes: [
-      // 能源来源层
-      { id: 'grid', name: '外购电力', category: 'source', energyType: 'electricity', value: 13831 },
-      { id: 'gas_in', name: '天然气输入', category: 'source', energyType: 'gas', value: 1820 },
-      { id: 'solar', name: '光伏发电', category: 'source', energyType: 'electricity', value: 245 },
-      { id: 'heat_input', name: '市政供热', category: 'source', energyType: 'heat', value: 680 },
-
-      // 转换层
-      { id: 'boiler', name: '锅炉房', category: 'conversion', energyType: 'gas', value: 1650 },
-      { id: 'chiller', name: '冷站', category: 'conversion', energyType: 'electricity', value: 2800 },
-      { id: 'transformer', name: '变压器损耗', category: 'loss', energyType: 'electricity', value: 210 },
-
-      // 终端用能层
-      { id: 'hvac', name: '暖通空调', category: 'enduse', energyType: 'electricity', value: 4200 },
-      { id: 'lighting', name: '照明', category: 'enduse', energyType: 'electricity', value: 1850 },
-      { id: 'equipment', name: '动力/插座', category: 'enduse', energyType: 'electricity', value: 3100 },
-      { id: 'lab', name: '科研实验', category: 'enduse', energyType: 'electricity', value: 1650 },
-      { id: 'domestic_water', name: '生活热水', category: 'enduse', energyType: 'heat', value: 420 },
-      { id: 'heating', name: '供暖', category: 'enduse', energyType: 'heat', value: 240 },
-      { id: 'catering', name: '餐饮烹饪', category: 'enduse', energyType: 'gas', value: 170 },
-
-      // 损耗层
-      { id: 'pipe_loss', name: '管网热损', category: 'loss', energyType: 'heat', value: 20 },
-      { id: 'line_loss', name: '线路损耗', category: 'loss', energyType: 'electricity', value: 95 },
+      { id: 'src-elec', name: '外购电力', category: 'source', energyType: 'electricity', value: 3546 },
+      { id: 'src-gas', name: '天然气', category: 'source', energyType: 'gas', value: 2356 },
+      { id: 'src-heat', name: '市政热力', category: 'source', energyType: 'heat', value: 629 },
+      { id: 'src-water', name: '市政供水', category: 'source', energyType: 'water', value: 585 },
+      { id: 'src-solar', name: '光伏发电', category: 'source', energyType: 'electricity', value: 89 },
+      { id: 'conv-boiler', name: '锅炉转换', category: 'conversion', energyType: 'gas', value: 1987 },
+      { id: 'conv-chiller', name: '制冷转换', category: 'conversion', energyType: 'electricity', value: 1420 },
+      { id: 'conv-trans', name: '变配电', category: 'conversion', energyType: 'electricity', value: 3457 },
+      { id: 'end-ac', name: '空调系统', category: 'enduse', energyType: 'electricity', value: 1850 },
+      { id: 'end-light', name: '照明系统', category: 'enduse', energyType: 'electricity', value: 820 },
+      { id: 'end-equip', name: '动力设备', category: 'enduse', energyType: 'electricity', value: 650 },
+      { id: 'end-heat', name: '供暖系统', category: 'enduse', energyType: 'heat', value: 1987 },
+      { id: 'end-water', name: '给排水', category: 'enduse', energyType: 'water', value: 585 },
+      { id: 'end-other', name: '其他用电', category: 'enduse', energyType: 'electricity', value: 226 },
+      { id: 'loss-trans', name: '输配损耗', category: 'loss', energyType: 'electricity', value: 178 },
+      { id: 'loss-heat', name: '热力损耗', category: 'loss', energyType: 'heat', value: 145 },
+      { id: 'loss-water', name: '管网漏损', category: 'loss', energyType: 'water', value: 52 },
     ],
     links: [
-      { source: 'grid', target: 'chiller', value: 2800, energyType: 'electricity' },
-      { source: 'grid', target: 'hvac', value: 1400, energyType: 'electricity' },
-      { source: 'grid', target: 'lighting', value: 1850, energyType: 'electricity' },
-      { source: 'grid', target: 'equipment', value: 3100, energyType: 'electricity' },
-      { source: 'grid', target: 'lab', value: 1650, energyType: 'electricity' },
-      { source: 'grid', target: 'transformer', value: 210, energyType: 'electricity' },
-      { source: 'grid', target: 'line_loss', value: 95, energyType: 'electricity' },
-      { source: 'solar', target: 'hvac', value: 120, energyType: 'electricity' },
-      { source: 'solar', target: 'equipment', value: 90, energyType: 'electricity' },
-      { source: 'solar', target: 'lighting', value: 35, energyType: 'electricity' },
-      { source: 'gas_in', target: 'boiler', value: 1700, energyType: 'gas' },
-      { source: 'gas_in', target: 'catering', value: 120, energyType: 'gas' },
-      { source: 'boiler', target: 'heating', value: 1500, energyType: 'heat', lossRate: 9.1 },
-      { source: 'boiler', target: 'domestic_water', value: 130, energyType: 'heat', lossRate: 7.7 },
-      { source: 'boiler', target: 'pipe_loss', value: 20, energyType: 'heat' },
-      { source: 'chiller', target: 'hvac', value: 2550, energyType: 'electricity', lossRate: 8.9 },
-      { source: 'heat_input', target: 'heating', value: 240, energyType: 'heat' },
-      { source: 'heat_input', target: 'domestic_water', value: 290, energyType: 'heat' },
-      { source: 'heat_input', target: 'pipe_loss', value: 150, energyType: 'heat' },
+      { source: 'src-elec', target: 'conv-trans', value: 3546, energyType: 'electricity' },
+      { source: 'src-solar', target: 'conv-trans', value: 89, energyType: 'electricity' },
+      { source: 'src-gas', target: 'conv-boiler', value: 1987, energyType: 'gas' },
+      { source: 'src-gas', target: 'end-other', value: 369, energyType: 'gas' },
+      { source: 'src-heat', target: 'end-heat', value: 629, energyType: 'heat' },
+      { source: 'src-water', target: 'end-water', value: 585, energyType: 'water' },
+      { source: 'conv-trans', target: 'conv-chiller', value: 1420, energyType: 'electricity' },
+      { source: 'conv-trans', target: 'end-ac', value: 430, energyType: 'electricity' },
+      { source: 'conv-trans', target: 'end-light', value: 820, energyType: 'electricity' },
+      { source: 'conv-trans', target: 'end-equip', value: 650, energyType: 'electricity' },
+      { source: 'conv-trans', target: 'end-other', value: 137, energyType: 'electricity' },
+      { source: 'conv-trans', target: 'loss-trans', value: 178, energyType: 'electricity', lossRate: 4.9 },
+      { source: 'conv-boiler', target: 'end-heat', value: 1842, energyType: 'gas' },
+      { source: 'conv-boiler', target: 'loss-heat', value: 145, energyType: 'gas', lossRate: 7.3 },
+      { source: 'conv-chiller', target: 'end-ac', value: 1420, energyType: 'electricity' },
+      { source: 'end-water', target: 'loss-water', value: 52, energyType: 'water', lossRate: 8.9 },
     ],
-    totalInput: 16576,
-    totalLoss: 475,
-    overallEfficiency: 97.1,
+    totalInput: 7205,
+    totalLoss: 375,
+    overallEfficiency: 94.8,
   };
 }
 
-export function getBenchmarkData(): BenchmarkComparison[] {
+export function getBenchmarkComparison(): BenchmarkComparison[] {
   return [
     {
-      buildingType: 'teaching',
-      buildingTypeName: '教学楼',
+      buildingType: 'teaching', buildingTypeName: '教学楼',
       buildings: [
-        { buildingId: 'b01', buildingName: '教学楼A', intensity: 18.2, perCapita: 142, isOverStandard: false, overStandardPercent: 0 },
-        { buildingId: 'b02', buildingName: '教学楼B', intensity: 22.5, perCapita: 175, isOverStandard: true, overStandardPercent: 12.5 },
-        { buildingId: 'b03', buildingName: '教学楼C', intensity: 16.8, perCapita: 131, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b01', buildingName: '主教学楼', intensity: 15.2, perCapita: 0.42, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b02', buildingName: '第二教学楼', intensity: 14.8, perCapita: 0.41, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b03', buildingName: '第三教学楼', intensity: 15.0, perCapita: 0.42, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b04', buildingName: '第四教学楼', intensity: 19.2, perCapita: 0.53, isOverStandard: true, overStandardPercent: 20 },
+        { buildingId: 'b23', buildingName: '东校区教学楼', intensity: 10.9, perCapita: 0.30, isOverStandard: false, overStandardPercent: 0 },
       ],
       benchmarks: [
-        { name: '国标限值', value: 20.0, color: '#DC2626', lineStyle: 'solid' as const },
-        { name: '北京地标', value: 18.0, color: '#F97316', lineStyle: 'dashed' as const },
-        { name: '行业先进', value: 14.0, color: '#22C55E', lineStyle: 'dashed' as const },
+        { name: '引导值', value: 12, color: '#22C55E', lineStyle: 'dashed' },
+        { name: '约束值', value: 16, color: '#F59E0B', lineStyle: 'solid' },
+        { name: '北京市平均', value: 14.5, color: '#3B82F6', lineStyle: 'dashed' },
       ],
     },
     {
-      buildingType: 'dormitory',
-      buildingTypeName: '宿舍楼',
+      buildingType: 'dormitory', buildingTypeName: '宿舍楼',
       buildings: [
-        { buildingId: 'b09', buildingName: '学生宿舍1', intensity: 8.5, perCapita: 68, isOverStandard: false, overStandardPercent: 0 },
-        { buildingId: 'b10', buildingName: '学生宿舍2', intensity: 11.2, perCapita: 90, isOverStandard: true, overStandardPercent: 12.0 },
-        { buildingId: 'b11', buildingName: '学生宿舍3', intensity: 9.8, perCapita: 78, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b10', buildingName: '学生宿舍1号楼', intensity: 13.4, perCapita: 0.37, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b11', buildingName: '学生宿舍2号楼', intensity: 13.8, perCapita: 0.38, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b12', buildingName: '学生宿舍3号楼', intensity: 14.2, perCapita: 0.39, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b13', buildingName: '学生宿舍4号楼', intensity: 17.5, perCapita: 0.49, isOverStandard: true, overStandardPercent: 16.7 },
+        { buildingId: 'b14', buildingName: '学生宿舍5号楼', intensity: 13.5, perCapita: 0.38, isOverStandard: false, overStandardPercent: 0 },
       ],
       benchmarks: [
-        { name: '国标限值', value: 10.0, color: '#DC2626', lineStyle: 'solid' as const },
-        { name: '北京地标', value: 9.0, color: '#F97316', lineStyle: 'dashed' as const },
-        { name: '行业先进', value: 7.0, color: '#22C55E', lineStyle: 'dashed' as const },
+        { name: '引导值', value: 11, color: '#22C55E', lineStyle: 'dashed' },
+        { name: '约束值', value: 15, color: '#F59E0B', lineStyle: 'solid' },
       ],
     },
     {
-      buildingType: 'laboratory',
-      buildingTypeName: '实验楼',
+      buildingType: 'laboratory', buildingTypeName: '实验楼',
       buildings: [
-        { buildingId: 'b04', buildingName: '实验楼A', intensity: 52.3, perCapita: 418, isOverStandard: true, overStandardPercent: 16.2 },
-        { buildingId: 'b05', buildingName: '实验楼B', intensity: 45.8, perCapita: 366, isOverStandard: true, overStandardPercent: 7.9 },
-        { buildingId: 'b06', buildingName: '实验楼C', intensity: 41.2, perCapita: 330, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b05', buildingName: '综合实验楼A', intensity: 28.7, perCapita: 0.80, isOverStandard: true, overStandardPercent: 14.8 },
+        { buildingId: 'b06', buildingName: '综合实验楼B', intensity: 25.1, perCapita: 0.70, isOverStandard: false, overStandardPercent: 0 },
+        { buildingId: 'b07', buildingName: '材料实验楼', intensity: 32.5, perCapita: 0.90, isOverStandard: true, overStandardPercent: 30 },
+        { buildingId: 'b20', buildingName: '信息中心', intensity: 48.2, perCapita: 1.34, isOverStandard: true, overStandardPercent: 92.8 },
       ],
       benchmarks: [
-        { name: '国标限值', value: 45.0, color: '#DC2626', lineStyle: 'solid' as const },
-        { name: '北京地标', value: 42.0, color: '#F97316', lineStyle: 'dashed' as const },
-        { name: '行业先进', value: 35.0, color: '#22C55E', lineStyle: 'dashed' as const },
+        { name: '引导值', value: 20, color: '#22C55E', lineStyle: 'dashed' },
+        { name: '约束值', value: 25, color: '#F59E0B', lineStyle: 'solid' },
+      ],
+    },
+    {
+      buildingType: 'canteen', buildingTypeName: '食堂',
+      buildings: [
+        { buildingId: 'b15', buildingName: '第一食堂', intensity: 48.5, perCapita: 1.35, isOverStandard: true, overStandardPercent: 21.3 },
+        { buildingId: 'b16', buildingName: '第二食堂', intensity: 48.1, perCapita: 1.34, isOverStandard: true, overStandardPercent: 20.3 },
+        { buildingId: 'b26', buildingName: '东校区食堂', intensity: 39.3, perCapita: 1.09, isOverStandard: false, overStandardPercent: 0 },
+      ],
+      benchmarks: [
+        { name: '引导值', value: 35, color: '#22C55E', lineStyle: 'dashed' },
+        { name: '约束值', value: 40, color: '#F59E0B', lineStyle: 'solid' },
       ],
     },
   ];
 }
 
-export function getAIRootCause(anomalyId: string): AIRootCauseAnalysis | null {
-  if (anomalyId !== 'anomaly_001') return null;
+export function getAIRootCauseAnalysis(): AIRootCauseAnalysis {
   return {
-    anomalyId,
-    anomalyDescription: '实验楼A近期电力消耗显著偏高，同比上升18.5%',
+    anomalyId: 'anomaly-20260723-001',
+    anomalyDescription: '综合实验楼A 2026年7月用电量同比上升18.5%，超出正常波动范围',
     rootCauses: [
       {
-        id: 'rc1',
-        cause: '空调系统运行效率偏低（COP=2.8，设计值4.2）',
-        probability: 0.65,
-        impactLevel: 'high',
-        evidence: ['冷机出水温度偏高至12°C', '冷冻水泵频率长期满载'],
-        suggestedAction: '检查冷却塔填料是否堵塞，清洗换热器',
-        estimatedSaving: 125600,
-        savingUnit: 'kWh/年',
+        id: 'rc-001', cause: '新增实验设备导致基础负荷上升', probability: 0.72, impactLevel: 'high',
+        evidence: ['7月新增3台高温炉（总功率45kW）', '设备运行日志显示日均运行12小时'],
+        suggestedAction: '评估设备能效等级，考虑错峰运行方案',
+        estimatedSaving: 28000, savingUnit: 'kWh/月',
       },
       {
-        id: 'rc2',
-        cause: '夜间及周末实验设备未及时关闭',
-        probability: 0.45,
-        impactLevel: 'medium',
-        evidence: ['凌晨2-5点基载功率仍达350kW', '周六日负荷与工作日差异不足15%'],
-        suggestedAction: '推广智能插座+定时关断策略',
-        estimatedSaving: 45200,
-        savingUnit: 'kWh/年',
+        id: 'rc-002', cause: '空调系统制冷效率下降', probability: 0.58, impactLevel: 'medium',
+        evidence: ['COP从3.8降至3.1', '冷凝器进出水温差缩小'],
+        suggestedAction: '安排空调系统清洗维护，检查制冷剂充注量',
+        estimatedSaving: 15000, savingUnit: 'kWh/月',
       },
       {
-        id: 'rc3',
-        cause: '照明系统存在长明灯现象',
-        probability: 0.30,
-        impactLevel: 'low',
-        evidence: ['走廊照明全天候开启', '公共区域照度传感器失灵'],
-        suggestedAction: '修复照度感应开关，启用分时段调光',
-        estimatedSaving: 12800,
-        savingUnit: 'kWh/年',
+        id: 'rc-003', cause: '夜间待机能耗管理不到位', probability: 0.45, impactLevel: 'low',
+        evidence: ['凌晨2:00-5:00仍有约15kW基础负荷', '部分实验室通宵运行'],
+        suggestedAction: '制定实验室夜间用电管理制度',
+        estimatedSaving: 5000, savingUnit: 'kWh/月',
       },
     ],
-    confidence: 0.82,
+    confidence: 0.85,
     dataEvidence: [
-      { type: 'chart', title: '逐时负荷曲线对比', description: '本月 vs 去年同月逐时负荷曲线', data: {} },
-      { type: 'metric', title: '关键指标偏离度', description: 'COP、基载功率等指标与基准值的偏差', data: {} },
+      { type: 'chart', title: '综合实验楼A 逐时负荷对比', description: '7月 vs 6月 逐时负荷曲线对比', data: {} },
+      { type: 'metric', title: '关键指标变化', description: '月用电量: +18.5%, 最大负荷: +12.3%, 负荷率: -5.2%', data: {} },
     ],
   };
 }
 
-export function getSavingAdviceList(): EnergySavingAdvice[] {
+export function getEnergySavingAdvices(): EnergySavingAdvice[] {
   return [
-    {
-      id: 'sa1', category: 'equipment', title: '更换高效冷水机组', description: '现有螺杆机组COP仅2.8，更换为磁悬浮离心机组后预计COP可达5.8',
-      priority: 'high', targetBuilding: '实验楼A', targetEnergyType: 'electricity',
-      estimatedSaving: 125600, savingUnit: 'kWh/年', estimatedCostSaving: 87920, paybackMonths: 36,
-      implementationDifficulty: 'hard', status: 'suggested',
-    },
-    {
-      id: 'sa2', category: 'behavior', title: '推行"人走灯灭"智能管控', description: '在走廊、卫生间安装人体感应开关，公共区域采用雷达感应调光',
-      priority: 'medium', targetEnergyType: 'electricity',
-      estimatedSaving: 25600, savingUnit: 'kWh/年', estimatedCostSaving: 17920, paybackMonths: 8,
-      implementationDifficulty: 'easy', status: 'accepted',
-    },
-    {
-      id: 'sa3', category: 'schedule', title: '优化空调启停时间表', description: '根据实际人员到岗规律调整空调提前开机和延后关机时间',
-      priority: 'medium', targetBuilding: '教学楼A', targetEnergyType: 'electricity',
-      estimatedSaving: 18400, savingUnit: 'kWh/年', estimatedCostSaving: 12880, paybackMonths: 0,
-      implementationDifficulty: 'easy', status: 'in_progress',
-    },
-    {
-      id: 'sa4', category: 'retrofit', title: 'LED全量替换计划', description: '将剩余的荧光灯全部替换为LED灯具，含应急照明改造',
-      priority: 'low', targetEnergyType: 'electricity',
-      estimatedSaving: 31200, savingUnit: 'kWh/年', estimatedCostSaving: 21840, paybackMonths: 18,
-      implementationDifficulty: 'medium', status: 'suggested',
-    },
-    {
-      id: 'sa5', category: 'behavior', title: '实验室设备定时关断', description: '为实验台配备智能插座，支持远程批量关机和预约启动',
-      priority: 'high', targetBuilding: '实验楼A', targetEnergyType: 'electricity',
-      estimatedSaving: 45200, savingUnit: 'kWh/年', estimatedCostSaving: 31640, paybackMonths: 6,
-      implementationDifficulty: 'easy', status: 'suggested',
-    },
-    {
-      id: 'sa6', category: 'retrofit', title: '锅炉烟气余热回收改造', description: '在锅炉排烟口加装板式换热器回收烟气余热用于预热生活热水',
-      priority: 'medium', targetEnergyType: 'gas',
-      estimatedSaving: 185000, savingUnit: 'm³/年', estimatedCostSaving: 55500, paybackMonths: 24,
-      implementationDifficulty: 'hard', status: 'suggested',
-    },
+    { id: 'adv-001', category: 'equipment', title: '更换高效变压器', description: '综合实验楼A 2#变压器负载率偏低且温升异常，建议更换为SCB13型高效变压器', priority: 'high', targetBuilding: '综合实验楼A', targetEnergyType: 'electricity', estimatedSaving: 45000, savingUnit: 'kWh/年', estimatedCostSaving: 36000, paybackMonths: 18, implementationDifficulty: 'hard', status: 'suggested' },
+    { id: 'adv-002', category: 'schedule', title: '优化空调运行时段', description: '将图书馆空调提前1小时降低功率运行，利用建筑热惰性维持舒适度', priority: 'medium', targetBuilding: '图书馆', targetEnergyType: 'electricity', estimatedSaving: 22000, savingUnit: 'kWh/年', estimatedCostSaving: 17600, paybackMonths: 0, implementationDifficulty: 'easy', status: 'suggested' },
+    { id: 'adv-003', category: 'behavior', title: '推行"人走灯灭"制度', description: '在宿舍楼安装人体感应开关，减少长明灯现象', priority: 'medium', targetBuilding: '学生宿舍1-5号楼', targetEnergyType: 'electricity', estimatedSaving: 18000, savingUnit: 'kWh/年', estimatedCostSaving: 14400, paybackMonths: 6, implementationDifficulty: 'easy', status: 'accepted' },
+    { id: 'adv-004', category: 'retrofit', title: '食堂灶具节能改造', description: '将第一食堂传统灶具更换为高效节能灶具，预计节气25%', priority: 'high', targetBuilding: '第一食堂', targetEnergyType: 'gas', estimatedSaving: 8500, savingUnit: 'm³/年', estimatedCostSaving: 34000, paybackMonths: 12, implementationDifficulty: 'medium', status: 'suggested' },
+    { id: 'adv-005', category: 'equipment', title: '水泵变频改造', description: '游泳馆循环水泵加装变频器，根据负荷自动调节转速', priority: 'medium', targetBuilding: '游泳馆', targetEnergyType: 'electricity', estimatedSaving: 12000, savingUnit: 'kWh/年', estimatedCostSaving: 9600, paybackMonths: 15, implementationDifficulty: 'medium', status: 'in_progress' },
+    { id: 'adv-006', category: 'behavior', title: '实验室设备待机管理', description: '制定实验室设备关机检查清单，杜绝非必要待机能耗', priority: 'low', targetBuilding: '综合实验楼A/B', targetEnergyType: 'electricity', estimatedSaving: 8000, savingUnit: 'kWh/年', estimatedCostSaving: 6400, paybackMonths: 0, implementationDifficulty: 'easy', status: 'suggested' },
+    { id: 'adv-007', category: 'retrofit', title: '光伏扩容', description: '在图书馆屋顶新增200kW光伏板，预计年发电22万kWh', priority: 'high', targetBuilding: '图书馆', targetEnergyType: 'electricity', estimatedSaving: 220000, savingUnit: 'kWh/年', estimatedCostSaving: 176000, paybackMonths: 48, implementationDifficulty: 'hard', status: 'suggested' },
+    { id: 'adv-008', category: 'schedule', title: '错峰用电方案', description: '将高能耗实验设备运行时段调整至谷电时段（23:00-7:00）', priority: 'medium', targetBuilding: '材料实验楼', targetEnergyType: 'electricity', estimatedSaving: 0, savingUnit: 'kWh/年', estimatedCostSaving: 25000, paybackMonths: 0, implementationDifficulty: 'medium', status: 'suggested' },
   ];
 }
 
-export function getEnergyTrendData(): EnergyTrendComparison {
-  const months = ['1月','2月','3月','4月','5月','6月','7月'];
+// ============================================================
+// 页面3：用能日历
+// ============================================================
+
+export function getMonthlyEnergySummary(): MonthlyEnergySummary {
   return {
-    buildings: ['全校', '教学楼A', '实验楼A', '图书馆'],
-    energyType: 'electricity',
-    startDate: '2026-01-01',
-    endDate: '2026-07-31',
-    series: [
-      { buildingId: 'all', buildingName: '全校', data: months.map((m,i) => ({ date: m, value: 115 + Math.sin(i*0.8)*15 + (i>4?i*3:0) })) },
-      { buildingId: 'b01', buildingName: '教学楼A', data: months.map((m,i) => ({ date: m, value: 18 + Math.cos(i*0.6)*3 + (i>4?i*0.5:0) })) },
-      { buildingId: 'b04', buildingName: '实验楼A', data: months.map((m,i) => ({ date: m, value: 28 + Math.sin(i*1)*5 + (i>4?i*1.2:0) })) },
-      { buildingId: 'b07', buildingName: '图书馆', data: months.map((m,i) => ({ date: m, value: 12 + Math.cos(i*0.4)*2 + (i>4?i*0.3:0) })) },
-    ],
-    yoyData: {
-      currentYear: [115,108,118,112,125,138,148],
-      lastYear: [119,115,122,118,128,135,142],
-      changeRate: [-3.4,-6.1,-3.3,-5.1,-2.3,2.2,4.2],
-    },
-    momData: {
-      currentMonth: [148],
-      lastMonth: [138],
-      changeRate: [7.2],
-    },
+    month: '2026-07',
+    totalUsage: { electricity: 591087, water: 11382, gas: 3234, heat: 0, totalTce: 76.8 },
+    abnormalDays: 5,
+    savingComplianceDays: 18,
+    totalDays: 31,
   };
 }
 
-// ============================================================
-// 页面3：用能日历 — Mock 数据
-// ============================================================
-
-function generateCalendarDays(year: number, month: number): CalendarHeatmapDay[] {
+export function getCalendarHeatmapDays(): CalendarHeatmapDay[] {
   const days: CalendarHeatmapDay[] = [];
-  const daysInMonth = new Date(year, month, 0).getDate();
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dayOfWeek = new Date(year, month - 1, d).getDay();
+  const baseTce = 2.4;
+  for (let d = 1; d <= 31; d++) {
+    const dayOfWeek = new Date(2026, 6, d).getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const isHoliday = (month === 1 && (d >= 1 && d <= 3)) || (month === 2 && d >= 9 && d <= 15);
-
-    let baseIntensity = 12;
-    if (isHoliday) baseIntensity = 3;
-    else if (isWeekend) baseIntensity = 6;
-    else if (dayOfWeek >= 1 && dayOfWeek <= 5) baseIntensity = 15;
-
-    const noise = (Math.sin(d * 1.7) * 2 + Math.cos(d * 0.9) * 1.5);
-    const intensity = Math.max(1, baseIntensity + noise + (d > 20 ? 3 : 0));
-    const tce = intensity * 0.85;
-
-    let level: CalendarHeatmapDay['level'] = 'normal';
-    if (isHoliday) level = 'holiday';
-    else if (isWeekend) level = 'weekend';
-    else if (intensity > 20) level = 'abnormal_high';
-    else if (intensity > 16) level = 'high';
-    else if (intensity < 5) level = 'abnormal_low';
-    else if (intensity < 8) level = 'low';
-
-    const isAbnormal = level.startsWith('abnormal');
-    const hasAlert = isAbnormal || (d % 7 === 0 && !isWeekend);
-
+    const noise = (Math.sin(d * 0.7) * 0.3 + Math.cos(d * 1.1) * 0.2);
+    const tce = isWeekend ? baseTce * 0.65 + noise * 0.3 : baseTce + noise;
+    const isAbnormal = [3, 11, 18, 24, 29].includes(d);
     days.push({
-      date: dateStr,
+      date: `2026-07-${String(d).padStart(2, '0')}`,
       totalTce: Math.round(tce * 100) / 100,
-      electricity: Math.round(tce * 0.65 * 100) / 100,
-      water: Math.round(tce * 0.18 * 100) / 100,
-      gas: Math.round(tce * 0.12 * 100) / 100,
-      heat: Math.round(tce * 0.05 * 100) / 100,
-      intensity: Math.round(intensity * 100) / 100,
-      level,
+      electricity: Math.round(tce * 7500),
+      water: Math.round(tce * 145),
+      gas: Math.round(tce * 41),
+      heat: 0,
+      intensity: Math.round(tce * 100 / 2.4) / 100,
+      level: isAbnormal ? 'abnormal_high' : isWeekend ? 'weekend' : tce > 2.6 ? 'high' : tce < 2.2 ? 'low' : 'normal',
       isAbnormal,
-      hasAlert,
-      alertCount: hasAlert ? (isAbnormal ? 2 : 1) : undefined,
+      hasAlert: isAbnormal,
+      alertCount: isAbnormal ? 1 + Math.floor(Math.random() * 3) : 0,
     });
   }
   return days;
 }
 
-export function getCalendarData(year: number, month: number): CalendarHeatmapDay[] {
-  return generateCalendarDays(year, month);
-}
-
-export function getMonthlySummary(month: string): MonthlyEnergySummary {
-  return {
-    month,
-    totalUsage: { electricity: 384200, water: 106300, gas: 70800, heat: 29500, totalTce: 49820 },
-    abnormalDays: 4,
-    savingComplianceDays: 22,
-    totalDays: 31,
-  };
-}
-
 export function getEnergyProfile(): EnergyProfile {
-  const hours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2,'0')}:00`);
-  const workdayBase = [120, 110, 105, 102, 100, 115, 250, 420, 580, 620, 610, 590, 570, 580, 610, 630, 580, 480, 380, 340, 300, 270, 220, 160];
-  const weekendBase = [130, 120, 115, 108, 100, 105, 150, 200, 250, 280, 290, 285, 280, 285, 295, 300, 280, 240, 200, 180, 160, 145, 130, 125];
-  const holidayBase = [110, 105, 100, 98, 95, 98, 120, 150, 180, 190, 195, 190, 188, 192, 198, 200, 185, 160, 140, 130, 120, 115, 110, 108];
-
+  const workdayPattern = generateHourlyCurve(1);
+  const weekendPattern = generateHourlyCurve(0.65);
+  const holidayPattern = generateHourlyCurve(0.35);
   return {
-    workdayPattern: hours.map((t, i) => ({
-      timestamp: t,
-      electricity: workdayBase[i] + (Math.random() - 0.5) * 20,
-      water: workdayBase[i] * 0.12 + (Math.random() - 0.5) * 3,
-      gas: workdayBase[i] * 0.04 + (Math.random() - 0.5) * 1,
-      heat: workdayBase[i] * 0.015 + (Math.random() - 0.5) * 0.5,
-    })),
-    weekendPattern: hours.map((t, i) => ({
-      timestamp: t,
-      electricity: weekendBase[i] + (Math.random() - 0.5) * 15,
-      water: weekendBase[i] * 0.15 + (Math.random() - 0.5) * 4,
-      gas: weekendBase[i] * 0.06 + (Math.random() - 0.5) * 2,
-      heat: weekendBase[i] * 0.02 + (Math.random() - 0.5) * 0.5,
-    })),
-    holidayPattern: hours.map((t, i) => ({
-      timestamp: t,
-      electricity: holidayBase[i] + (Math.random() - 0.5) * 10,
-      water: holidayBase[i] * 0.1 + (Math.random() - 0.5) * 2,
-      gas: holidayBase[i] * 0.03 + (Math.random() - 0.5) * 1,
-      heat: holidayBase[i] * 0.01 + (Math.random() - 0.5) * 0.3,
-    })),
+    workdayPattern, weekendPattern, holidayPattern,
     seasonalPattern: [
-      { season: 'spring', avgDaily: 1580, peakDemand: 5200, dominantEnergy: 'electricity' },
-      { season: 'summer', avgDaily: 2150, peakDemand: 6800, dominantEnergy: 'electricity' },
-      { season: 'autumn', avgDaily: 1720, peakDemand: 5500, dominantEnergy: 'electricity' },
-      { season: 'winter', avgDaily: 2280, peakDemand: 6200, dominantEnergy: 'heat' },
-    ] as SeasonalData[],
-    peakHours: ['09:00-11:00', '14:00-16:00', '19:00-21:00'],
-    valleyHours: ['00:00-05:00'],
-    peakValleyRatio: 6.2,
+      { season: 'spring', avgDaily: 2.15, peakDemand: 2850, dominantEnergy: 'electricity' },
+      { season: 'summer', avgDaily: 2.48, peakDemand: 3420, dominantEnergy: 'electricity' },
+      { season: 'autumn', avgDaily: 2.08, peakDemand: 2650, dominantEnergy: 'electricity' },
+      { season: 'winter', avgDaily: 2.92, peakDemand: 3850, dominantEnergy: 'gas' },
+    ],
+    peakHours: ['09:00-11:00', '14:00-16:00'],
+    valleyHours: ['00:00-06:00', '22:00-24:00'],
+    peakValleyRatio: 2.85,
   };
 }
 
 export function getDayDetail(date: string): DayDetail {
-  const hours = Array.from({ length: 24 }, (_, i) => ({
-    start: `${String(i).padStart(2,'0')}:00`, end: `${String((i+1)%24).padStart(2,'0')}:00`,
-    duration: 1, consumption: 0,
-  }));
-  const profile = getEnergyProfile();
-  const hourlyCurve = profile.workdayPattern;
-
-  hours.forEach((h, i) => {
-    h.consumption = hourlyCurve[i].electricity;
-  });
-
-  const peakThreshold = 500;
-  const valleyThreshold = 150;
-
-  const peakHours = hours.filter(h => h.consumption >= peakThreshold).map(h => ({ ...h }));
-  const valleyHours = hours.filter(h => h.consumption <= valleyThreshold).map(h => ({ ...h }));
-  const flatHours = hours.filter(h => h.consumption > valleyThreshold && h.consumption < peakThreshold).map(h => ({ ...h }));
-
-  const total = hours.reduce((s, h) => s + h.consumption, 0);
-
+  const curve = generateHourlyCurve(1);
   return {
     date,
-    hourlyCurve,
+    hourlyCurve: curve,
     peakValleyAnalysis: {
-      peakHours: peakHours.map(h => ({ ...h, duration: h.duration, consumption: h.consumption })),
-      valleyHours: valleyHours.map(h => ({ ...h, duration: h.duration, consumption: h.consumption })),
-      flatHours: flatHours.map(h => ({ ...h, duration: h.duration, consumption: h.consumption })),
-      peakRatio: Math.round(peakHours.reduce((s,h)=>s+h.consumption,0)/total*1000)/10,
-      valleyRatio: Math.round(valleyHours.reduce((s,h)=>s+h.consumption,0)/total*1000)/10,
-      flatRatio: Math.round(flatHours.reduce((s,h)=>s+h.consumption,0)/total*1000)/10,
-    } as PeakValleyResult,
-    hourlyBreakdown: hourlyCurve.map(p => ({
-      period: p.timestamp.replace(':00',''),
-      electricity: Math.round(p.electricity),
-      water: Math.round(p.water * 10) / 10,
-      gas: Math.round(p.gas * 100) / 100,
-      heat: Math.round(p.heat * 100) / 100,
-      total: Math.round((p.electricity + p.water + p.gas + p.heat) * 100) / 100,
-      percentage: 0,
-    })).map(h => ({ ...h, percentage: Math.round(h.total / total * 1000) / 10 })) as HourlyBreakdown[],
+      peakHours: [{ start: '09:00', end: '11:00', duration: 2, consumption: 2450 }, { start: '14:00', end: '16:00', duration: 2, consumption: 2380 }],
+      valleyHours: [{ start: '00:00', end: '06:00', duration: 6, consumption: 4200 }, { start: '22:00', end: '24:00', duration: 2, consumption: 1350 }],
+      flatHours: [{ start: '06:00', end: '09:00', duration: 3, consumption: 2100 }, { start: '11:00', end: '14:00', duration: 3, consumption: 2150 }, { start: '16:00', end: '22:00', duration: 6, consumption: 4680 }],
+      peakRatio: 28.5, valleyRatio: 32.8, flatRatio: 38.7,
+    },
+    hourlyBreakdown: curve.map((p, i) => ({
+      period: `${String(i).padStart(2, '0')}:00-${String(i + 1).padStart(2, '0')}:00`,
+      electricity: p.electricity, water: p.water, gas: p.gas, heat: p.heat,
+      total: p.electricity + p.water * 10 + p.gas * 30,
+      percentage: 100 / 24,
+    })),
   };
 }
 
 export function getTypicalDayComparison(): TypicalDayComparison {
-  const profile = getEnergyProfile();
   return {
     days: [
-      { label: '工作日典型', date: '2026-07-15', energyType: 'electricity', data: profile.workdayPattern },
-      { label: '周末典型', date: '2026-07-13', energyType: 'electricity', data: profile.weekendPattern },
-      { label: '假期典型', date: '2026-02-12', energyType: 'electricity', data: profile.holidayPattern },
+      { label: '今日', date: '2026-07-23', energyType: 'electricity', data: generateHourlyCurve(1) },
+      { label: '昨日', date: '2026-07-22', energyType: 'electricity', data: generateHourlyCurve(0.95) },
+      { label: '上周同期', date: '2026-07-16', energyType: 'electricity', data: generateHourlyCurve(0.88) },
+      { label: '上月同期', date: '2026-06-23', energyType: 'electricity', data: generateHourlyCurve(0.72) },
     ],
   };
 }
@@ -551,18 +431,18 @@ export function getTypicalDayComparison(): TypicalDayComparison {
 export function getSemesterComparison(): SemesterComparison {
   return {
     semesters: [
-      { name: '2025秋季学期', startDate: '2025-09-01', endDate: '2026-01-15', totalTce: 158400, avgDailyTce: 1165, electricity: 103000, water: 28500, gas: 18900, heat: 8000, peakDemandDay: '2025-12-20', peakDemandValue: 7200 },
-      { name: '2026春季学期', startDate: '2026-02-17', endDate: '2026-06-30', totalTce: 136800, avgDailyTce: 1095, electricity: 88900, water: 24600, gas: 16400, heat: 6900, peakDemandDay: '2026-06-28', peakDemandValue: 6500 },
-      { name: '2026夏季学期(当前)', startDate: '2026-07-01', endDate: '2026-07-23', totalTce: 11480, avgDailyTce: 499, electricity: 8840, water: 2450, gas: 1630, heat: 560, peakDemandDay: '2026-07-22', peakDemandValue: 5800 },
+      { name: '2025-2026春季学期', startDate: '2026-02-15', endDate: '2026-07-10', totalTce: 2145, avgDailyTce: 14.6, electricity: 16520000, water: 318000, gas: 90500, heat: 52000, peakDemandDay: '2026-06-22', peakDemandValue: 3850 },
+      { name: '2025-2026秋季学期', startDate: '2025-09-01', endDate: '2026-01-15', totalTce: 2350, avgDailyTce: 17.2, electricity: 18200000, water: 345000, gas: 128000, heat: 185000, peakDemandDay: '2025-12-28', peakDemandValue: 4250 },
+      { name: '2024-2025春季学期', startDate: '2025-02-15', endDate: '2025-07-10', totalTce: 2080, avgDailyTce: 14.2, electricity: 16050000, water: 310000, gas: 88000, heat: 48000, peakDemandDay: '2025-06-20', peakDemandValue: 3720 },
     ],
   };
 }
 
-export function getTimeOfUseAdvice(): TimeOfUseAdvice[] {
+export function getTimeOfUseAdvices(): TimeOfUseAdvice[] {
   return [
-    { id: 'tou1', timePeriod: '峰时段 08:00-11:00, 17:00-21:00', periodType: 'peak', advice: '错峰使用大功率设备，将可转移负荷移至平谷时段', targetEnergyType: 'electricity', estimatedSaving: 8.5, savingUnit: '%', priority: 'high' },
-    { id: 'tou2', timePeriod: '平时段 11:00-17:00, 21:00-23:00', periodType: 'flat', advice: '平时段电价适中，适合安排常规教学和办公活动', targetEnergyType: 'electricity', estimatedSaving: 0, savingUnit: '', priority: 'low' },
-    { id: 'tou3', timePeriod: '谷时段 23:00-次日08:00', periodType: 'valley', advice: '利用谷时段进行蓄冷/蓄热，降低白天高峰制冷/供暖负荷', targetEnergyType: 'electricity', estimatedSaving: 12, savingUnit: '%', priority: 'high' },
-    { id: 'tou4', timePeriod: '午间低谷 12:00-14:00', periodType: 'valley', advice: '午间为自然用能低谷，可安排设备检修和维护', targetEnergyType: 'electricity', estimatedSaving: 3, savingUnit: '%', priority: 'medium' },
+    { id: 'tou-001', timePeriod: '09:00-11:00', periodType: 'peak', advice: '将非必要实验设备运行调整至平段或谷段', targetEnergyType: 'electricity', estimatedSaving: 12000, savingUnit: 'kWh/月', priority: 'high' },
+    { id: 'tou-002', timePeriod: '14:00-16:00', periodType: 'peak', advice: '空调设定温度上调1°C，减少制冷负荷', targetEnergyType: 'electricity', estimatedSaving: 8500, savingUnit: 'kWh/月', priority: 'medium' },
+    { id: 'tou-003', timePeriod: '00:00-06:00', periodType: 'valley', advice: '充分利用谷电时段运行高能耗设备（高温炉、充电桩等）', targetEnergyType: 'electricity', estimatedSaving: 0, savingUnit: 'kWh/月', priority: 'medium' },
+    { id: 'tou-004', timePeriod: '06:00-09:00', periodType: 'flat', advice: '食堂早餐时段优化排风系统运行策略', targetEnergyType: 'electricity', estimatedSaving: 3200, savingUnit: 'kWh/月', priority: 'low' },
   ];
 }

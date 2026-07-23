@@ -22,6 +22,7 @@ import {
   Map,
   Leaf,
   ChevronRight,
+  Stethoscope,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -65,6 +66,16 @@ const navigation = [
         bgActive: "bg-indigo-500/15",
         borderActive: "border-indigo-500/30",
         desc: "负荷规律",
+      },
+      {
+        name: "能源诊断",
+        href: "/energy-diagnosis",
+        icon: Stethoscope,
+        color: "text-rose-400",
+        bgHover: "hover:bg-rose-500/10",
+        bgActive: "bg-rose-500/15",
+        borderActive: "border-rose-500/30",
+        desc: "能效诊断",
       },
     ],
   },
