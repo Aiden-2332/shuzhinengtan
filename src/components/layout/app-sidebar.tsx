@@ -23,6 +23,7 @@ import {
   Leaf,
   ChevronRight,
   Stethoscope,
+  ShieldCheck,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -102,6 +103,16 @@ const navigation = [
         bgActive: "bg-green-500/15",
         borderActive: "border-green-500/30",
         desc: "绿色评价",
+      },
+      {
+        name: "合规凭证看板",
+        href: "/compliance",
+        icon: ShieldCheck,
+        color: "text-purple-400",
+        bgHover: "hover:bg-purple-500/10",
+        bgActive: "bg-purple-500/15",
+        borderActive: "border-purple-500/30",
+        desc: "MRV溯源",
       },
       {
         name: "碳资产管理",
