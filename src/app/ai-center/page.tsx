@@ -5,7 +5,6 @@ import { AnimatePresence } from 'framer-motion';
 import { useAICenterStore } from '@/stores/ai-center-store';
 import {
   getMockPredictionCurve, getMockHolidayPlans, getMockRiskCalendar,
-  getMockScenarioConfigs, getMockScenarioResults,
   getMockAnomalies, getMockNotifications, getMockRealtimeStream,
   getMockReductionBubbles, getMockOptimizationPath, getMockCostScenarios,
   getMockComplianceChecks, getMockPolicyChanges, getMockWelcomeMessage,
@@ -15,8 +14,6 @@ import PredictionPanel from '@/components/ai-center/PredictionPanel';
 import PredictionRight from '@/components/ai-center/PredictionRight';
 import MonitoringPanel from '@/components/ai-center/MonitoringPanel';
 import MonitoringRight from '@/components/ai-center/MonitoringRight';
-import ReductionPanel from '@/components/ai-center/ReductionPanel';
-import ReductionRight from '@/components/ai-center/ReductionRight';
 import PolicyPanel from '@/components/ai-center/PolicyPanel';
 import PolicyRight from '@/components/ai-center/PolicyRight';
 import BottomBar from '@/components/ai-center/BottomBar';
@@ -71,7 +68,6 @@ export default function AICenterPage() {
     switch (activeModule) {
       case 'prediction': return <PredictionPanel key="prediction" />;
       case 'monitoring': return <MonitoringPanel key="monitoring" />;
-      case 'reduction': return <ReductionPanel key="reduction" />;
       case 'policy': return <PolicyPanel key="policy" />;
       case 'suggestion': return null;
     }
@@ -81,7 +77,6 @@ export default function AICenterPage() {
     switch (activeModule) {
       case 'prediction': return <PredictionRight key="prediction" />;
       case 'monitoring': return <MonitoringRight key="monitoring" />;
-      case 'reduction': return <ReductionRight key="reduction" />;
       case 'policy': return <PolicyRight key="policy" />;
       case 'suggestion': return null;
     }

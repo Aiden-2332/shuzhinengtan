@@ -6,7 +6,6 @@ import { useAICenterStore, type AIModule } from '@/stores/ai-center-store';
 const MODULE_TABS: { key: AIModule; label: string; icon: string; color: string }[] = [
   { key: 'prediction', label: '预测性分析', icon: '🔮', color: '#3488ff' },
   { key: 'monitoring', label: '异常监控', icon: '🚨', color: '#ff7b25' },
-  { key: 'reduction', label: '减排路径', icon: '🌿', color: '#36d968' },
   { key: 'policy', label: '政策助手', icon: '🤖', color: '#9b6bff' },
   { key: 'suggestion', label: 'AI减排建议', icon: '💡', color: '#f59e0b' },
 ];
