@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Calendar,
   MapPin,
@@ -8,8 +9,6 @@ import {
   Bell,
   User,
   ChevronDown,
-  PanelLeftClose,
-  PanelLeft,
   Leaf,
   X,
   AlertTriangle,
@@ -21,8 +20,14 @@ import {
   Key,
   Mail,
   Shield,
+  LayoutDashboard,
+  Factory,
+  Grid3X3,
 } from "lucide-react";
 import { AllDevices, type AlarmRecord } from "@/data/energy-monitor-data";
+
+// 驾驶舱路由列表
+const COCKPIT_ROUTES = ["/", "/operations"];
 
 interface AppHeaderProps {
   sidebarCollapsed?: boolean;
@@ -30,9 +35,14 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHeaderProps) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [year, setYear] = useState("2026");
   const [campus, setCampus] = useState("all");
   const [dataStatus, setDataStatus] = useState("realtime");
+
+  // 判断是否在驾驶舱页面
+  const isCockpit = COCKPIT_ROUTES.includes(pathname);
 
   // Alarm dropdown state
   const [showAlarms, setShowAlarms] = useState(false);
@@ -85,7 +95,6 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
       setLoginError("请输入密码");
       return;
     }
-    // Demo login logic
     if (loginAccount === "admin" && loginPassword === "admin123") {
       setIsLoggedIn(true);
       setCurrentUser({ name: "校领导", role: "管理员" });
@@ -150,25 +159,33 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
     }
   };
 
-  return (
-    <header className="h-16 bg-slate-900/95 backdrop-blur-xl border-b border-cyan-500/20 flex items-center justify-between px-6 relative z-50">
-      {/* Left: Platform Name + Toggle + Filters */}
-      <div className="flex items-center gap-4">
-        {/* Sidebar Toggle Button */}
-        <button
-          onClick={onToggleSidebar}
-          className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-gray-400 hover:text-cyan-400"
-          title={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
-        >
-          {sidebarCollapsed ? (
-            <PanelLeft className="w-5 h-5" />
-          ) : (
-            <PanelLeftClose className="w-5 h-5" />
-          )}
-        </button>
+  // 驾驶舱按钮配置
+  const cockpitButtons = [
+    { key: "L1", label: "领导组驾驶舱", icon: LayoutDashboard, href: "/", color: "from-cyan-500 to-blue-600" },
+    { key: "L3", label: "后勤组驾驶舱", icon: Factory, href: "/operations", color: "from-orange-500 to-amber-600" },
+  ];
 
-        {/* Platform Name */}
-        <div className="flex items-center gap-2">
+  return (
+    <header className="h-14 bg-slate-900/95 backdrop-blur-xl border-b border-cyan-500/20 flex items-center justify-between px-4 relative z-50">
+      {/* Left Section */}
+      <div className="flex items-center gap-3">
+        {/* Sidebar Toggle (非驾驶舱时显示) */}
+        {!isCockpit && (
+          <button
+            onClick={onToggleSidebar}
+            className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-gray-400 hover:text-cyan-400"
+            title={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+          >
+            {sidebarCollapsed ? (
+              <Grid3X3 className="w-5 h-5" />
+            ) : (
+              <Grid3X3 className="w-5 h-5" />
+            )}
+          </button>
+        )}
+
+        {/* Logo */}
+        <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
             <Leaf className="w-4 h-4 text-white" />
           </div>
@@ -181,51 +198,85 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
         {/* Divider */}
         <div className="h-6 w-px bg-gray-700/50" />
 
-        {/* Year Filter */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20">
-          <Calendar className="w-4 h-4 text-cyan-400" />
-          <select
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className="bg-transparent text-sm text-gray-300 outline-none cursor-pointer"
-          >
-            <option value="2026">2026 年度</option>
-            <option value="2025">2025 年度</option>
-            <option value="2024">2024 年度</option>
-          </select>
+        {/* 驾驶舱入口按钮组 */}
+        <div className="flex items-center gap-1.5">
+          {cockpitButtons.map((btn) => {
+            const Icon = btn.icon;
+            const isActive = pathname === btn.href;
+            return (
+              <button
+                key={btn.key}
+                onClick={() => router.push(btn.href)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all duration-200 text-xs font-medium ${
+                  isActive
+                    ? "bg-cyan-500/20 border-cyan-500/60 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+                    : "bg-slate-800/40 border-gray-700/50 text-gray-400 hover:bg-slate-700/40 hover:border-gray-600 hover:text-gray-300"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{btn.label}</span>
+              </button>
+            );
+          })}
+
+          {/* 目录页入口（驾驶舱内显示） */}
+          {isCockpit && (
+            <button
+              onClick={() => router.push("/portal")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700/50 bg-slate-800/40 text-gray-400 hover:bg-slate-700/40 hover:text-gray-300 transition-all duration-200 text-xs font-medium"
+            >
+              <Grid3X3 className="w-3.5 h-3.5" />
+              <span>功能目录</span>
+            </button>
+          )}
         </div>
 
-        {/* Campus Filter */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20">
-          <MapPin className="w-4 h-4 text-cyan-400" />
-          <select
-            value={campus}
-            onChange={(e) => setCampus(e.target.value)}
-            className="bg-transparent text-sm text-gray-300 outline-none cursor-pointer"
-          >
-            <option value="all">全校</option>
-            <option value="main">主校区</option>
-            <option value="east">东校区</option>
-          </select>
-        </div>
-
-        {/* Data Status Filter */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20">
-          <Database className="w-4 h-4 text-cyan-400" />
-          <select
-            value={dataStatus}
-            onChange={(e) => setDataStatus(e.target.value)}
-            className="bg-transparent text-sm text-gray-300 outline-none cursor-pointer"
-          >
-            <option value="realtime">实时估算</option>
-            <option value="monthly">月度锁定</option>
-            <option value="yearly">年度确认</option>
-          </select>
-        </div>
+        {/* Filters (非驾驶舱时显示) */}
+        {!isCockpit && (
+          <>
+            <div className="h-6 w-px bg-gray-700/50" />
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/50 border border-cyan-500/20">
+              <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+              <select
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="bg-transparent text-xs text-gray-300 outline-none cursor-pointer"
+              >
+                <option value="2026">2026 年度</option>
+                <option value="2025">2025 年度</option>
+                <option value="2024">2024 年度</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/50 border border-cyan-500/20">
+              <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+              <select
+                value={campus}
+                onChange={(e) => setCampus(e.target.value)}
+                className="bg-transparent text-xs text-gray-300 outline-none cursor-pointer"
+              >
+                <option value="all">全校</option>
+                <option value="main">主校区</option>
+                <option value="east">东校区</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/50 border border-cyan-500/20">
+              <Database className="w-3.5 h-3.5 text-cyan-400" />
+              <select
+                value={dataStatus}
+                onChange={(e) => setDataStatus(e.target.value)}
+                className="bg-transparent text-xs text-gray-300 outline-none cursor-pointer"
+              >
+                <option value="realtime">实时估算</option>
+                <option value="monthly">月度锁定</option>
+                <option value="yearly">年度确认</option>
+              </select>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Right: Notifications + User */}
-      <div className="flex items-center gap-4">
+      {/* Right Section */}
+      <div className="flex items-center gap-3">
         {/* Notifications - Alarm Center */}
         <div className="relative" ref={alarmRef}>
           <button
@@ -319,7 +370,13 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                   <span className="text-xs text-gray-500">
                     共 {allAlarms.length} 条告警，{unreadCount} 条待处理
                   </span>
-                  <button className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors font-medium">
+                  <button
+                    onClick={() => {
+                      setShowAlarms(false);
+                      router.push("/alarms");
+                    }}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors font-medium"
+                  >
                     查看全部 →
                   </button>
                 </div>
@@ -335,23 +392,22 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
               setShowLogin(!showLogin);
               setShowAlarms(false);
             }}
-            className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20 hover:border-cyan-500/40 transition-colors"
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20 hover:border-cyan-500/40 transition-colors"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-              <User className="w-4 h-4 text-white" />
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+              <User className="w-3.5 h-3.5 text-white" />
             </div>
-            <div className="text-sm">
+            <div className="text-xs">
               <div className="text-gray-300 font-medium">{currentUser.name}</div>
-              <div className="text-xs text-gray-500">{currentUser.role}</div>
+              <div className="text-[10px] text-gray-500">{currentUser.role}</div>
             </div>
-            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showLogin ? "rotate-180" : ""}`} />
+            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showLogin ? "rotate-180" : ""}`} />
           </button>
 
           {/* Login Panel */}
           {showLogin && (
             <div className="absolute right-0 top-full mt-2 w-[320px] bg-slate-900 border border-cyan-500/20 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
               {isLoggedIn ? (
-                /* Logged-in state */
                 <>
                   <div className="px-5 py-4 border-b border-gray-800">
                     <div className="flex items-center gap-3">
@@ -384,7 +440,6 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                   </div>
                 </>
               ) : (
-                /* Login form */
                 <>
                   <div className="px-5 py-4 border-b border-gray-800">
                     <div className="flex items-center gap-2 mb-1">
@@ -395,7 +450,6 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                   </div>
 
                   <div className="px-5 py-4 space-y-3">
-                    {/* Account */}
                     <div>
                       <label className="block text-xs text-gray-400 mb-1.5">账号</label>
                       <div className="relative">
@@ -414,7 +468,6 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                       </div>
                     </div>
 
-                    {/* Password */}
                     <div>
                       <label className="block text-xs text-gray-400 mb-1.5">密码</label>
                       <div className="relative">
@@ -433,7 +486,6 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                       </div>
                     </div>
 
-                    {/* Error */}
                     {loginError && (
                       <div className="flex items-center gap-1.5 text-xs text-red-400">
                         <AlertCircle className="w-3.5 h-3.5" />
@@ -441,7 +493,6 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                       </div>
                     )}
 
-                    {/* Login Button */}
                     <button
                       onClick={handleLogin}
                       className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-cyan-400 hover:to-blue-500 transition-all"
@@ -449,23 +500,8 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
                       登 录
                     </button>
 
-                    {/* Demo accounts hint */}
-                    <div className="pt-2 border-t border-gray-800">
-                      <p className="text-[10px] text-gray-600 mb-1.5">演示账号：</p>
-                      <div className="space-y-1 text-[10px] text-gray-500">
-                        <div className="flex justify-between">
-                          <span>校领导：</span>
-                          <span className="text-gray-400 font-mono">admin / admin123</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>能源管理员：</span>
-                          <span className="text-gray-400 font-mono">energy / energy123</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>碳管理员：</span>
-                          <span className="text-gray-400 font-mono">carbon / carbon123</span>
-                        </div>
-                      </div>
+                    <div className="text-xs text-gray-500 text-center">
+                      演示账号：admin / admin123
                     </div>
                   </div>
                 </>

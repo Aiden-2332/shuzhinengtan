@@ -1,193 +1,316 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
 import {
-    LayoutDashboard,
-    Factory,
-    Brain,
-    Zap,
-    Calculator,
-    Wallet,
-    ChevronRight,
-    Leaf,
-    Award,
-    BarChart3,
-    CalendarDays,
-    Map,
+  Flame,
+  Droplets,
+  Sun,
+  ThermometerSun,
+  Atom,
+  Scale,
+  PiggyBank,
+  TrendingDown,
+  Bot,
+  ScanEye,
+  MapPinned,
+  BarChart3,
+  CalendarDays,
+  Activity,
+  Calculator,
+  Wallet,
+  Map,
+  Leaf,
+  ChevronRight,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-const navigation = [{
-    name: "碳控制塔",
-    icon: LayoutDashboard,
-
-    children: [{
-        name: "领导组驾驶舱",
-        href: "/",
-        icon: LayoutDashboard
-    }, {
-        name: "后勤组驾驶舱",
-        href: "/operations",
-        icon: Factory
-    }]
-}, {
-    name: "AI 智能分析中心",
-    icon: Brain,
-    href: "/ai-center",
-}, {
+// 小类使用完全不同于大类的专属图标，每个小类图标都独一无二
+const navigation = [
+  {
     name: "能源管理",
-    icon: Zap,
-
-    children: [{
+    // 大类图标：火焰 - 代表能源
+    icon: Flame,
+    // 大类用实心背景的图标标识，小类用完全不同的线条图标
+    children: [
+      {
         name: "能源监测",
         href: "/energy-monitor",
-        icon: Zap
-    }, {
-        name: "校园碳地图",
-        href: "/campus-map",
-        icon: Map
-    }, {
+        // 用 "监控眼" 图标，区别于大类的火焰
+        icon: Activity,
+        // 每个小类有独立颜色标识
+        color: "text-emerald-400",
+        bgHover: "hover:bg-emerald-500/10",
+        bgActive: "bg-emerald-500/15",
+        borderActive: "border-emerald-500/30",
+        desc: "实时监控",
+      },
+      {
         name: "能源分析",
         href: "/energy",
-        icon: BarChart3
-    }, {
+        icon: BarChart3,
+        color: "text-sky-400",
+        bgHover: "hover:bg-sky-500/10",
+        bgActive: "bg-sky-500/15",
+        borderActive: "border-sky-500/30",
+        desc: "数据挖掘",
+      },
+      {
         name: "用电日历",
         href: "/energy/calendar",
-        icon: CalendarDays
-    }]
-}, {
+        icon: CalendarDays,
+        color: "text-indigo-400",
+        bgHover: "hover:bg-indigo-500/10",
+        bgActive: "bg-indigo-500/15",
+        borderActive: "border-indigo-500/30",
+        desc: "负荷规律",
+      },
+    ],
+  },
+  {
     name: "碳管理",
-    icon: Calculator,
-
-    children: [{
+    icon: Atom,
+    children: [
+      {
         name: "碳核算工作台",
         href: "/calculation",
-        icon: Calculator
-    }, {
-        name: "绿色/低碳校园评价",
-        href: "/evaluation",
-        icon: Award
-    }, {
+        icon: Calculator,
+        color: "text-amber-400",
+        bgHover: "hover:bg-amber-500/10",
+        bgActive: "bg-amber-500/15",
+        borderActive: "border-amber-500/30",
+        desc: "五步核算",
+      },
+      {
+        name: "AI减排建议",
+        href: "/ai-suggestion",
+        icon: TrendingDown,
+        color: "text-lime-400",
+        bgHover: "hover:bg-lime-500/10",
+        bgActive: "bg-lime-500/15",
+        borderActive: "border-lime-500/30",
+        desc: "减排路径",
+      },
+      {
         name: "碳资产管理",
         href: "/asset",
-        icon: Wallet
-    }]
-}];
+        icon: Wallet,
+        color: "text-yellow-400",
+        bgHover: "hover:bg-yellow-500/10",
+        bgActive: "bg-yellow-500/15",
+        borderActive: "border-yellow-500/30",
+        desc: "配额履约",
+      },
+    ],
+  },
+  {
+    name: "AI 分析",
+    icon: Bot,
+    children: [
+      {
+        name: "AI智能分析中心",
+        href: "/ai-center",
+        icon: ScanEye,
+        color: "text-violet-400",
+        bgHover: "hover:bg-violet-500/10",
+        bgActive: "bg-violet-500/15",
+        borderActive: "border-violet-500/30",
+        desc: "预测与优化",
+      },
+    ],
+  },
+  {
+    name: "空间可视化",
+    icon: MapPinned,
+    children: [
+      {
+        name: "校园碳地图",
+        href: "/campus-map",
+        icon: Map,
+        color: "text-teal-400",
+        bgHover: "hover:bg-teal-500/10",
+        bgActive: "bg-teal-500/15",
+        borderActive: "border-teal-500/30",
+        desc: "3D碳地图",
+      },
+    ],
+  },
+];
 
 interface AppSidebarProps {
-    collapsed?: boolean;
+  collapsed?: boolean;
 }
 
 export function AppSidebar({ collapsed = false }: AppSidebarProps) {
-    const pathname = usePathname();
+  const pathname = usePathname();
 
-    return (
-        <aside
-            className={cn(
-                "bg-slate-900/95 backdrop-blur-xl border-r border-cyan-500/20 flex flex-col h-full overflow-hidden transition-all duration-300",
-                collapsed ? "w-16" : "w-64"
-            )}>
-            {/* Logo */}
-            <div className={cn(
-                "h-16 flex items-center border-b border-cyan-500/20 transition-all duration-300",
-                collapsed ? "px-4 justify-center" : "px-6"
-            )}>
-                <div className="flex items-center gap-3">
-                    <div
-                        className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                        <Leaf className="w-5 h-5 text-white" />
-                    </div>
-                    {!collapsed && (
-                        <div>
-                            <h1 className="text-base font-bold text-white">高校智慧碳管理</h1>
-                            <p className="text-xs text-cyan-400">Smart Carbon Platform</p>
-                        </div>
-                    )}
-                </div>
+  return (
+    <aside
+      className={cn(
+        "bg-slate-900/95 backdrop-blur-xl border-r border-cyan-500/20 flex flex-col h-full overflow-hidden transition-all duration-300",
+        collapsed ? "w-16" : "w-64"
+      )}
+    >
+      {/* Logo Area */}
+      <div
+        className={cn(
+          "h-14 flex items-center border-b border-cyan-500/20 transition-all duration-300",
+          collapsed ? "px-3 justify-center" : "px-5"
+        )}
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+            <Leaf className="w-4 h-4 text-white" />
+          </div>
+          {!collapsed && (
+            <div>
+              <h1 className="text-sm font-bold text-white leading-tight">智慧碳管理</h1>
+              <p className="text-[10px] text-cyan-400 leading-tight">Carbon Platform</p>
             </div>
-            {/* Navigation */}
-            <nav className={cn(
-                "flex-1 overflow-y-auto py-4 space-y-1 transition-all duration-300",
-                collapsed ? "px-2" : "px-3"
-            )}>
-                {navigation.map(section => {
-                    // Direct-link section (no children) — same header style as sections with children
-                    if ("href" in section && section.href) {
-                        const isActive = pathname === section.href || pathname.startsWith(section.href + "/");
-                        return (
-                            <div key={section.name} className="mb-4">
-                                {!collapsed && (
-                                    <Link
-                                        href={section.href}
-                                        className={cn(
-                                            "flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors duration-200",
-                                            isActive ? "text-cyan-400" : "text-cyan-400 hover:text-cyan-300"
-                                        )}>
-                                        <section.icon className="w-4 h-4" />
-                                        <span>{section.name}</span>
-                                    </Link>
-                                )}
-                                {collapsed && (
-                                    <Link
-                                        href={section.href}
-                                        title={section.name}
-                                        className="flex justify-center py-2">
-                                        <section.icon className="w-4 h-4 text-cyan-400" />
-                                    </Link>
-                                )}
-                            </div>
-                        );
-                    }
-                    // Section with children
-                    return (<div key={section.name} className="mb-4">
-                        {!collapsed && (
-                            <div
-                                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-cyan-400 uppercase tracking-wider">
-                                <section.icon className="w-4 h-4" />
-                                <span>{section.name}</span>
-                            </div>
-                        )}
-                        {collapsed && (
-                            <div className="flex justify-center py-2">
-                                <section.icon className="w-4 h-4 text-cyan-400" />
-                            </div>
-                        )}
-                        <div className="space-y-1">
-                            {"children" in section && section.children?.map(item => {
-                                const isActive = pathname === item.href;
+          )}
+        </div>
+      </div>
 
-                                return (
-                                    <Link
-                                        key={item.name}
-                                        href={item.href}
-                                        title={collapsed ? item.name : undefined}
-                                        className={cn(
-                                            "flex items-center gap-3 rounded-lg text-sm transition-all duration-200 group",
-                                            collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
-                                            isActive ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border border-cyan-500/30 shadow-lg shadow-cyan-500/10" : "text-gray-400 hover:bg-slate-800/50 hover:text-cyan-300"
-                                        )}>
-                                        <item.icon
-                                            className={cn(
-                                                "w-4 h-4 flex-shrink-0",
-                                                isActive ? "text-cyan-400" : "text-gray-500 group-hover:text-cyan-400"
-                                            )} />
-                                        {!collapsed && <span className="flex-1">{item.name}</span>}
-                                        {!collapsed && isActive && <ChevronRight className="w-4 h-4 text-cyan-400" />}
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    </div>);
-                })}
-            </nav>
-            {/* Footer */}
-            {!collapsed && (
-                <div className="p-4 border-t border-cyan-500/20">
-                    <div className="text-xs text-gray-500 text-center">Demo 模拟数据，不用于申报</div>
+      {/* Navigation */}
+      <nav
+        className={cn(
+          "flex-1 overflow-y-auto py-3 transition-all duration-300",
+          collapsed ? "px-2" : "px-3"
+        )}
+      >
+        {navigation.map((section) => {
+          const SectionIcon = section.icon;
+
+          // Check if any child in this section is active
+          const sectionActive = section.children.some(
+            (item) => pathname === item.href || pathname.startsWith(item.href + "/")
+          );
+
+          return (
+            <div key={section.name} className="mb-3">
+              {/* Category Header */}
+              {!collapsed ? (
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-md mb-1.5 transition-colors",
+                    sectionActive
+                      ? "bg-slate-800/60"
+                      : ""
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-5 h-5 rounded flex items-center justify-center",
+                      sectionActive
+                        ? "bg-cyan-500/20"
+                        : "bg-slate-800/80"
+                    )}
+                  >
+                    <SectionIcon
+                      className={cn(
+                        "w-3 h-3",
+                        sectionActive ? "text-cyan-400" : "text-gray-500"
+                      )}
+                    />
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[11px] font-semibold uppercase tracking-widest",
+                      sectionActive ? "text-cyan-300" : "text-gray-500"
+                    )}
+                  >
+                    {section.name}
+                  </span>
+                  {sectionActive && (
+                    <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/30 to-transparent ml-2" />
+                  )}
                 </div>
-            )}
-        </aside>
-    );
+              ) : (
+                <div className="flex justify-center py-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-slate-800/80 flex items-center justify-center">
+                    <SectionIcon
+                      className={cn(
+                        "w-3.5 h-3.5",
+                        sectionActive ? "text-cyan-400" : "text-gray-500"
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Children */}
+              <div className="space-y-0.5">
+                {section.children.map((item) => {
+                  const ItemIcon = item.icon;
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      title={collapsed ? item.name : undefined}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-lg text-sm transition-all duration-200 group",
+                        collapsed
+                          ? "justify-center px-1.5 py-2"
+                          : "px-2.5 py-2",
+                        isActive
+                          ? cn(item.bgActive, "border", item.borderActive, "shadow-sm")
+                          : cn("border border-transparent", item.bgHover)
+                      )}
+                    >
+                      {/* Icon with unique color per item */}
+                      <div
+                        className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all",
+                          isActive
+                            ? cn(item.bgActive, item.color)
+                            : "bg-slate-800/60 text-gray-500 group-hover:bg-slate-700/60"
+                        )}
+                      >
+                        <ItemIcon className="w-3.5 h-3.5" />
+                      </div>
+                      {!collapsed && (
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <div
+                              className={cn(
+                                "text-[13px] font-medium leading-tight",
+                                isActive ? "text-white" : "text-gray-300 group-hover:text-white"
+                              )}
+                            >
+                              {item.name}
+                            </div>
+                            <div
+                              className={cn(
+                                "text-[10px] leading-tight mt-0.5",
+                                isActive ? "text-gray-400" : "text-gray-600 group-hover:text-gray-500"
+                              )}
+                            >
+                              {item.desc}
+                            </div>
+                          </div>
+                          {isActive && (
+                            <ChevronRight className={cn("w-3.5 h-3.5", item.color)} />
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      {!collapsed && (
+        <div className="px-4 py-3 border-t border-cyan-500/20">
+          <div className="text-[10px] text-gray-600 text-center">Demo 模拟数据 仅课题演示</div>
+        </div>
+      )}
+    </aside>
+  );
 }
