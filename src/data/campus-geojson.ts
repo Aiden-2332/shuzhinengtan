@@ -16,6 +16,7 @@ export interface BuildingProperties {
   carbonEmission: number; // 年碳排放 tCO₂
   status: "正常" | "预警" | "超标";
   energyLevel: "A" | "B" | "C" | "D"; // 能效等级
+  photoUrl?: string; // 建筑实景照片
 }
 
 export type CampusGeoJSON = FeatureCollection<Polygon, BuildingProperties>;
@@ -41,6 +42,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 547,
         status: "正常",
         energyLevel: "B",
+        photoUrl: "/images/buildings/model.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -67,6 +69,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 650,
         status: "预警",
         energyLevel: "C",
+        photoUrl: "/images/buildings/model.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -93,6 +96,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 730,
         status: "超标",
         energyLevel: "D",
+        photoUrl: "/images/buildings/model.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -120,6 +124,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 410,
         status: "正常",
         energyLevel: "A",
+        photoUrl: "/images/buildings/model.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -147,6 +152,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 205,
         status: "正常",
         energyLevel: "A",
+        photoUrl: "/images/buildings/admin-building.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -174,6 +180,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 157,
         status: "正常",
         energyLevel: "B",
+        photoUrl: "/images/buildings/dormitory.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -200,6 +207,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 163,
         status: "正常",
         energyLevel: "B",
+        photoUrl: "/images/buildings/dormitory.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -226,6 +234,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 172,
         status: "预警",
         energyLevel: "C",
+        photoUrl: "/images/buildings/dormitory.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -253,6 +262,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 282,
         status: "正常",
         energyLevel: "B",
+        photoUrl: "/images/buildings/model.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -280,6 +290,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 228,
         status: "正常",
         energyLevel: "B",
+        photoUrl: "/images/buildings/model.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -307,6 +318,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 479,
         status: "预警",
         energyLevel: "C",
+        photoUrl: "/images/buildings/model.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -334,6 +346,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 445,
         status: "正常",
         energyLevel: "B",
+        photoUrl: "/images/buildings/model.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -361,6 +374,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 388,
         status: "正常",
         energyLevel: "B",
+        photoUrl: "/images/buildings/model.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -388,6 +402,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: 285,
         status: "正常",
         energyLevel: "A",
+        photoUrl: "/images/buildings/swimming-hall.jpg",
       },
       geometry: {
         type: "Polygon",
@@ -415,6 +430,7 @@ export const campusBuildings: CampusGeoJSON = {
         carbonEmission: -103,
         status: "正常",
         energyLevel: "A",
+        photoUrl: "/images/buildings/auditorium.jpg",
       },
       geometry: {
         type: "Polygon",

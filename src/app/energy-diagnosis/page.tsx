@@ -8,15 +8,17 @@ import {
 import {
   TrendingUp, TrendingDown, Target, Zap, Droplets, Flame, Thermometer,
   Lightbulb, AlertTriangle, CheckCircle2, ArrowRight, Building2,
-  ChevronDown, ChevronUp, Clock, Info, ThumbsUp,
+  ChevronDown, ChevronUp, Clock, Info, ThumbsUp, CalendarDays,
 } from 'lucide-react';
 import {
   getDiagnosisSummary, getBenchmarkComparison, getEnergyFlowSankey,
   getAIRootCauseAnalysis, getEnergySavingAdvices,
+  getCalendarHeatmapDays, getTypicalDayComparison, getSemesterComparison, getEnergyProfile,
 } from '@/data/energy-three-pages-data';
 import type {
   DiagnosisSummary, BenchmarkComparison, BenchmarkBuildingItem, BenchmarkLine,
   SankeyNode, SankeyLink, AIRootCauseAnalysis, EnergySavingAdvice,
+  CalendarHeatmapDay, LoadCurvePoint, TypicalDayComparison, SemesterComparison, EnergyProfile,
 } from '@/types/energy';
 
 // ============================================================

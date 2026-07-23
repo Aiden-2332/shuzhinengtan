@@ -30,7 +30,7 @@ interface StandardTier {
   code: string;
   fullName: string;
   shortName: string;
-  level: number; // 1=节约型 2=绿色 3=低碳
+  level: number; // 1=绿色学校 2=绿色校园 3=低碳校园
   type: "national" | "local";
   year: string;
   description: string;
@@ -127,7 +127,7 @@ const TIERS: StandardTier[] = [
     type: "national",
     year: "2019",
     description:
-      "国家标准，进阶层。在节约型基础上增加生态规划、健康环境、教育推广维度。",
+      "国家标准，进阶层。在绿色学校基础上增加生态规划、健康环境、教育推广维度。",
     totalScore: 78.5,
     maxScore: 100,
     grade: "二星（良好）",
@@ -494,7 +494,6 @@ function TierRadarChart({
               <div key={cat.name} className="rounded-lg bg-black/20 p-2 border border-white/[0.03]">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] font-medium text-slate-300 truncate">{cat.name}</span>
-                  <span className="text-[11px] font-bold tabular-nums" style={{ color }}>{pct}%</span>
                 </div>
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color, opacity: 0.6 }} />

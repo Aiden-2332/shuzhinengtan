@@ -1,52 +1,54 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
-import * as maplibregl from "maplibre-gl";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Feature, Polygon } from "geojson";
-import {
-  campusBuildings,
-  campusBoundary,
-  CAMPUS_CENTER,
-  DEFAULT_ZOOM,
-  CAMPUS_3D_PITCH,
-  CAMPUS_3D_BEARING,
-  CAMPUS_25D_PITCH,
-  CAMPUS_25D_BEARING,
-  type BuildingProperties,
-} from "@/data/campus-geojson";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Building2,
-  Eye,
-  Layers,
-  Maximize2,
-  RotateCcw,
-  AlertTriangle,
-  Leaf,
-  Zap,
-  Thermometer,
-  X,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { campusBuildings, type BuildingProperties } from "@/data/campus-geojson";
 
-/* ========== 类型 ========== */
-type ViewMode = "3d" | "2.5d" | "2d";
-type OverlayLayer = "emission" | "energy" | "status";
+// ============================================================
+// 常量
+// ============================================================
+const CAMPUS_CENTER: [number, number] = [116.3498, 39.9912];
+const CAMPUS_ZOOM = 16;
+const IMAGE_COORDS: [number, number][] = [
+  [116.3445, 39.9938], // 左上
+  [116.3548, 39.9938], // 右上
+  [116.3548, 39.9882], // 右下
+  [116.3445, 39.9882], // 左下
+];
 
-interface CampusMapProps {
-  className?: string;
+const STATUS_COLORS: Record<string, string> = {
+  "正常": "#36d968",
+  "预警": "#ff7b25",
+  "超标": "#ff3333",
+};
+
+const ENERGY_COLORS: Record<string, string> = {
+  A: "#36d968",
+  B: "#3488ff",
+  C: "#ff7b25",
+  D: "#ff3333",
+};
+
+// ============================================================
+// 工具函数
+// ============================================================
+function computeCentroid(coords: number[][][]): [number, number] {
+  const ring = coords[0];
+  let cx = 0, cy = 0;
+  for (const [x, y] of ring) { cx += x; cy += y; }
+  return [cx / ring.length, cy / ring.length];
 }
 
-/* ========== 建筑详情弹窗 ========== */
+function formatNumber(n: number): string {
+  return n.toLocaleString("zh-CN");
+}
+
+// ============================================================
+// 子组件
+// ============================================================
+
 function BuildingPopup({
   building,
   onClose,
@@ -54,180 +56,126 @@ function BuildingPopup({
   building: BuildingProperties;
   onClose: () => void;
 }) {
-  const statusColor: Record<string, string> = {
-    正常: "bg-emerald-100 text-emerald-700 border-emerald-300",
-    预警: "bg-amber-100 text-amber-700 border-amber-300",
-    超标: "bg-red-100 text-red-700 border-red-300",
-  };
-
-  const energyColor: Record<string, string> = {
-    A: "text-emerald-600",
-    B: "text-blue-600",
-    C: "text-amber-600",
-    D: "text-red-600",
-  };
-
   return (
-    <div className="absolute bottom-4 left-4 z-30 w-80 animate-in slide-in-from-bottom-2 duration-200">
-      <Card className="shadow-lg border-slate-200">
-        <CardHeader className="pb-2 pt-3 px-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Building2 size={16} className="text-blue-500" />
-              {building.name}
-            </CardTitle>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
-              <X size={14} />
-            </Button>
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 w-[380px] max-w-[calc(100vw-2rem)] 
+                 bg-[#0a1628]/95 backdrop-blur-xl border border-white/15 rounded-xl shadow-2xl overflow-hidden"
+    >
+      {/* 照片 */}
+      {building.photoUrl && (
+        <div className="relative h-44 overflow-hidden">
+          <img
+            src={building.photoUrl}
+            alt={building.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a1628] via-transparent to-transparent" />
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 w-7 h-7 rounded-full bg-black/50 text-white/80 
+                       hover:bg-black/70 hover:text-white flex items-center justify-center text-sm transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {!building.photoUrl && (
+        <div className="flex items-center justify-between px-5 pt-4">
+          <h3 className="text-white font-bold text-lg">{building.name}</h3>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full bg-white/10 text-white/60 
+                       hover:bg-white/20 hover:text-white flex items-center justify-center text-sm transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      <div className="p-5 pt-3 space-y-3">
+        {building.photoUrl && (
+          <h3 className="text-white font-bold text-lg">{building.name}</h3>
+        )}
+
+        {/* 状态标签 */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+            style={{
+              backgroundColor: STATUS_COLORS[building.status] + "20",
+              color: STATUS_COLORS[building.status],
+              border: `1px solid ${STATUS_COLORS[building.status]}40`,
+            }}
+          >
+            {building.status}
+          </span>
+          <span className="text-white/40 text-xs">{building.type}</span>
+          <span className="text-white/40 text-xs">{building.floors}层</span>
+          <span className="text-white/40 text-xs">{formatNumber(building.area)}m²</span>
+        </div>
+
+        {/* 数据指标 */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white/5 rounded-lg p-3 text-center">
+            <div className="text-white/40 text-[10px] mb-1">年碳排放</div>
+            <div className="text-white font-bold text-lg">{formatNumber(building.carbonEmission)}</div>
+            <div className="text-white/30 text-[10px]">tCO₂</div>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline" className={cn("text-xs", statusColor[building.status])}>
-              {building.status}
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              {building.type}
-            </Badge>
-            <span className="text-xs text-slate-500">{building.floors}层</span>
+          <div className="bg-white/5 rounded-lg p-3 text-center">
+            <div className="text-white/40 text-[10px] mb-1">年能耗</div>
+            <div className="text-white font-bold text-lg">{formatNumber(building.energyConsumption / 10000)}</div>
+            <div className="text-white/30 text-[10px]">万kWh</div>
           </div>
-        </CardHeader>
-        <CardContent className="px-4 pb-3 space-y-2">
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-1.5">
-              <Zap size={12} className="text-amber-500" />
-              <span className="text-slate-500">年能耗</span>
-              <span className="font-mono font-medium ml-auto">
-                {Math.abs(building.energyConsumption).toLocaleString()} kWh
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Leaf size={12} className="text-emerald-500" />
-              <span className="text-slate-500">碳排放</span>
-              <span className="font-mono font-medium ml-auto">
-                {Math.abs(building.carbonEmission)} tCO₂
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Thermometer size={12} className="text-red-500" />
-              <span className="text-slate-500">面积</span>
-              <span className="font-mono font-medium ml-auto">
-                {building.area.toLocaleString()} m²
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <AlertTriangle size={12} className="text-slate-400" />
-              <span className="text-slate-500">能效</span>
-              <span className={cn("font-mono font-bold ml-auto", energyColor[building.energyLevel])}>
-                {building.energyLevel}
-              </span>
-            </div>
-          </div>
-          <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div className="bg-white/5 rounded-lg p-3 text-center">
+            <div className="text-white/40 text-[10px] mb-1">能效等级</div>
             <div
-              className={cn(
-                "h-full rounded-full transition-all",
-                building.energyLevel === "A"
-                  ? "bg-emerald-500"
-                  : building.energyLevel === "B"
-                    ? "bg-blue-500"
-                    : building.energyLevel === "C"
-                      ? "bg-amber-500"
-                      : "bg-red-500"
-              )}
-              style={{
-                width:
-                  building.energyLevel === "A"
-                    ? "25%"
-                    : building.energyLevel === "B"
-                      ? "50%"
-                      : building.energyLevel === "C"
-                        ? "75%"
-                        : "100%",
-              }}
-            />
+              className="text-lg font-bold"
+              style={{ color: ENERGY_COLORS[building.energyLevel] }}
+            >
+              {building.energyLevel}
+            </div>
+            <div className="text-white/30 text-[10px]">
+              {building.energyLevel === "A" ? "优秀" : building.energyLevel === "B" ? "良好" : building.energyLevel === "C" ? "一般" : "较差"}
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
-/* ========== 主组件 ========== */
-export function CampusMap({ className }: CampusMapProps) {
+// ============================================================
+// 主组件
+// ============================================================
+export default function CampusMap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const intersectionObserverRef = useRef<IntersectionObserver | null>(null);
-  const isVisibleRef = useRef(false);
 
-  const [viewMode, setViewMode] = useState<ViewMode>("2.5d");
-  const [overlay, setOverlay] = useState<OverlayLayer>("emission");
-  const [selectedBuilding, setSelectedBuilding] = useState<BuildingProperties | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [selectedBuilding, setSelectedBuilding] = useState<BuildingProperties | null>(null);
+  const [overlayMode, setOverlayMode] = useState<"carbon" | "energy" | "status">("carbon");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [show2dBase, setShow2dBase] = useState(false);
 
-  /* ---- 颜色映射 ---- */
-  const getEmissionColor = useCallback((building: BuildingProperties): string => {
-    const emission = Math.abs(building.carbonEmission);
-    if (emission <= 200) return "#16A34A";
-    if (emission <= 400) return "#3B82F6";
-    if (emission <= 600) return "#F59E0B";
-    return "#DC2626";
+  // 统计摘要
+  const summary = useMemo(() => {
+    const features = campusBuildings.features;
+    const totalEmission = features.reduce((s: number, f) => s + f.properties.carbonEmission, 0);
+    const totalEnergy = features.reduce((s: number, f) => s + f.properties.energyConsumption, 0);
+    const warningCount = features.filter((f) => f.properties.status === "预警" || f.properties.status === "超标").length;
+    return { totalEmission, totalEnergy, totalBuildings: features.length, warningCount };
   }, []);
 
-  const getEnergyColor = useCallback((building: BuildingProperties): string => {
-    const level = building.energyLevel;
-    const colors: Record<string, string> = { A: "#16A34A", B: "#3B82F6", C: "#F59E0B", D: "#DC2626" };
-    return colors[level] || "#94A3B8";
-  }, []);
-
-  const getStatusColor = useCallback((building: BuildingProperties): string => {
-    const colors: Record<string, string> = { 正常: "#16A34A", 预警: "#F59E0B", 超标: "#DC2626" };
-    return colors[building.status] || "#94A3B8";
-  }, []);
-
-  const getBuildingColor = useCallback(
-    (building: BuildingProperties): string => {
-      if (overlay === "emission") return getEmissionColor(building);
-      if (overlay === "energy") return getEnergyColor(building);
-      return getStatusColor(building);
-    },
-    [overlay, getEmissionColor, getEnergyColor, getStatusColor]
-  );
-
-  /* ---- 建筑高度（用于3D拉伸） ---- */
-  const buildingHeight = useCallback((props: BuildingProperties): number => {
-    return props.floors * 4; // 每层约4米
-  }, []);
-
-  /* ---- 更新图层颜色 ---- */
-  const updateOverlayColors = useCallback(() => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-
-    // 更新3D拉伸图层颜色
-    if (map.getLayer("buildings-3d")) {
-      const expression = [
-        "match",
-        ["get", "id"],
-        ...campusBuildings.features.flatMap((f: Feature<Polygon, BuildingProperties>) => [f.properties.id, getBuildingColor(f.properties)]),
-        "#94A3B8",
-      ] as (string | string[])[];
-      map.setPaintProperty("buildings-3d", "fill-extrusion-color", expression as unknown as string);
-    }
-
-    // 更新2D底面图层颜色
-    if (map.getLayer("buildings-2d")) {
-      const expression = [
-        "match",
-        ["get", "id"],
-        ...campusBuildings.features.flatMap((f: Feature<Polygon, BuildingProperties>) => [f.properties.id, getBuildingColor(f.properties)]),
-        "#94A3B8",
-      ] as (string | string[])[];
-      map.setPaintProperty("buildings-2d", "fill-color", expression as unknown as string);
-    }
-  }, [mapLoaded, getBuildingColor]);
-
-  /* ---- 初始化地图 ---- */
+  // ============================================================
+  // 地图初始化
+  // ============================================================
   const initMap = useCallback(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -236,516 +184,339 @@ export function CampusMap({ className }: CampusMapProps) {
       style: {
         version: 8,
         sources: {
-          osm: {
+          "osm-tiles": {
             type: "raster",
-            tiles: [
-              "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-              "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-              "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
-            ],
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
             tileSize: 256,
-            attribution: "&copy; OpenStreetMap contributors",
             maxzoom: 19,
+            attribution: "© OpenStreetMap",
           },
         },
         layers: [
           {
-            id: "osm",
+            id: "osm-layer",
             type: "raster",
-            source: "osm",
+            source: "osm-tiles",
             minzoom: 0,
-            maxzoom: 19,
+            maxzoom: 22,
           },
         ],
-        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       },
       center: CAMPUS_CENTER,
-      zoom: DEFAULT_ZOOM,
-      pitch: CAMPUS_25D_PITCH,
-      bearing: CAMPUS_25D_BEARING,
-      maxPitch: 85,
-      // 【协同手势】解决页面滚动与地图缩放冲突
-      // MapLibre v6 cooperativeGestures 类型只接受 boolean，但运行时支持对象配置
-      cooperativeGestures: true as unknown as boolean,
+      zoom: CAMPUS_ZOOM,
+      minZoom: 14,
+      maxZoom: 19,
+      pitch: 0,
+      bearing: 0,
+      cooperativeGestures: true,
+      attributionControl: false,
     });
 
-    // 添加导航控件
-    map.addControl(
-      new maplibregl.NavigationControl({ visualizePitch: true }),
-      "top-right"
-    );
-    map.addControl(new maplibregl.ScaleControl({ maxWidth: 120 }), "bottom-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
     map.on("load", () => {
-      // 校园边界
-      map.addSource("campus-boundary", {
-        type: "geojson",
-        data: campusBoundary,
+      // 添加 2.5D 校园全景图作为图像源
+      map.addSource("campus-image", {
+        type: "image",
+        url: "/images/beike-campus-2.5d.png",
+        coordinates: IMAGE_COORDS,
       });
-
       map.addLayer({
-        id: "campus-boundary-fill",
-        type: "fill",
-        source: "campus-boundary",
+        id: "campus-image-layer",
+        type: "raster",
+        source: "campus-image",
         paint: {
-          "fill-color": "#0099FF",
-          "fill-opacity": 0.04,
+          "raster-opacity": 0.92,
+          "raster-fade-duration": 0,
         },
       });
 
-      map.addLayer({
-        id: "campus-boundary-line",
-        type: "line",
-        source: "campus-boundary",
-        paint: {
-          "line-color": "#0099FF",
-          "line-width": 2,
-          "line-dasharray": [4, 2],
-          "line-opacity": 0.5,
-        },
-      });
-
-      // 建筑数据源
-      map.addSource("campus-buildings", {
-        type: "geojson",
-        data: campusBuildings,
-      });
-
-      // 3D 拉伸建筑图层
-      map.addLayer({
-        id: "buildings-3d",
-        type: "fill-extrusion",
-        source: "campus-buildings",
-        paint: {
-          "fill-extrusion-color": [
-            "match",
-            ["get", "id"],
-            ...campusBuildings.features.flatMap((f: Feature<Polygon, BuildingProperties>) => [
-              f.properties.id,
-              getBuildingColor(f.properties),
-            ]),
-            "#94A3B8",
-          ] as unknown as string,
-          "fill-extrusion-height": [
-            "+",
-            ["*", ["get", "floors"], 4],
-            0,
-          ] as unknown as number,
-          "fill-extrusion-base": 0,
-          "fill-extrusion-opacity": 0.85,
-        },
-      });
-
-      // 2D 建筑底面（当切换到2D模式时显示）
-      map.addLayer({
-        id: "buildings-2d",
-        type: "fill",
-        source: "campus-buildings",
-        paint: {
-          "fill-color": [
-            "match",
-            ["get", "id"],
-            ...campusBuildings.features.flatMap((f: Feature<Polygon, BuildingProperties>) => [
-              f.properties.id,
-              getBuildingColor(f.properties),
-            ]),
-            "#94A3B8",
-          ] as unknown as string,
-          "fill-opacity": 0.7,
-        },
-        layout: {
-          visibility: "none",
-        },
-      });
-
-      // 建筑轮廓线
-      map.addLayer({
-        id: "buildings-outline",
-        type: "line",
-        source: "campus-buildings",
-        paint: {
-          "line-color": "#334155",
-          "line-width": 1,
-          "line-opacity": 0.6,
-        },
-      });
-
-      // 建筑名称标注
-      map.addSource("campus-buildings-labels", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: campusBuildings.features.map((f: Feature<Polygon, BuildingProperties>) => ({
-            type: "Feature",
-            properties: { name: f.properties.name, id: f.properties.id },
-            geometry: {
-              type: "Point",
-              coordinates: getCentroid(f.geometry.coordinates[0] as [number, number][]),
-            },
-          })),
-        },
-      });
-
-      map.addLayer({
-        id: "building-labels",
-        type: "symbol",
-        source: "campus-buildings-labels",
-        layout: {
-          "text-field": ["get", "name"],
-          "text-size": 11,
-          "text-anchor": "center",
-          "text-offset": [0, 0],
-          "text-allow-overlap": false,
-          "text-font": ["Open Sans Regular"],
-        },
-        paint: {
-          "text-color": "#1E293B",
-          "text-halo-color": "#FFFFFF",
-          "text-halo-width": 1.5,
-        },
-      });
+      // 添加建筑照片 Marker
+      addPhotoMarkers(map);
 
       setMapLoaded(true);
     });
 
-    // 点击建筑显示详情
-    map.on("click", "buildings-3d", (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
-      if (e.features && e.features.length > 0) {
-        const props = e.features[0].properties as unknown as BuildingProperties;
-        setSelectedBuilding(props);
-      }
-    });
-
-    // 鼠标悬停变手型
-    map.on("mouseenter", "buildings-3d", () => {
-      map.getCanvas().style.cursor = "pointer";
-    });
-    map.on("mouseleave", "buildings-3d", () => {
-      map.getCanvas().style.cursor = "";
+    map.on("click", "campus-image-layer", () => {
+      setSelectedBuilding(null);
     });
 
     mapRef.current = map;
-  }, [getBuildingColor]);
+  }, []);
 
-  /* ---- 计算多边形质心 ---- */
-  function getCentroid(coords: [number, number][]): [number, number] {
-    const n = coords.length - 1; // 去掉闭合点
-    let lng = 0;
-    let lat = 0;
-    for (let i = 0; i < n; i++) {
-      lng += coords[i][0];
-      lat += coords[i][1];
-    }
-    return [lng / n, lat / n];
-  }
+  // ============================================================
+  // 照片 Marker
+  // ============================================================
+  const addPhotoMarkers = useCallback((map: maplibregl.Map) => {
+    // 清除旧 markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
 
-  /* ---- IntersectionObserver 懒加载 ---- */
-  useEffect(() => {
-    const container = mapContainerRef.current;
-    if (!container) return;
+    campusBuildings.features.forEach((feature) => {
+      const props = feature.properties;
+      const centroid = computeCentroid(feature.geometry.coordinates as number[][][]);
 
-    intersectionObserverRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !isVisibleRef.current) {
-            isVisibleRef.current = true;
-            initMap();
-          } else if (!entry.isIntersecting && isVisibleRef.current) {
-            // 离开视口时可选择暂停渲染，这里保持地图运行
+      const el = document.createElement("div");
+      el.className = "building-photo-marker";
+      el.innerHTML = `
+        <div class="relative group cursor-pointer transition-all duration-200 hover:z-50">
+          <div class="w-16 h-16 rounded-lg overflow-hidden border-2 border-white/20 
+                      shadow-lg group-hover:border-[#3488ff] group-hover:scale-125 
+                      group-hover:shadow-[0_0_20px_rgba(52,136,255,0.4)] transition-all duration-200">
+            <img src="${props.photoUrl || "/images/buildings/model.jpg"}" 
+                 alt="${props.name}" 
+                 class="w-full h-full object-cover"
+                 onerror="this.src='/images/buildings/model.jpg'" />
+          </div>
+          <div class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] 
+                      text-white/90 whitespace-nowrap bg-black/60 px-1.5 py-0.5 rounded
+                      group-hover:bg-[#3488ff]/80 transition-colors">
+            ${props.name}
+          </div>
+          ${
+            props.status === "超标"
+              ? `<div class="absolute -top-1 -right-1 w-3 h-3 bg-[#ff3333] rounded-full 
+                          border border-white animate-pulse"></div>`
+              : props.status === "预警"
+                ? `<div class="absolute -top-1 -right-1 w-3 h-3 bg-[#ff7b25] rounded-full 
+                            border border-white"></div>`
+                : ""
           }
-        });
+        </div>
+      `;
+
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setSelectedBuilding(props);
+      });
+
+      const marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat(centroid)
+        .addTo(map);
+
+      markersRef.current.push(marker);
+    });
+  }, []);
+
+  // ============================================================
+  // 生命周期
+  // ============================================================
+  useEffect(() => {
+    // IntersectionObserver 懒加载
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !mapRef.current) {
+          initMap();
+        }
       },
       { threshold: 0.1 }
     );
 
-    intersectionObserverRef.current.observe(container);
-
-    // 如果容器已在视口内（首屏场景），直接初始化
-    const rect = container.getBoundingClientRect();
-    if (
-      rect.top < window.innerHeight &&
-      rect.bottom > 0 &&
-      rect.left < window.innerWidth &&
-      rect.right > 0
-    ) {
-      isVisibleRef.current = true;
-      initMap();
+    if (mapContainerRef.current) {
+      observerRef.current.observe(mapContainerRef.current);
     }
 
     return () => {
-      intersectionObserverRef.current?.disconnect();
+      observerRef.current?.disconnect();
+      resizeObserverRef.current?.disconnect();
+      markersRef.current.forEach((m) => m.remove());
+      mapRef.current?.remove();
+      mapRef.current = null;
     };
   }, [initMap]);
 
-  /* ---- ResizeObserver 容器形变监听 ---- */
+  // ResizeObserver
   useEffect(() => {
-    const container = mapContainerRef.current;
-    if (!container) return;
-
+    if (!mapContainerRef.current) return;
     resizeObserverRef.current = new ResizeObserver(() => {
       mapRef.current?.resize();
     });
-    resizeObserverRef.current.observe(container);
+    resizeObserverRef.current.observe(mapContainerRef.current);
+    return () => resizeObserverRef.current?.disconnect();
+  }, [mapLoaded]);
 
-    return () => {
-      resizeObserverRef.current?.disconnect();
-    };
-  }, []);
-
-  /* ---- 生命周期：组件销毁时释放 WebGL 资源 ---- */
+  // 切换底图（2.5D 图像 ↔ OSM）
   useEffect(() => {
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
-
-  /* ---- 切换视角模式 ---- */
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    if (!mapRef.current || !mapLoaded) return;
     const map = mapRef.current;
-    if (!map) return;
-
-    setViewMode(mode);
-
-    if (mode === "3d") {
-      map.easeTo({ pitch: CAMPUS_3D_PITCH, bearing: CAMPUS_3D_BEARING, duration: 800 });
-      if (map.getLayer("buildings-3d")) map.setLayoutProperty("buildings-3d", "visibility", "visible");
-      if (map.getLayer("buildings-2d")) map.setLayoutProperty("buildings-2d", "visibility", "none");
-    } else if (mode === "2.5d") {
-      map.easeTo({ pitch: CAMPUS_25D_PITCH, bearing: CAMPUS_25D_BEARING, duration: 800 });
-      if (map.getLayer("buildings-3d")) map.setLayoutProperty("buildings-3d", "visibility", "visible");
-      if (map.getLayer("buildings-2d")) map.setLayoutProperty("buildings-2d", "visibility", "none");
+    if (show2dBase) {
+      map.setLayoutProperty("campus-image-layer", "visibility", "none");
     } else {
-      map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
-      if (map.getLayer("buildings-3d")) map.setLayoutProperty("buildings-3d", "visibility", "none");
-      if (map.getLayer("buildings-2d")) map.setLayoutProperty("buildings-2d", "visibility", "visible");
+      map.setLayoutProperty("campus-image-layer", "visibility", "visible");
+    }
+  }, [show2dBase, mapLoaded]);
+
+  // 全屏
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      mapContainerRef.current?.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
     }
   }, []);
 
-  /* ---- 重置视角 ---- */
-  const handleResetView = useCallback(() => {
-    mapRef.current?.easeTo({
-      center: CAMPUS_CENTER,
-      zoom: DEFAULT_ZOOM,
-      pitch: viewMode === "2d" ? 0 : viewMode === "3d" ? CAMPUS_3D_PITCH : CAMPUS_25D_PITCH,
-      bearing: viewMode === "3d" ? CAMPUS_3D_BEARING : viewMode === "2.5d" ? CAMPUS_25D_BEARING : 0,
-      duration: 800,
-    });
-    setSelectedBuilding(null);
-  }, [viewMode]);
-
-  /* ---- 覆盖层切换时更新颜色 ---- */
   useEffect(() => {
-    updateOverlayColors();
-  }, [overlay, updateOverlayColors]);
-
-  /* ---- 全屏切换 ---- */
-  const handleFullscreen = useCallback(() => {
-    setIsFullscreen((prev) => !prev);
-    // 触发 resize 让地图适配新容器
-    setTimeout(() => mapRef.current?.resize(), 100);
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  /* ---- 统计摘要 ---- */
-  const summary = useMemo(() => {
-    const buildings: BuildingProperties[] = campusBuildings.features.map((f: Feature<Polygon, BuildingProperties>) => f.properties);
-    const totalEmission = buildings.reduce((sum: number, b: BuildingProperties) => sum + Math.max(0, b.carbonEmission), 0);
-    const totalEnergy = buildings.reduce((sum: number, b: BuildingProperties) => sum + Math.max(0, b.energyConsumption), 0);
-    const totalArea = buildings.reduce((sum: number, b: BuildingProperties) => sum + b.area, 0);
-    const warningCount = buildings.filter((b: BuildingProperties) => b.status === "预警" || b.status === "超标").length;
-    const solarGeneration = buildings
-      .filter((b: BuildingProperties) => b.energyConsumption < 0)
-      .reduce((sum: number, b: BuildingProperties) => sum + Math.abs(b.energyConsumption), 0);
-    return { totalEmission, totalEnergy, totalArea, warningCount, solarGeneration, buildingCount: buildings.length };
-  }, []);
-
+  // ============================================================
+  // 渲染
+  // ============================================================
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-4",
-        isFullscreen && "fixed inset-0 z-50 bg-slate-50",
-        className
+    <div className="relative w-full h-full min-h-[600px] bg-[#081028] rounded-xl overflow-hidden">
+      {/* 地图容器 */}
+      <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
+
+      {/* 加载骨架屏 */}
+      {!mapLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#081028] z-10">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-2 border-[#3488ff]/30 border-t-[#3488ff] rounded-full animate-spin" />
+            <span className="text-white/40 text-sm">加载校园地图...</span>
+          </div>
+        </div>
       )}
-    >
-      {/* ===== 顶部工具栏 ===== */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <Building2 size={20} className="text-blue-500" />
-            北京科技大学 校园碳地图
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            3D/2.5D 可视化校园建筑碳排放分布 · Demo 模拟数据
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2">
-          {/* 视角切换 */}
-          <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden">
-            {(["2.5d", "3d", "2d"] as ViewMode[]).map((mode) => (
-              <Button
-                key={mode}
-                variant={viewMode === mode ? "default" : "ghost"}
-                size="sm"
-                className={cn(
-                  "h-8 px-3 text-xs rounded-none",
-                  viewMode === mode && "bg-blue-500 hover:bg-blue-600"
-                )}
-                onClick={() => handleViewModeChange(mode)}
-              >
-                <Layers size={12} className="mr-1" />
-                {mode.toUpperCase()}
-              </Button>
-            ))}
+      {/* 顶部控制栏 */}
+      {mapLoaded && (
+        <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2">
+          {/* 左侧：标题 */}
+          <div className="bg-[#0a1628]/85 backdrop-blur-md border border-white/10 rounded-lg px-3 py-1.5">
+            <span className="text-white text-sm font-medium">北京科技大学 · 校园碳地图</span>
+            <span className="text-white/30 text-[10px] ml-2">2.5D 全景</span>
           </div>
 
-          {/* 覆盖层切换 */}
-          <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden">
-            {([
-              { key: "emission" as OverlayLayer, label: "碳排放", icon: Leaf },
-              { key: "energy" as OverlayLayer, label: "能效等级", icon: Zap },
-              { key: "status" as OverlayLayer, label: "运行状态", icon: AlertTriangle },
-            ]).map(({ key, label, icon: Icon }) => (
-              <Button
-                key={key}
-                variant={overlay === key ? "default" : "ghost"}
-                size="sm"
-                className={cn(
-                  "h-8 px-3 text-xs rounded-none",
-                  overlay === key && "bg-blue-500 hover:bg-blue-600"
-                )}
-                onClick={() => setOverlay(key)}
-              >
-                <Icon size={12} className="mr-1" />
-                {label}
-              </Button>
-            ))}
+          {/* 右侧：控制按钮 */}
+          <div className="flex items-center gap-1.5">
+            {/* 底图切换 */}
+            <button
+              onClick={() => setShow2dBase(!show2dBase)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                show2dBase
+                  ? "bg-white/10 text-white/60 border border-white/10"
+                  : "bg-[#3488ff]/20 text-[#3488ff] border border-[#3488ff]/30"
+              }`}
+            >
+              {show2dBase ? "🗺 地图" : "🏛 全景"}
+            </button>
+
+            {/* 覆盖层切换 */}
+            <select
+              value={overlayMode}
+              onChange={(e) => setOverlayMode(e.target.value as typeof overlayMode)}
+              className="bg-[#0a1628]/85 backdrop-blur-md border border-white/10 rounded-lg px-2 py-1.5 
+                         text-white text-xs outline-none cursor-pointer hover:border-white/20 transition-colors"
+            >
+              <option value="carbon">碳排放</option>
+              <option value="energy">能效等级</option>
+              <option value="status">运行状态</option>
+            </select>
+
+            {/* 全屏 */}
+            <button
+              onClick={toggleFullscreen}
+              className="bg-[#0a1628]/85 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1.5
+                         text-white/60 text-xs hover:text-white hover:border-white/20 transition-all"
+            >
+              {isFullscreen ? "⤓ 退出" : "⤢ 全屏"}
+            </button>
           </div>
-
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleResetView}>
-            <RotateCcw size={12} className="mr-1" />
-            重置
-          </Button>
-
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleFullscreen}>
-            <Maximize2 size={12} className="mr-1" />
-            {isFullscreen ? "退出全屏" : "全屏"}
-          </Button>
         </div>
-      </div>
+      )}
 
-      {/* ===== 统计摘要条 ===== */}
-      <div className="grid grid-cols-5 gap-3">
-        {[
-          {
-            label: "建筑总数",
-            value: summary.buildingCount,
-            unit: "栋",
-            icon: Building2,
-            color: "text-blue-500",
-          },
-          {
-            label: "年碳排放",
-            value: summary.totalEmission.toLocaleString(),
-            unit: "tCO₂",
-            icon: Leaf,
-            color: "text-emerald-500",
-          },
-          {
-            label: "年总能耗",
-            value: `${(summary.totalEnergy / 10000).toFixed(1)}`,
-            unit: "万kWh",
-            icon: Zap,
-            color: "text-amber-500",
-          },
-          {
-            label: "光伏年发电",
-            value: `${(summary.solarGeneration / 10000).toFixed(1)}`,
-            unit: "万kWh",
-            icon: Eye,
-            color: "text-yellow-500",
-          },
-          {
-            label: "异常建筑",
-            value: summary.warningCount,
-            unit: "栋",
-            icon: AlertTriangle,
-            color: "text-red-500",
-          },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-2 flex items-center gap-2"
-          >
-            <item.icon size={16} className={item.color} />
-            <div>
-              <div className="text-xs text-slate-500">{item.label}</div>
-              <div className="text-sm font-semibold text-slate-800">
-                {item.value}
-                <span className="text-xs font-normal text-slate-400 ml-0.5">{item.unit}</span>
-              </div>
+      {/* 底部统计摘要 */}
+      {mapLoaded && (
+        <div className="absolute bottom-3 left-3 z-20 flex gap-2">
+          <div className="bg-[#0a1628]/85 backdrop-blur-md border border-white/10 rounded-lg px-3 py-1.5">
+            <span className="text-white/40 text-[10px]">建筑</span>
+            <span className="text-white text-sm font-bold ml-1.5">{summary.totalBuildings}</span>
+            <span className="text-white/30 text-[10px] ml-0.5">栋</span>
+          </div>
+          <div className="bg-[#0a1628]/85 backdrop-blur-md border border-white/10 rounded-lg px-3 py-1.5">
+            <span className="text-white/40 text-[10px]">年排放</span>
+            <span className="text-white text-sm font-bold ml-1.5">{formatNumber(summary.totalEmission)}</span>
+            <span className="text-white/30 text-[10px] ml-0.5">tCO₂</span>
+          </div>
+          <div className="bg-[#0a1628]/85 backdrop-blur-md border border-white/10 rounded-lg px-3 py-1.5">
+            <span className="text-white/40 text-[10px]">预警</span>
+            <span
+              className="text-sm font-bold ml-1.5"
+              style={{ color: summary.warningCount > 0 ? "#ff7b25" : "#36d968" }}
+            >
+              {summary.warningCount}
+            </span>
+            <span className="text-white/30 text-[10px] ml-0.5">栋</span>
+          </div>
+        </div>
+      )}
+
+      {/* 图例 */}
+      {mapLoaded && (
+        <div className="absolute bottom-3 right-3 z-20 bg-[#0a1628]/85 backdrop-blur-md border border-white/10 rounded-lg px-3 py-2">
+          <div className="text-white/40 text-[10px] mb-1.5">
+            {overlayMode === "carbon" ? "碳排放量" : overlayMode === "energy" ? "能效等级" : "运行状态"}
+          </div>
+          {overlayMode === "carbon" && (
+            <div className="flex items-center gap-3">
+              {[
+                { color: "#36d968", label: "低" },
+                { color: "#3488ff", label: "中" },
+                { color: "#ff7b25", label: "高" },
+                { color: "#ff3333", label: "超高" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+                  <span className="text-white/50 text-[10px]">{item.label}</span>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ===== 图例 ===== */}
-      <div className="flex items-center gap-4 text-xs text-slate-600">
-        <span className="font-medium">图例：</span>
-        {overlay === "emission" && (
-          <>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500" /> ≤200 tCO₂</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-blue-500" /> 200-400</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-500" /> 400-600</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500" /> &gt;600</span>
-          </>
-        )}
-        {overlay === "energy" && (
-          <>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500" /> A级</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-blue-500" /> B级</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-500" /> C级</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500" /> D级</span>
-          </>
-        )}
-        {overlay === "status" && (
-          <>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500" /> 正常</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-500" /> 预警</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500" /> 超标</span>
-          </>
-        )}
-        <span className="ml-auto text-slate-400">Ctrl/Cmd + 滚轮缩放地图</span>
-      </div>
-
-      {/* ===== 地图容器 ===== */}
-      <div
-        className={cn(
-          "relative rounded-lg border border-slate-200 overflow-hidden bg-slate-100",
-          /* 明确宽高，避免高度塌陷 */
-          !isFullscreen ? "h-[560px]" : "flex-1"
-        )}
-      >
-        {/* 地图渲染容器 - 使用绝对定位+100%填充，确保宽高明确 */}
-        <div
-          ref={mapContainerRef}
-          className="absolute inset-0 w-full h-full"
-        />
-
-        {/* 建筑详情弹窗 */}
-        {selectedBuilding && (
-          <BuildingPopup
-            building={selectedBuilding}
-            onClose={() => setSelectedBuilding(null)}
-          />
-        )}
-
-        {/* 角标水印 */}
-        <div className="absolute bottom-2 right-2 z-20 text-[10px] text-slate-400 bg-white/80 px-1.5 py-0.5 rounded">
-          Demo 模拟数据，不用于申报
+          )}
+          {overlayMode === "energy" && (
+            <div className="flex items-center gap-3">
+              {[
+                { color: "#36d968", label: "A" },
+                { color: "#3488ff", label: "B" },
+                { color: "#ff7b25", label: "C" },
+                { color: "#ff3333", label: "D" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+                  <span className="text-white/50 text-[10px]">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {overlayMode === "status" && (
+            <div className="flex items-center gap-3">
+              {[
+                { color: "#36d968", label: "正常" },
+                { color: "#ff7b25", label: "预警" },
+                { color: "#ff3333", label: "超标" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+                  <span className="text-white/50 text-[10px]">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+      )}
+
+      {/* 建筑详情弹窗 */}
+      <AnimatePresence>
+        {selectedBuilding && (
+          <BuildingPopup building={selectedBuilding} onClose={() => setSelectedBuilding(null)} />
+        )}
+      </AnimatePresence>
+
+      {/* 水印 */}
+      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20 text-[10px] text-white/20 pointer-events-none">
+        Demo 模拟数据，仅课题演示
       </div>
     </div>
   );
