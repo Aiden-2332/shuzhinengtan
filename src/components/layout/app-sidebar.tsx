@@ -23,7 +23,6 @@ import {
   Leaf,
   ChevronRight,
   Stethoscope,
-  ShieldCheck,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -103,16 +102,6 @@ const navigation = [
         bgActive: "bg-green-500/15",
         borderActive: "border-green-500/30",
         desc: "绿色评价",
-      },
-      {
-        name: "合规凭证看板",
-        href: "/compliance",
-        icon: ShieldCheck,
-        color: "text-purple-400",
-        bgHover: "hover:bg-purple-500/10",
-        bgActive: "bg-purple-500/15",
-        borderActive: "border-purple-500/30",
-        desc: "MRV溯源",
       },
       {
         name: "碳资产管理",
@@ -201,7 +190,7 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
           collapsed ? "px-2" : "px-3"
         )}
       >
-        {navigation.map((section, idx) => {
+        {navigation.map((section) => {
           const SectionIcon = section.icon;
 
           // Check if any child in this section is active
@@ -211,40 +200,53 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
 
           return (
             <div key={section.name} className="mb-3">
-              {/* Category Divider - skip first */}
-              {idx > 0 && (
-                <div className={cn("mb-2", collapsed ? "px-2" : "px-3")}>
-                  <div className="h-px bg-gradient-to-r from-cyan-500/20 via-cyan-500/40 to-cyan-500/20" />
-                </div>
-              )}
               {/* Category Header */}
               {!collapsed ? (
-                <div className="flex items-center gap-2 px-3 py-1.5 mb-1.5">
-                  <SectionIcon
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-md mb-1.5 transition-colors",
+                    sectionActive
+                      ? "bg-slate-800/60"
+                      : ""
+                  )}
+                >
+                  <div
                     className={cn(
-                      "w-3.5 h-3.5 shrink-0",
-                      sectionActive ? "text-cyan-400" : "text-slate-500"
+                      "w-5 h-5 rounded flex items-center justify-center",
+                      sectionActive
+                        ? "bg-cyan-500/20"
+                        : "bg-slate-800/80"
                     )}
-                  />
+                  >
+                    <SectionIcon
+                      className={cn(
+                        "w-3 h-3",
+                        sectionActive ? "text-cyan-400" : "text-gray-500"
+                      )}
+                    />
+                  </div>
                   <span
                     className={cn(
                       "text-[11px] font-semibold uppercase tracking-widest",
-                      sectionActive ? "text-cyan-300" : "text-slate-500"
+                      sectionActive ? "text-cyan-300" : "text-gray-500"
                     )}
                   >
                     {section.name}
                   </span>
-                  <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/40 via-cyan-500/20 to-transparent ml-1" />
+                  {sectionActive && (
+                    <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/30 to-transparent ml-2" />
+                  )}
                 </div>
               ) : (
-                <div className="flex flex-col items-center py-1.5 mb-1 gap-1">
-                  <SectionIcon
-                    className={cn(
-                      "w-4 h-4",
-                      sectionActive ? "text-cyan-400" : "text-slate-500"
-                    )}
-                  />
-                  <div className="w-5 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+                <div className="flex justify-center py-2 mb-1">
+                  <div className="w-7 h-7 rounded-lg bg-slate-800/80 flex items-center justify-center">
+                    <SectionIcon
+                      className={cn(
+                        "w-3.5 h-3.5",
+                        sectionActive ? "text-cyan-400" : "text-gray-500"
+                      )}
+                    />
+                  </div>
                 </div>
               )}
 

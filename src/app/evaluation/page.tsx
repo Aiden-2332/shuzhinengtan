@@ -30,7 +30,7 @@ interface StandardTier {
   code: string;
   fullName: string;
   shortName: string;
-  level: number; // 1=绿色学校 2=绿色校园 3=低碳校园
+  level: number; // 1=节约型 2=绿色 3=低碳
   type: "national" | "local";
   year: string;
   description: string;
@@ -60,60 +60,57 @@ interface BenchmarkValue {
 const TIERS: StandardTier[] = [
   {
     id: "tier1",
-    code: "GB/T 29117-2025",
-    fullName: "绿色学校评价导则",
-    shortName: "绿色学校",
+    code: "GB/T 29117-2012",
+    fullName: "节约型学校评价导则",
+    shortName: "节约型校园",
     level: 1,
     type: "national",
-    year: "2025",
+    year: "2012",
     description:
-      "国家标准，基础层。以精神文化、物质条件、行为规范和低碳管理为核心，是学校绿色发展的基础性评价。",
-    totalScore: 88.5,
+      "国家标准，基础层。聚焦资源节约与能源管理，是高校能碳管理的入门门槛。",
+    totalScore: 87,
     maxScore: 100,
     grade: "A 级（优秀）",
     categories: [
       {
-        name: "精神文化",
-        weight: 0.25,
+        name: "管理与制度",
+        weight: 15,
         items: [
-          { name: "生态文明教育融入教学", score: 22, maxScore: 25, status: "excellent" },
-          { name: "学期计划体现绿色建设", score: 21, maxScore: 25, status: "good" },
-          { name: "宣传教育活动开展", score: 23, maxScore: 25, status: "excellent" },
-          { name: "节能环保实践活动", score: 20, maxScore: 25, status: "good" },
-          { name: "发明创造与产学研", score: 18, maxScore: 25, status: "good" },
+          { name: "组织机构", score: 14, maxScore: 15, status: "excellent" },
+          { name: "制度建设", score: 13, maxScore: 15, status: "good" },
         ],
       },
       {
-        name: "物质条件",
-        weight: 0.25,
+        name: "建筑与设备",
+        weight: 20,
         items: [
-          { name: "绿化用地与养护", score: 22, maxScore: 25, status: "excellent" },
-          { name: "建筑节能设计与改造", score: 21, maxScore: 25, status: "good" },
-          { name: "绿色产品采购使用", score: 23, maxScore: 25, status: "excellent" },
-          { name: "新能源与可再生能源", score: 20, maxScore: 25, status: "good" },
-          { name: "能源审计与诊断", score: 19, maxScore: 25, status: "good" },
+          { name: "建筑节能", score: 17, maxScore: 20, status: "good" },
+          { name: "设备效率", score: 18, maxScore: 20, status: "excellent" },
         ],
       },
       {
-        name: "行为规范",
-        weight: 0.25,
+        name: "资源利用",
+        weight: 25,
         items: [
-          { name: "管理机构与职责", score: 24, maxScore: 25, status: "excellent" },
-          { name: "发展目标与保障措施", score: 22, maxScore: 25, status: "excellent" },
-          { name: "节能降碳管理制度", score: 21, maxScore: 25, status: "good" },
-          { name: "节约行为模式推行", score: 20, maxScore: 25, status: "good" },
-          { name: "绿色生活方式倡导", score: 19, maxScore: 25, status: "good" },
+          { name: "水资源利用", score: 21, maxScore: 25, status: "good" },
+          { name: "能源利用", score: 22, maxScore: 25, status: "good" },
+          { name: "土地资源", score: 12, maxScore: 15, status: "good" },
         ],
       },
       {
-        name: "低碳管理",
-        weight: 0.25,
+        name: "节约环保",
+        weight: 20,
         items: [
-          { name: "建筑设备经济运行", score: 22, maxScore: 25, status: "excellent" },
-          { name: "碳排放核算与报告", score: 21, maxScore: 25, status: "good" },
-          { name: "改造项目节能评估", score: 19, maxScore: 25, status: "good" },
-          { name: "生活垃圾分类回收", score: 23, maxScore: 25, status: "excellent" },
-          { name: "反食品浪费工作", score: 20, maxScore: 25, status: "good" },
+          { name: "废弃物处理", score: 16, maxScore: 20, status: "good" },
+          { name: "环境治理", score: 15, maxScore: 18, status: "good" },
+        ],
+      },
+      {
+        name: "创新特色",
+        weight: 20,
+        items: [
+          { name: "技术创新", score: 8, maxScore: 10, status: "good" },
+          { name: "特色项目", score: 9, maxScore: 10, status: "excellent" },
         ],
       },
     ],
@@ -127,7 +124,7 @@ const TIERS: StandardTier[] = [
     type: "national",
     year: "2019",
     description:
-      "国家标准，进阶层。在绿色学校基础上增加生态规划、健康环境、教育推广维度。",
+      "国家标准，进阶层。在节约型基础上增加生态规划、健康环境、教育推广维度。",
     totalScore: 78.5,
     maxScore: 100,
     grade: "二星（良好）",
@@ -364,6 +361,11 @@ function HeroTierCard({
               <div key={cat.name} className="rounded-xl bg-black/30 p-3 border border-white/[0.04]">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-slate-200 truncate">{cat.name}</span>
+                  {cat.weight !== undefined && (
+                    <span className="text-[9px] text-slate-500 font-mono shrink-0 ml-1">
+                      {(cat.weight * 100).toFixed(0)}%
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   {cat.items.map((item) => (
@@ -577,7 +579,7 @@ export default function EvaluationPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">绿色 / 低碳校园评价</h1>
           <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">
-            基于国家标准 GB/T 29117-2025、GB/T 51356-2019 与北京市地方标准 DB11/T 1404-2025 的三层递进评价体系
+            基于国家标准 GB/T 29117-2012、GB/T 51356-2019 与北京市地方标准 DB11/T 1404-2025 的三层递进评价体系
           </p>
         </div>
         <div className="text-right hidden sm:block">
