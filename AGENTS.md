@@ -12,6 +12,7 @@
 - **UI 组件**: shadcn/ui (基于 Radix UI)
 - **Styling**: Tailwind CSS 4
 - **图表库**: Recharts, ECharts 5
+- **地图库**: MapLibre GL JS (3D/2.5D 校园碳地图)
 - **状态管理**: Zustand
 - **动画库**: framer-motion
 
@@ -28,17 +29,21 @@
 │   │   ├── calculation/        # 碳核算工作台
 │   │   ├── ai-suggestion/      # AI减排建议
 │   │   ├── ai-center/          # AI智能分析中心（四模块）
-│   │   └── asset/              # 碳资产管理
+│   │   ├── asset/              # 碳资产管理
+│   │   └── campus-map/         # 校园碳地图（3D/2.5D MapLibre GL）
 │   ├── components/
 │   │   ├── ui/                 # Shadcn UI 组件库
 │   │   ├── layout/             # 布局组件（侧边栏、头部）
-│   │   ├── dashboard/          # 仪表盘组件（KPI卡片、图表）
+│   │   ├── dashboard/          # 仪表盘组件（KPI卡片、图表、校园地图）
+│   │   │   ├── campus-map.tsx  # 校园碳地图组件（MapLibre GL 3D/2.5D）
+│   │   │   └── ...             # 其他仪表盘组件
 │   │   └── ai-center/          # AI中心组件（16个模块组件）
 │   ├── stores/
 │   │   └── ai-center-store.ts  # AI中心 Zustand 状态管理
 │   ├── data/
 │   │   ├── mock-data.ts        # 模拟数据
-│   │   └── ai-center-mock.ts   # AI中心 Mock 数据
+│   │   ├── ai-center-mock.ts   # AI中心 Mock 数据
+│   │   └── campus-geojson.ts   # 校园建筑 GeoJSON 数据（北京科技大学）
 │   ├── types/
 │   │   └── index.ts            # TypeScript 类型定义
 │   └── lib/
@@ -61,6 +66,7 @@
 | AI减排建议 | `/ai-suggestion` | 证据汇总、措施匹配、效益试算 |
 | AI智能分析中心 | `/ai-center` | 预测性分析、实时监控异常报警、AI减排路径优化、政策咨询AI助手 |
 | 碳资产管理 | `/asset` | 配额台账、缺口预测、履约日历 |
+| 校园碳地图 | `/campus-map` | 北京科技大学3D/2.5D/2D校园建筑碳排放可视化地图 |
 
 ## 用户角色
 

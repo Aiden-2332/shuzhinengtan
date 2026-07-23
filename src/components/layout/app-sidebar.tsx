@@ -14,6 +14,7 @@ import {
     Award,
     BarChart3,
     CalendarDays,
+    Map,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -43,6 +44,10 @@ const navigation = [{
         name: "能源监测",
         href: "/energy-monitor",
         icon: Zap
+    }, {
+        name: "校园碳地图",
+        href: "/campus-map",
+        icon: Map
     }, {
         name: "能源分析",
         href: "/energy",
