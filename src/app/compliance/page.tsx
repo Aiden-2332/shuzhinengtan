@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   Search, Download, FileCheck, Lock, Upload, ChevronDown, ChevronUp,
   X, Eye, RotateCcw, Link2, AlertTriangle, CheckCircle2, Clock,
@@ -113,27 +113,91 @@ function MrvTraceChain({
   onNodeClick: (node: MrvNodeData) => void;
   selectedNodeId: string | null;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dims, setDims] = useState({ w: 900, h: 280 });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => {
+      if (e) setDims({ w: e.contentRect.width, h: 280 });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const n = nodes.length;
+  const padX = 70;
+  const usableW = Math.max(dims.w - padX * 2, 100);
+  const stepX = usableW / (n - 1);
+  const arcHeight = 70;
+
+  // compute node positions along a gentle arc (quadratic bezier)
+  const positions = nodes.map((_, i) => {
+    const t = n === 1 ? 0.5 : i / (n - 1);
+    const x = padX + t * usableW;
+    // arc: y = 4 * arcHeight * t * (1 - t)  → peak at t=0.5
+    const y = 80 + 4 * arcHeight * t * (1 - t);
+    return { x, y };
+  });
+
+  // build SVG path string connecting all positions
+  const pathD = positions.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+
   return (
     <div className="bg-white/5 border border-white/10 rounded-lg p-5">
-      <h3 className="text-sm font-semibold text-white/90 mb-4 flex items-center gap-2">
+      <h3 className="text-sm font-semibold text-white/90 mb-1 flex items-center gap-2">
         <Link2 className="w-4 h-4 text-[#3488ff]" />
         MRV 溯源链路
         <span className="text-xs text-white/40 font-normal">排放源 → 审核确认</span>
       </h3>
-      <div className="flex items-start gap-0 overflow-x-auto pb-2">
-        {nodes.map((node, idx) => (
-          <div key={node.id} className="flex items-start shrink-0">
+      <div ref={containerRef} className="relative" style={{ height: dims.h }}>
+        {/* Arc curve */}
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          width={dims.w}
+          height={dims.h}
+          viewBox={`0 0 ${dims.w} ${dims.h}`}
+        >
+          <defs>
+            <linearGradient id="arcGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="rgba(52,136,255,0.15)" />
+              <stop offset="50%" stopColor="rgba(52,136,255,0.5)" />
+              <stop offset="100%" stopColor="rgba(52,136,255,0.15)" />
+            </linearGradient>
+          </defs>
+          {/* glow underlay */}
+          <path d={pathD} fill="none" stroke="url(#arcGrad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+          {/* main line */}
+          <path d={pathD} fill="none" stroke="rgba(52,136,255,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          {/* dot at each position */}
+          {positions.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="4" fill="#3488ff" stroke="#0f172a" strokeWidth="2" />
+          ))}
+        </svg>
+
+        {/* Node cards positioned along the arc */}
+        {nodes.map((node, i) => {
+          const pos = positions[i];
+          const isSelected = selectedNodeId === node.id;
+          return (
             <button
+              key={node.id}
               onClick={() => onNodeClick(node)}
-              className={`relative w-[120px] rounded-lg border p-3 text-left transition-all ${
-                selectedNodeId === node.id
-                  ? "border-[#3488ff] bg-[#3488ff]/10 shadow-lg shadow-[#3488ff]/10"
+              className={`absolute rounded-lg border p-2.5 text-left transition-all duration-200 hover:scale-105 hover:z-10 ${
+                isSelected
+                  ? "border-[#3488ff] bg-[#3488ff]/15 shadow-lg shadow-[#3488ff]/15 z-10"
                   : nodeStatusBg[node.status] || "bg-white/5 border-white/10"
-              } hover:shadow-lg`}
+              }`}
+              style={{
+                left: pos.x - 58,
+                top: pos.y - 55,
+                width: 116,
+              }}
             >
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <div className={`w-2 h-2 rounded-full ${nodeStatusColors[node.status] || "bg-slate-400"}`} />
-                <span className="text-[11px] font-semibold text-white/80 leading-tight">{node.name}</span>
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${nodeStatusColors[node.status] || "bg-slate-400"}`} />
+                <span className="text-[11px] font-semibold text-white/80 leading-tight truncate">{node.name}</span>
               </div>
               <div className="text-[10px] text-white/50 space-y-0.5">
                 <div className="flex justify-between">
@@ -153,7 +217,7 @@ function MrvTraceChain({
                   </div>
                 )}
               </div>
-              <div className="mt-1.5">
+              <div className="mt-1">
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                   node.status === "completed" ? "bg-emerald-500/15 text-emerald-300" :
                   node.status === "abnormal" ? "bg-red-500/15 text-red-300" :
@@ -165,13 +229,8 @@ function MrvTraceChain({
                 </span>
               </div>
             </button>
-            {idx < nodes.length - 1 && (
-              <div className="flex items-center pt-6 px-0.5">
-                <ArrowRight className="w-4 h-4 text-white/20 shrink-0" />
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
