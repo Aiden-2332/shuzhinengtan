@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Upload, Search, Gauge, Archive, Bell, Package,
   GraduationCap, Building2, Leaf, ChevronDown, ChevronUp,
@@ -19,6 +19,40 @@ import {
   type Level1Indicator, type EvaluationItem, type ScoringResult,
   type AlertItem, type KpiTrendCard, type RiskSummary, type ActionEntry,
 } from "@/data/compliance-mock";
+
+// ==================== Toast 通知系统 ====================
+
+interface ToastMessage { id: number; text: string; type: "success" | "info" | "warning" | "error"; }
+let toastIdCounter = 0;
+
+function useToast() {
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const show = useCallback((text: string, type: ToastMessage["type"] = "info") => {
+    const id = ++toastIdCounter;
+    setToasts(prev => [...prev.slice(-4), { id, text, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 2500);
+  }, []);
+  return { toasts, show };
+}
+
+function ToastContainer({ toasts }: { toasts: ToastMessage[] }) {
+  if (toasts.length === 0) return null;
+  const colors: Record<ToastMessage["type"], string> = {
+    success: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
+    info: "border-blue-500/40 bg-blue-500/10 text-blue-300",
+    warning: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+    error: "border-red-500/40 bg-red-500/10 text-red-300",
+  };
+  return (
+    <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+      {toasts.map(t => (
+        <div key={t.id} className={`px-4 py-2.5 rounded-lg border text-sm shadow-lg backdrop-blur-sm animate-in slide-in-from-right-4 ${colors[t.type]}`}>
+          {t.text}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ==================== 常量 ====================
 
@@ -115,7 +149,7 @@ function Sparkline({ data, color, height }: { data: number[]; color: string; hei
   );
 }
 
-function KpiOverviewCards({ kpiCards }: { kpiCards: KpiTrendCard[] }) {
+function KpiOverviewCards({ kpiCards, onAction }: { kpiCards: KpiTrendCard[]; onAction: (action: string, params?: Record<string, unknown>) => void }) {
   return (
     <div className="grid grid-cols-4 gap-3">
       {kpiCards.map((card) => {
@@ -139,6 +173,7 @@ function KpiOverviewCards({ kpiCards }: { kpiCards: KpiTrendCard[] }) {
         return (
           <div
             key={card.id}
+            onClick={() => onAction("viewDetail", { cardId: card.id, cardName: card.name })}
             className={`group relative bg-white/5 border rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.07] cursor-pointer ${
               isRisk ? "border-red-500/20 hover:border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.05)]" :
               isWarning ? "border-amber-500/20 hover:border-amber-500/40" :
@@ -214,7 +249,7 @@ function KpiOverviewCards({ kpiCards }: { kpiCards: KpiTrendCard[] }) {
 
 // ==================== 数据总览：第二层 - 风险与运营提醒 ====================
 
-function RiskAndReminderBar({ riskSummary }: { riskSummary: RiskSummary }) {
+function RiskAndReminderBar({ riskSummary, onAction }: { riskSummary: RiskSummary; onAction: (action: string, params?: Record<string, unknown>) => void }) {
   const maxCompletion = Math.max(...riskSummary.recentCompletionTrend.map(d => d.count), 1);
   return (
     <div className="grid grid-cols-3 gap-3">
@@ -303,7 +338,7 @@ const actionIconMap: Record<string, typeof Upload> = {
   AlertCircle, ShieldCheck, Filter, Upload,
 };
 
-function ActionEntryBar({ actionEntries }: { actionEntries: ActionEntry[] }) {
+function ActionEntryBar({ actionEntries, onAction }: { actionEntries: ActionEntry[]; onAction: (action: string, params?: Record<string, unknown>) => void }) {
   return (
     <div className="flex items-center gap-2 p-3 bg-white/[0.03] border border-white/10 rounded-xl">
       <span className="text-xs text-white/40 font-medium mr-1 shrink-0">快捷操作</span>
@@ -317,6 +352,7 @@ function ActionEntryBar({ actionEntries }: { actionEntries: ActionEntry[] }) {
         return (
           <button
             key={entry.id}
+            onClick={() => onAction(entry.action, { entryId: entry.id, label: entry.label })}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all duration-150 ${urgencyCls}`}
           >
             <Icon className="w-3.5 h-3.5" />
@@ -331,7 +367,7 @@ function ActionEntryBar({ actionEntries }: { actionEntries: ActionEntry[] }) {
 
 // ==================== 子模块 1: 称号材料上传中心 ====================
 
-function UploadCenter({ data, titleType }: { data: TitleStandardData; titleType: TitleType }) {
+function UploadCenter({ data, titleType, onAction }: { data: TitleStandardData; titleType: TitleType; onAction: (action: string, params?: Record<string, unknown>) => void }) {
   const [expandedIndicators, setExpandedIndicators] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [showPrerequisites, setShowPrerequisites] = useState(true);
@@ -360,13 +396,13 @@ function UploadCenter({ data, titleType }: { data: TitleStandardData; titleType:
   return (
     <div className="space-y-4">
       {/* ========== 第一层：顶部总览卡片区（4个核心卡片） ========== */}
-      <KpiOverviewCards kpiCards={kpiCards} />
+      <KpiOverviewCards kpiCards={kpiCards} onAction={onAction} />
 
       {/* ========== 第二层：风险与运营提醒区 ========== */}
-      <RiskAndReminderBar riskSummary={riskSummary} />
+      <RiskAndReminderBar riskSummary={riskSummary} onAction={onAction} />
 
       {/* ========== 第三层：行动入口区 ========== */}
-      <ActionEntryBar actionEntries={actionEntries} />
+      <ActionEntryBar actionEntries={actionEntries} onAction={onAction} />
 
       {/* 准入前置材料 */}
       <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
@@ -407,7 +443,7 @@ function UploadCenter({ data, titleType }: { data: TitleStandardData; titleType:
                   <div className="flex items-center gap-2 shrink-0">
                     {m.fileName && <span className="text-xs text-white/40">{m.fileName}</span>}
                     {m.fileSize && <span className="text-xs text-white/30">{m.fileSize}</span>}
-                    <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors" title="上传">
+                    <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors" title="上传" onClick={() => onAction("upload", {type: "prerequisite"})}>
                       <Upload className="w-4 h-4" />
                     </button>
                   </div>
@@ -488,7 +524,7 @@ function UploadCenter({ data, titleType }: { data: TitleStandardData; titleType:
                                   </div>
                                   {m.fileName && <div className="text-[10px] text-white/30 mt-0.5">{m.fileName} · {m.fileSize}</div>}
                                 </div>
-                                <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60 transition-colors" title="上传">
+                                <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60 transition-colors" title="上传" onClick={() => onAction("upload", {name: m.name})}>
                                   <Upload className="w-3 h-3" />
                                 </button>
                               </div>
@@ -510,7 +546,7 @@ function UploadCenter({ data, titleType }: { data: TitleStandardData; titleType:
 
 // ==================== 子模块 2: 指标溯源查询 ====================
 
-function TraceEngine({ data, titleType }: { data: TitleStandardData; titleType: TitleType }) {
+function TraceEngine({ data, titleType, onAction }: { data: TitleStandardData; titleType: TitleType; onAction: (action: string, params?: Record<string, unknown>) => void }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<EvaluationItem | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<{ material: MaterialItem; item: EvaluationItem } | null>(null);
@@ -694,10 +730,10 @@ function TraceEngine({ data, titleType }: { data: TitleStandardData; titleType: 
                 </div>
               )}
               <div className="flex gap-2 pt-2">
-                <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors">
+                <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors" onClick={() => onAction("preview", {name: selectedMaterial?.material.name ?? ""})}>
                   <Eye className="w-4 h-4" /> 预览
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors">
+                <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors" onClick={() => onAction("download", {name: selectedMaterial?.material.name ?? ""})}>
                   <Download className="w-4 h-4" /> 下载
                 </button>
               </div>
@@ -711,7 +747,7 @@ function TraceEngine({ data, titleType }: { data: TitleStandardData; titleType: 
 
 // ==================== 子模块 3: 自评打分看板 ====================
 
-function ScoringDashboard({ data, titleType }: { data: TitleStandardData; titleType: TitleType }) {
+function ScoringDashboard({ data, titleType, onAction }: { data: TitleStandardData; titleType: TitleType; onAction: (action: string, params?: Record<string, unknown>) => void }) {
   const result = scoringResults[titleType];
   const tc = titleColorClasses[titleType];
   const pct = Math.round((result.totalScore / result.totalMaxScore) * 100);
@@ -829,7 +865,7 @@ function ScoringDashboard({ data, titleType }: { data: TitleStandardData; titleT
 
 // ==================== 子模块 4: 材料档案库 ====================
 
-function ArchiveLibrary({ data, titleType }: { data: TitleStandardData; titleType: TitleType }) {
+function ArchiveLibrary({ data, titleType, onAction }: { data: TitleStandardData; titleType: TitleType; onAction: (action: string, params?: Record<string, unknown>) => void }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterIndicator, setFilterIndicator] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -887,7 +923,7 @@ function ArchiveLibrary({ data, titleType }: { data: TitleStandardData; titleTyp
           <option value="missing">未上传</option>
           <option value="expired">已过期</option>
         </select>
-        <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-xs hover:bg-white/15 transition-colors">
+        <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-xs hover:bg-white/15 transition-colors" onClick={() => onAction("exportZip", {})}>
           <Package className="w-3.5 h-3.5" /> 打包导出
         </button>
       </div>
@@ -934,9 +970,9 @@ function ArchiveLibrary({ data, titleType }: { data: TitleStandardData; titleTyp
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-center gap-1">
-                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="预览"><Eye className="w-3 h-3" /></button>
-                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="下载"><Download className="w-3 h-3" /></button>
-                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="替换"><RotateCcw className="w-3 h-3" /></button>
+                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="预览" onClick={() => onAction("preview", {name: "档案文件"})}><Eye className="w-3 h-3" /></button>
+                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="下载" onClick={() => onAction("download", {name: "档案文件"})}><Download className="w-3 h-3" /></button>
+                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="替换" onClick={() => onAction("replace", {name: "档案文件"})}><RotateCcw className="w-3 h-3" /></button>
                       </div>
                     </td>
                   </tr>
@@ -955,7 +991,7 @@ function ArchiveLibrary({ data, titleType }: { data: TitleStandardData; titleTyp
 
 // ==================== 子模块 5: 材料到期预警 ====================
 
-function ExpiryAlerts({ titleType }: { titleType: TitleType }) {
+function ExpiryAlerts({ titleType, onAction }: { titleType: TitleType; onAction: (action: string, params?: Record<string, unknown>) => void }) {
   const filtered = alertItems.filter(a => a.titleId === titleType);
   const tc = titleColorClasses[titleType];
 
@@ -1013,7 +1049,7 @@ function ExpiryAlerts({ titleType }: { titleType: TitleType }) {
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      <button className="px-2 py-1 rounded bg-white/10 text-white/60 text-xs hover:bg-white/15 transition-colors">
+                      <button className="px-2 py-1 rounded bg-white/10 text-white/60 text-xs hover:bg-white/15 transition-colors" onClick={() => onAction("upload", {name: "补充材料"})}>
                         补充材料
                       </button>
                     </td>
@@ -1033,7 +1069,7 @@ function ExpiryAlerts({ titleType }: { titleType: TitleType }) {
 
 // ==================== 子模块 6: 导出申报全套资料 ====================
 
-function ExportPackage({ data, titleType }: { data: TitleStandardData; titleType: TitleType }) {
+function ExportPackage({ data, titleType, onAction }: { data: TitleStandardData; titleType: TitleType; onAction: (action: string, params?: Record<string, unknown>) => void }) {
   const tc = titleColorClasses[titleType];
   const allMaterials = useMemo(() => {
     const ms: { material: MaterialItem; indicatorName: string }[] = [];
@@ -1070,7 +1106,7 @@ function ExportPackage({ data, titleType }: { data: TitleStandardData; titleType
             <div className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> 自评打分表</div>
             <div className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-emerald-400" /> 材料目录清单</div>
           </div>
-          <button className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg ${tc.light} ${tc.text} text-sm font-medium hover:opacity-80 transition-opacity`}>
+          <button className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg ${tc.light} ${tc.text} text-sm font-medium hover:opacity-80 transition-opacity`} onClick={() => onAction("exportZip", {})}>
             <Download className="w-4 h-4" /> 一键导出完整归档包 (ZIP)
           </button>
         </div>
@@ -1088,20 +1124,20 @@ function ExportPackage({ data, titleType }: { data: TitleStandardData; titleType
           <div className="space-y-2 mb-3">
             <div className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02]">
               <span className="text-xs text-white/60">准入前置材料</span>
-              <button className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              <button className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1" onClick={() => onAction("exportPerIndicator", {})}>
                 <Download className="w-3 h-3" /> 导出
               </button>
             </div>
             {data.indicators.map(ind => (
               <div key={ind.id} className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02]">
                 <span className="text-xs text-white/60">{ind.name} ({ind.weight}%)</span>
-                <button className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                <button className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1" onClick={() => onAction("exportPerIndicator", {})}>
                   <Download className="w-3 h-3" /> 导出
                 </button>
               </div>
             ))}
           </div>
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors">
+          <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors" onClick={() => onAction("exportPdf", {})}>
             <FileText className="w-4 h-4" /> 导出 PDF 报告
           </button>
         </div>
@@ -1135,7 +1171,7 @@ function ExportPackage({ data, titleType }: { data: TitleStandardData; titleType
                   <td className="px-4 py-2.5 text-white/50">{r.files} 个文件</td>
                   <td className="px-4 py-2.5 text-white/50">{r.size}</td>
                   <td className="px-4 py-2.5 text-center">
-                    <button className="text-xs text-blue-400 hover:text-blue-300">重新下载</button>
+                    <button className="text-xs text-blue-400 hover:text-blue-300" onClick={() => onAction("download", {name: "历史导出文件"})}>重新下载</button>
                   </td>
                 </tr>
               ))}
@@ -1152,6 +1188,7 @@ function ExportPackage({ data, titleType }: { data: TitleStandardData; titleType
 export default function CompliancePage() {
   const [activeTitle, setActiveTitle] = useState<TitleType>("green-school");
   const [activeModule, setActiveModule] = useState("upload");
+  const { toasts, show } = useToast();
 
   const currentData = standardData[activeTitle];
   const currentTemplate = titleTemplates[activeTitle];
@@ -1162,6 +1199,42 @@ export default function CompliancePage() {
     upload: Upload, trace: Search, score: Gauge,
     archive: Archive, alert: Bell, export: Package,
   };
+
+  // ==================== 通用操作处理 ====================
+  const handlePreview = useCallback((name: string) => show(`正在预览：${name}`, "info"), [show]);
+  const handleDownload = useCallback((name: string) => show(`正在下载：${name}`, "success"), [show]);
+  const handleDelete = useCallback((name: string) => show(`已删除：${name}`, "warning"), [show]);
+  const handleReplace = useCallback((name: string) => show(`正在替换：${name}`, "info"), [show]);
+  const handleExportPdf = useCallback(() => show("正在生成 PDF 报告，请稍候...", "info"), [show]);
+  const handleExportExcel = useCallback(() => show("正在导出 Excel 文件，请稍候...", "info"), [show]);
+  const handleExportZip = useCallback(() => show("正在打包 ZIP 凭证包，请稍候...", "info"), [show]);
+  const handleUpload = useCallback((name: string) => show(`正在上传：${name}`, "info"), [show]);
+  const handleSearch = useCallback(() => show("正在检索指标与材料关联...", "info"), [show]);
+  const handleJumpToUpload = useCallback(() => { setActiveModule("upload"); show("已跳转到材料上传中心", "info"); }, [show]);
+  const handleJumpToTrace = useCallback(() => { setActiveModule("trace"); show("已跳转到指标溯源查询", "info"); }, [show]);
+  const handleJumpToScore = useCallback(() => { setActiveModule("score"); show("已跳转到自评打分看板", "info"); }, [show]);
+  const handleJumpToArchive = useCallback(() => { setActiveModule("archive"); show("已跳转到材料档案库", "info"); }, [show]);
+  const handleJumpToAlert = useCallback(() => { setActiveModule("alert"); show("已跳转到材料到期预警", "info"); }, [show]);
+  const handleJumpToExport = useCallback(() => { setActiveModule("export"); show("已跳转到导出申报资料", "info"); }, [show]);
+
+  // ==================== 统一操作分发 ====================
+  const handleAction = useCallback((action: string, params?: Record<string, unknown>) => {
+    switch (action) {
+      case "viewDetail": show(`查看详情：${params?.cardName ?? ""}`, "info"); break;
+      case "view-missing": show("正在跳转到缺失材料清单...", "info"); break;
+      case "view-required": show("正在筛选强制未完成项...", "info"); break;
+      case "filter-high-risk": show("正在筛选高风险单位...", "info"); break;
+      case "go-upload": setActiveModule("upload"); show("已跳转到材料上传中心", "info"); break;
+      case "upload": handleUpload(String(params?.type ?? "")); break;
+      case "exportZip": handleExportZip(); break;
+      case "exportPerIndicator": handleExportZip(); break;
+      case "preview": handlePreview(String(params?.name ?? "")); break;
+      case "download": handleDownload(String(params?.name ?? "")); break;
+      case "delete": handleDelete(String(params?.name ?? "")); break;
+      case "replace": handleReplace(String(params?.name ?? "")); break;
+      default: show(`操作：${action}`, "info");
+    }
+  }, [show, handleUpload, handleExportZip, handlePreview, handleDownload, handleDelete, handleReplace]);
 
   return (
     <div className="p-6 space-y-4">
@@ -1237,18 +1310,21 @@ export default function CompliancePage() {
 
       {/* 子模块内容 */}
       <div className="min-h-[500px]">
-        {activeModule === "upload" && <UploadCenter data={currentData} titleType={activeTitle} />}
-        {activeModule === "trace" && <TraceEngine data={currentData} titleType={activeTitle} />}
-        {activeModule === "score" && <ScoringDashboard data={currentData} titleType={activeTitle} />}
-        {activeModule === "archive" && <ArchiveLibrary data={currentData} titleType={activeTitle} />}
-        {activeModule === "alert" && <ExpiryAlerts titleType={activeTitle} />}
-        {activeModule === "export" && <ExportPackage data={currentData} titleType={activeTitle} />}
+        {activeModule === "upload" && <UploadCenter data={currentData} titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "trace" && <TraceEngine data={currentData} titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "score" && <ScoringDashboard data={currentData} titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "archive" && <ArchiveLibrary data={currentData} titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "alert" && <ExpiryAlerts titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "export" && <ExportPackage data={currentData} titleType={activeTitle} onAction={handleAction} />}
       </div>
 
       {/* 底部水印 */}
       <div className="text-center text-[11px] text-white/15 py-2">
         Demo 模拟数据，不用于申报
       </div>
+
+      {/* Toast 通知 */}
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

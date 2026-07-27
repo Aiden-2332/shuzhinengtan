@@ -484,6 +484,7 @@ export interface ActionEntry {
   description: string;
   icon: string;
   urgency: "normal" | "warning" | "critical";
+  action: string;
 }
 
 export function getKpiTrendCards(data: TitleStandardData): KpiTrendCard[] {
@@ -592,10 +593,10 @@ export function getRiskSummary(data: TitleStandardData): RiskSummary {
 
 export function getActionEntries(): ActionEntry[] {
   return [
-    { id: "view-missing", label: "查看缺失材料", description: "一键定位所有未上传材料清单", icon: "AlertCircle", urgency: "critical" },
-    { id: "view-required", label: "强制未完成项", description: "筛选所有强制材料缺失项", icon: "ShieldCheck", urgency: "critical" },
-    { id: "filter-high-risk", label: "高风险单位筛选", description: "快速定位高风险学校/院区", icon: "Filter", urgency: "warning" },
-    { id: "go-upload", label: "进入上传明细页", description: "跳转至材料上传详细管理页", icon: "Upload", urgency: "normal" },
+    { id: "view-missing", label: "查看缺失材料", description: "一键定位所有未上传材料清单", icon: "AlertCircle", urgency: "critical", action: "view-missing" },
+    { id: "view-required", label: "强制未完成项", description: "筛选所有强制材料缺失项", icon: "ShieldCheck", urgency: "critical", action: "view-required" },
+    { id: "filter-high-risk", label: "高风险单位筛选", description: "快速定位高风险学校/院区", icon: "Filter", urgency: "warning", action: "filter-high-risk" },
+    { id: "go-upload", label: "进入上传明细页", description: "跳转至材料上传详细管理页", icon: "Upload", urgency: "normal", action: "go-upload" },
   ];
 }
 
