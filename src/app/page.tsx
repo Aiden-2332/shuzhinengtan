@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { AlertTriangle, TrendingDown, TrendingUp, ShieldAlert } from "lucide-react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
-import { CampusScene3D } from "@/components/3d/campus-scene";
+import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
 import {
   leaderKPIs,
   economicZoneData,
@@ -455,11 +455,8 @@ export default function LeaderDashboard() {
   );
 
   const centerContent = (
-    <div className="flex-1 relative">
-      <CampusScene3D
-        colorMode="carbon"
-        onBuildingClick={(id: string) => console.log("Building clicked:", id)}
-      />
+    <div className="relative h-full">
+      <CampusTileBackground map="2_5d" tone="leader" />
       {/* 图例 */}
       <div className="absolute bottom-3 left-3 bg-[#0a1e3d]/80 rounded-lg p-2 border border-cyan-500/10">
         <div className="text-[10px] text-gray-400 mb-1.5">碳排放强度</div>

@@ -1,0 +1,290 @@
+{
+  "version": 1,
+  "tileSize": 512,
+  "format": "webp",
+  "quality": 92,
+  "minZoom": 0,
+  "maxZoom": 5,
+  "maxNativeZoom": 5,
+  "width": 13139,
+  "height": 8759,
+  "bounds": [
+    [
+      0,
+      0
+    ],
+    [
+      13139,
+      8759
+    ]
+  ],
+  "referenceMap": "2d",
+  "coordinateSystem": "image-pixel",
+  "coordinateOrder": "[x, y]",
+  "origin": "top-left",
+  "xAxis": "right",
+  "yAxis": "down",
+  "mapsShareNativePixelBounds": false,
+  "mapSwitchStrategy": "normalized-center-and-relative-zoom",
+  "businessCoordinateSpace": {
+    "id": "2d-image-pixel",
+    "referenceMap": "2d",
+    "order": "[x, y]",
+    "origin": "top-left",
+    "yAxis": "down",
+    "note": "2.5D 当前使用按宽高比例映射的演示变换；生产建筑点位需要控制点校准。"
+  },
+  "recommendedInitialZoom": 2,
+  "generatedAt": "2026-07-27T08:01:10.888Z",
+  "maps": {
+    "2d": {
+      "id": "2d",
+      "name": "校园二维地图",
+      "urlTemplate": "/campus-map/2d/{z}/{x}/{y}.webp",
+      "width": 13139,
+      "height": 8759,
+      "aspectRatio": 1.50005708,
+      "bounds": [
+        [
+          0,
+          0
+        ],
+        [
+          13139,
+          8759
+        ]
+      ],
+      "tileSize": 512,
+      "format": "webp",
+      "quality": 92,
+      "minZoom": 0,
+      "maxZoom": 5,
+      "maxNativeZoom": 5,
+      "recommendedInitialZoom": 2,
+      "recommendedInitialZoomContinuous": 1.8921,
+      "fitReferenceViewport": [
+        1920,
+        1080
+      ],
+      "levels": [
+        {
+          "zoom": 0,
+          "width": 411,
+          "height": 274,
+          "columns": 1,
+          "rows": 1,
+          "tileCount": 1,
+          "sourcePixelsPerLevelPixel": 32
+        },
+        {
+          "zoom": 1,
+          "width": 822,
+          "height": 548,
+          "columns": 2,
+          "rows": 2,
+          "tileCount": 4,
+          "sourcePixelsPerLevelPixel": 16
+        },
+        {
+          "zoom": 2,
+          "width": 1643,
+          "height": 1095,
+          "columns": 4,
+          "rows": 3,
+          "tileCount": 12,
+          "sourcePixelsPerLevelPixel": 8
+        },
+        {
+          "zoom": 3,
+          "width": 3285,
+          "height": 2190,
+          "columns": 7,
+          "rows": 5,
+          "tileCount": 35,
+          "sourcePixelsPerLevelPixel": 4
+        },
+        {
+          "zoom": 4,
+          "width": 6570,
+          "height": 4380,
+          "columns": 13,
+          "rows": 9,
+          "tileCount": 117,
+          "sourcePixelsPerLevelPixel": 2
+        },
+        {
+          "zoom": 5,
+          "width": 13139,
+          "height": 8759,
+          "columns": 26,
+          "rows": 18,
+          "tileCount": 468,
+          "sourcePixelsPerLevelPixel": 1
+        }
+      ],
+      "tileCount": 637,
+      "outputBytes": 39848486,
+      "compressionRatio": 0.193085,
+      "encoder": {
+        "library": "sharp 0.34.5 / libvips 8.17.3",
+        "webp": "1.6.0",
+        "effort": 5,
+        "alphaQuality": 100,
+        "smartSubsample": true,
+        "preset": "drawing",
+        "edgePadding": "transparent"
+      },
+      "source": {
+        "fileName": "2D裁剪后.png",
+        "sizeBytes": 206378232,
+        "width": 13139,
+        "height": 8759,
+        "format": "png",
+        "space": "srgb",
+        "channels": 4,
+        "depth": "uchar",
+        "hasAlphaChannel": true,
+        "alpha": {
+          "hasAlphaChannel": true,
+          "minimum": 255,
+          "maximum": 255,
+          "mean": 255,
+          "isFullyOpaque": true
+        },
+        "sha256": "7f7c2484dfb8d2618f99799e978790ab23f8a3171e670ff47b4eb92ea44b2e70",
+        "lastModified": "2026-07-27T06:06:55.843Z"
+      },
+      "coordinateTransform": {
+        "canonicalSpace": "2d-image-pixel",
+        "method": "identity",
+        "accuracy": "exact"
+      },
+      "generatedAt": "2026-07-27T07:37:44.889Z"
+    },
+    "2_5d": {
+      "id": "2_5d",
+      "name": "校园 2.5D 地图",
+      "urlTemplate": "/campus-map/2_5d/{z}/{x}/{y}.webp",
+      "width": 14336,
+      "height": 7263,
+      "aspectRatio": 1.97384001,
+      "bounds": [
+        [
+          0,
+          0
+        ],
+        [
+          14336,
+          7263
+        ]
+      ],
+      "tileSize": 512,
+      "format": "webp",
+      "quality": 92,
+      "minZoom": 0,
+      "maxZoom": 5,
+      "maxNativeZoom": 5,
+      "recommendedInitialZoom": 2,
+      "recommendedInitialZoomContinuous": 2.0506,
+      "fitReferenceViewport": [
+        1920,
+        1080
+      ],
+      "levels": [
+        {
+          "zoom": 0,
+          "width": 448,
+          "height": 227,
+          "columns": 1,
+          "rows": 1,
+          "tileCount": 1,
+          "sourcePixelsPerLevelPixel": 32
+        },
+        {
+          "zoom": 1,
+          "width": 896,
+          "height": 454,
+          "columns": 2,
+          "rows": 1,
+          "tileCount": 2,
+          "sourcePixelsPerLevelPixel": 16
+        },
+        {
+          "zoom": 2,
+          "width": 1792,
+          "height": 908,
+          "columns": 4,
+          "rows": 2,
+          "tileCount": 8,
+          "sourcePixelsPerLevelPixel": 8
+        },
+        {
+          "zoom": 3,
+          "width": 3584,
+          "height": 1816,
+          "columns": 7,
+          "rows": 4,
+          "tileCount": 28,
+          "sourcePixelsPerLevelPixel": 4
+        },
+        {
+          "zoom": 4,
+          "width": 7168,
+          "height": 3632,
+          "columns": 14,
+          "rows": 8,
+          "tileCount": 112,
+          "sourcePixelsPerLevelPixel": 2
+        },
+        {
+          "zoom": 5,
+          "width": 14336,
+          "height": 7263,
+          "columns": 28,
+          "rows": 15,
+          "tileCount": 420,
+          "sourcePixelsPerLevelPixel": 1
+        }
+      ],
+      "tileCount": 571,
+      "outputBytes": 35020476,
+      "compressionRatio": 0.196148,
+      "encoder": {
+        "library": "sharp 0.34.5 / libvips 8.17.3",
+        "webp": "1.6.0",
+        "effort": 5,
+        "alphaQuality": 100,
+        "smartSubsample": true,
+        "preset": "drawing",
+        "edgePadding": "transparent"
+      },
+      "source": {
+        "fileName": "2.5D裁剪后.png",
+        "sizeBytes": 178541000,
+        "width": 14336,
+        "height": 7263,
+        "format": "png",
+        "space": "srgb",
+        "channels": 4,
+        "depth": "uchar",
+        "hasAlphaChannel": true,
+        "alpha": {
+          "hasAlphaChannel": true,
+          "minimum": 255,
+          "maximum": 255,
+          "mean": 255,
+          "isFullyOpaque": true
+        },
+        "sha256": "e821b403f8f4900bf43d6003b94a74ea148d15d618403a5e58f05352a82aa1d8",
+        "lastModified": "2026-07-27T06:05:24.789Z"
+      },
+      "coordinateTransform": {
+        "canonicalSpace": "2d-image-pixel",
+        "method": "normalized-proportional",
+        "accuracy": "approximate-demo-only",
+        "productionCalibrationRequired": true
+      },
+      "generatedAt": "2026-07-27T07:37:57.676Z"
+    }
+  }
+}
