@@ -453,6 +453,152 @@ export const alertItems: AlertItem[] = [
   { id: "al-5", titleId: "green-campus", materialName: "绿色建筑星级证书", indicatorName: "准入控制项", itemCode: "前置", expiryDate: "2025-06-01", daysRemaining: -52, severity: "expired" },
 ];
 
+// ==================== 数据总览趋势 ====================
+
+export interface KpiTrendCard {
+  id: string;
+  name: string;
+  currentValue: number;
+  previousValue: number;
+  changeValue: number;
+  changeRate: number; // 百分比，如 8.6
+  trend: "up" | "down" | "flat";
+  trendPositive: boolean; // 上升是否正向
+  sparklineData: number[]; // 近6期迷你趋势数据
+  status: "normal" | "warning" | "risk";
+  description: string;
+  unit?: string;
+}
+
+export interface RiskSummary {
+  highRiskCount: number;
+  pendingRequiredCount: number;
+  expiringCount: number;
+  topMissingTypes: { type: string; count: number }[];
+  recentCompletionTrend: { label: string; count: number }[];
+}
+
+export interface ActionEntry {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  urgency: "normal" | "warning" | "critical";
+}
+
+export function getKpiTrendCards(data: TitleStandardData): KpiTrendCard[] {
+  const allMaterials: MaterialItem[] = [...data.prerequisites];
+  data.indicators.forEach(ind => ind.items.forEach(it => allMaterials.push(...it.materials)));
+  const total = allMaterials.length;
+  const uploaded = allMaterials.filter(m => m.status === "uploaded").length;
+  const required = allMaterials.filter(m => m.required).length;
+  const requiredUploaded = allMaterials.filter(m => m.required && m.status === "uploaded").length;
+  const missing = allMaterials.filter(m => m.status === "missing").length;
+  const missingRequired = allMaterials.filter(m => m.required && m.status === "missing").length;
+
+  return [
+    {
+      id: "total",
+      name: "材料总数",
+      currentValue: total,
+      previousValue: total - 3,
+      changeValue: 3,
+      changeRate: Math.round(3 / (total - 3) * 1000) / 10,
+      trend: "up",
+      trendPositive: true,
+      sparklineData: [total - 8, total - 6, total - 5, total - 3, total - 1, total],
+      status: "normal",
+      description: `较上期新增${3}项材料`,
+      unit: "项",
+    },
+    {
+      id: "uploaded",
+      name: "已上传数 / 上传率",
+      currentValue: uploaded,
+      previousValue: uploaded - 5,
+      changeValue: 5,
+      changeRate: Math.round(5 / (uploaded - 5) * 1000) / 10,
+      trend: "up",
+      trendPositive: true,
+      sparklineData: [uploaded - 10, uploaded - 8, uploaded - 6, uploaded - 4, uploaded - 2, uploaded],
+      status: uploaded / total >= 0.9 ? "normal" : uploaded / total >= 0.7 ? "warning" : "risk",
+      description: `上传率 ${Math.round(uploaded / total * 100)}%，${uploaded / total >= 0.9 ? "状态良好" : "需关注"}`,
+      unit: "项",
+    },
+    {
+      id: "required",
+      name: "强制材料完成数 / 完成率",
+      currentValue: requiredUploaded,
+      previousValue: requiredUploaded - 2,
+      changeValue: 2,
+      changeRate: Math.round(2 / Math.max(1, requiredUploaded - 2) * 1000) / 10,
+      trend: "up",
+      trendPositive: true,
+      sparklineData: [requiredUploaded - 4, requiredUploaded - 3, requiredUploaded - 3, requiredUploaded - 2, requiredUploaded - 1, requiredUploaded],
+      status: requiredUploaded === required ? "normal" : required - requiredUploaded <= 2 ? "warning" : "risk",
+      description: `完成率 ${Math.round(requiredUploaded / required * 100)}%，${required - requiredUploaded}项强制材料缺失`,
+      unit: "项",
+    },
+    {
+      id: "missing",
+      name: "缺失材料数 / 缺失强制项",
+      currentValue: missing,
+      previousValue: missing + 2,
+      changeValue: -2,
+      changeRate: Math.round(2 / Math.max(1, missing + 2) * 1000) / 10,
+      trend: "down",
+      trendPositive: true, // 缺失下降 = 正向
+      sparklineData: [missing + 6, missing + 5, missing + 4, missing + 3, missing + 2, missing],
+      status: missingRequired > 0 ? "risk" : missing > 3 ? "warning" : "normal",
+      description: `其中${missingRequired}项为强制材料缺失`,
+      unit: "项",
+    },
+  ];
+}
+
+export function getRiskSummary(data: TitleStandardData): RiskSummary {
+  const allMaterials: MaterialItem[] = [...data.prerequisites];
+  data.indicators.forEach(ind => ind.items.forEach(it => allMaterials.push(...it.materials)));
+  const missingRequired = allMaterials.filter(m => m.required && m.status === "missing");
+  const expiring = allMaterials.filter(m => m.status === "expiring" || m.status === "expired");
+
+  // 缺失最多的材料类型 TOP3
+  const typeCount: Record<string, number> = {};
+  missingRequired.forEach(m => {
+    const t = m.name.includes("报告") ? "报告类" : m.name.includes("证书") ? "证书类" : m.name.includes("记录") ? "记录类" : m.name.includes("计划") ? "计划类" : "其他";
+    typeCount[t] = (typeCount[t] || 0) + 1;
+  });
+  const topMissingTypes = Object.entries(typeCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([type, count]) => ({ type, count }));
+
+  return {
+    highRiskCount: missingRequired.length > 3 ? 2 : missingRequired.length > 0 ? 1 : 0,
+    pendingRequiredCount: missingRequired.length,
+    expiringCount: expiring.length,
+    topMissingTypes,
+    recentCompletionTrend: [
+      { label: "周一", count: 2 },
+      { label: "周二", count: 1 },
+      { label: "周三", count: 3 },
+      { label: "周四", count: 2 },
+      { label: "周五", count: 4 },
+      { label: "周六", count: 1 },
+      { label: "周日", count: 3 },
+    ],
+  };
+}
+
+export function getActionEntries(): ActionEntry[] {
+  return [
+    { id: "view-missing", label: "查看缺失材料", description: "一键定位所有未上传材料清单", icon: "AlertCircle", urgency: "critical" },
+    { id: "view-required", label: "强制未完成项", description: "筛选所有强制材料缺失项", icon: "ShieldCheck", urgency: "critical" },
+    { id: "filter-high-risk", label: "高风险单位筛选", description: "快速定位高风险学校/院区", icon: "Filter", urgency: "warning" },
+    { id: "go-upload", label: "进入上传明细页", description: "跳转至材料上传详细管理页", icon: "Upload", urgency: "normal" },
+  ];
+}
+
 // ==================== 汇总导出 ====================
 
 export const titleTemplates: Record<TitleType, TitleTemplate> = {

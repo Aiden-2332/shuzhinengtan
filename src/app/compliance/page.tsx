@@ -14,9 +14,10 @@ import {
 
 import {
   titleTemplates, standardData, scoringResults, alertItems, subModules,
+  getKpiTrendCards, getRiskSummary, getActionEntries,
   type TitleType, type TitleStandardData, type MaterialItem,
   type Level1Indicator, type EvaluationItem, type ScoringResult,
-  type AlertItem,
+  type AlertItem, type KpiTrendCard, type RiskSummary, type ActionEntry,
 } from "@/data/compliance-mock";
 
 // ==================== 常量 ====================
@@ -95,6 +96,239 @@ function ProgressBar({ value, max, colorClass, showLabel }: {
   );
 }
 
+// ==================== 数据总览：第一层 - KPI 趋势卡片 ====================
+
+function Sparkline({ data, color, height }: { data: number[]; color: string; height?: number }) {
+  const h = height || 28;
+  const w = 80;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const points = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * (h - 4) - 2}`).join(" ");
+  return (
+    <svg width={w} height={h} className="shrink-0">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
+      {data.map((v, i) => (
+        <circle key={i} cx={(i / (data.length - 1)) * w} cy={h - ((v - min) / range) * (h - 4) - 2} r="2" fill={color} opacity="0.9" />
+      ))}
+    </svg>
+  );
+}
+
+function KpiOverviewCards({ kpiCards }: { kpiCards: KpiTrendCard[] }) {
+  return (
+    <div className="grid grid-cols-4 gap-3">
+      {kpiCards.map((card) => {
+        const isRisk = card.status === "risk";
+        const isWarning = card.status === "warning";
+        const trendUp = card.trend === "up";
+        const trendDown = card.trend === "down";
+        const trendColor = card.trendPositive
+          ? trendUp ? "text-emerald-400" : trendDown ? "text-red-400" : "text-white/40"
+          : trendUp ? "text-red-400" : trendDown ? "text-emerald-400" : "text-white/40";
+        const sparkColor = card.trendPositive
+          ? trendUp ? "#34d399" : trendDown ? "#f87171" : "#94a3b8"
+          : trendUp ? "#f87171" : trendDown ? "#34d399" : "#94a3b8";
+        const statusBadge = isRisk
+          ? { label: "风险", cls: "bg-red-500/15 text-red-400 border-red-500/30" }
+          : isWarning
+          ? { label: "预警", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" }
+          : { label: "正常", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" };
+        const trendIconEl = trendUp ? <TrendingUp className="w-3 h-3" /> : trendDown ? <TrendingDown className="w-3 h-3" /> : <Circle className="w-3 h-3" />;
+
+        return (
+          <div
+            key={card.id}
+            className={`group relative bg-white/5 border rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.07] cursor-pointer ${
+              isRisk ? "border-red-500/20 hover:border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.05)]" :
+              isWarning ? "border-amber-500/20 hover:border-amber-500/40" :
+              "border-white/10 hover:border-white/20"
+            }`}
+          >
+            {/* 顶部：名称 + 状态标签 */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-white/50 font-medium">{card.name}</span>
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${statusBadge.cls}`}>
+                {statusBadge.label}
+              </span>
+            </div>
+
+            {/* 中部：当前值 + 迷你趋势图 */}
+            <div className="flex items-end justify-between mb-2">
+              <div>
+                <div className="text-[28px] font-bold text-white leading-none tracking-tight">
+                  {card.currentValue}
+                  {card.unit && <span className="text-sm text-white/40 ml-0.5 font-normal">{card.unit}</span>}
+                </div>
+                {card.id === "uploaded" && (
+                  <div className="text-xs text-white/30 mt-0.5">
+                    上传率 {Math.round(card.currentValue / (kpiCards[0]?.currentValue || 1) * 100)}%
+                  </div>
+                )}
+                {card.id === "required" && (
+                  <div className="text-xs text-white/30 mt-0.5">
+                    完成率 {Math.round(card.currentValue / Math.max(1, card.currentValue + (kpiCards[3]?.currentValue || 0)) * 100)}%
+                  </div>
+                )}
+              </div>
+              <Sparkline data={card.sparklineData} color={sparkColor} />
+            </div>
+
+            {/* 底部：环比 + 趋势箭头 + 说明 */}
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-0.5 text-xs font-medium ${trendColor}`}>
+                {trendIconEl}
+                <span>{card.changeValue > 0 ? "+" : ""}{card.changeValue}</span>
+                <span className="text-white/30">({card.changeRate > 0 ? "+" : ""}{card.changeRate}%)</span>
+              </div>
+              <span className="text-[11px] text-white/25 truncate">{card.description}</span>
+            </div>
+
+            {/* 悬停详情浮层 */}
+            <div className="absolute inset-x-0 top-full mt-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="bg-slate-800 border border-white/15 rounded-lg p-3 shadow-xl">
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-white/40">本期值</span>
+                    <div className="text-white font-semibold">{card.currentValue}{card.unit}</div>
+                  </div>
+                  <div>
+                    <span className="text-white/40">上期值</span>
+                    <div className="text-white/70">{card.previousValue}{card.unit}</div>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-white/40">环比变化</span>
+                    <div className={`font-semibold ${trendColor}`}>
+                      {card.changeValue > 0 ? "+" : ""}{card.changeValue}{card.unit} ({card.changeRate > 0 ? "+" : ""}{card.changeRate}%)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ==================== 数据总览：第二层 - 风险与运营提醒 ====================
+
+function RiskAndReminderBar({ riskSummary }: { riskSummary: RiskSummary }) {
+  const maxCompletion = Math.max(...riskSummary.recentCompletionTrend.map(d => d.count), 1);
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {/* 风险汇总 */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <AlertTriangle className="w-4 h-4 text-amber-400" />
+          <span className="text-sm font-semibold text-white">风险汇总</span>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <div className={`text-2xl font-bold ${riskSummary.highRiskCount > 0 ? "text-red-400" : "text-white/50"}`}>
+              {riskSummary.highRiskCount}
+            </div>
+            <div className="text-[11px] text-white/40 mt-0.5">高风险单位</div>
+          </div>
+          <div>
+            <div className={`text-2xl font-bold ${riskSummary.pendingRequiredCount > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+              {riskSummary.pendingRequiredCount}
+            </div>
+            <div className="text-[11px] text-white/40 mt-0.5">待补强制材料</div>
+          </div>
+          <div>
+            <div className={`text-2xl font-bold ${riskSummary.expiringCount > 0 ? "text-amber-400" : "text-white/50"}`}>
+              {riskSummary.expiringCount}
+            </div>
+            <div className="text-[11px] text-white/40 mt-0.5">即将过期材料</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 缺失类型 TOP3 */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText className="w-4 h-4 text-blue-400" />
+          <span className="text-sm font-semibold text-white">缺失最多材料类型 TOP3</span>
+        </div>
+        <div className="space-y-2">
+          {riskSummary.topMissingTypes.map((item, i) => (
+            <div key={item.type} className="flex items-center gap-2">
+              <span className={`text-xs font-bold w-5 ${i === 0 ? "text-red-400" : i === 1 ? "text-amber-400" : "text-white/50"}`}>
+                #{i + 1}
+              </span>
+              <span className="text-sm text-white/70 flex-1">{item.type}</span>
+              <span className="text-xs text-white/40">{item.count}项</span>
+              <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${i === 0 ? "bg-red-500/60" : i === 1 ? "bg-amber-500/60" : "bg-white/20"}`}
+                  style={{ width: `${Math.min(100, (item.count / Math.max(1, riskSummary.topMissingTypes[0]?.count || 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+          {riskSummary.topMissingTypes.length === 0 && (
+            <div className="text-xs text-white/30 py-2">暂无缺失数据</div>
+          )}
+        </div>
+      </div>
+
+      {/* 最近一周补传趋势 */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp className="w-4 h-4 text-emerald-400" />
+          <span className="text-sm font-semibold text-white">最近一周补传完成趋势</span>
+        </div>
+        <div className="flex items-end gap-2 h-16">
+          {riskSummary.recentCompletionTrend.map((d) => (
+            <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-xs text-white/60 font-medium">{d.count}</span>
+              <div
+                className="w-full rounded-t-sm bg-emerald-500/40 transition-all"
+                style={{ height: `${Math.max(4, (d.count / maxCompletion) * 48)}px` }}
+              />
+              <span className="text-[10px] text-white/30">{d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==================== 数据总览：第三层 - 行动入口 ====================
+
+const actionIconMap: Record<string, typeof Upload> = {
+  AlertCircle, ShieldCheck, Filter, Upload,
+};
+
+function ActionEntryBar({ actionEntries }: { actionEntries: ActionEntry[] }) {
+  return (
+    <div className="flex items-center gap-2 p-3 bg-white/[0.03] border border-white/10 rounded-xl">
+      <span className="text-xs text-white/40 font-medium mr-1 shrink-0">快捷操作</span>
+      {actionEntries.map((entry) => {
+        const Icon = actionIconMap[entry.icon] || Upload;
+        const urgencyCls = entry.urgency === "critical"
+          ? "border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+          : entry.urgency === "warning"
+          ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50"
+          : "border-white/15 text-white/60 hover:bg-white/10 hover:text-white/90 hover:border-white/30";
+        return (
+          <button
+            key={entry.id}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all duration-150 ${urgencyCls}`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            <span>{entry.label}</span>
+            <ArrowRight className="w-3 h-3 opacity-50" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ==================== 子模块 1: 称号材料上传中心 ====================
 
 function UploadCenter({ data, titleType }: { data: TitleStandardData; titleType: TitleType }) {
@@ -118,28 +352,21 @@ function UploadCenter({ data, titleType }: { data: TitleStandardData; titleType:
     data.indicators.forEach(ind => ind.items.forEach(it => ms.push(...it.materials)));
     return ms;
   }, [data]);
-  const uploadedCount = allMaterials.filter(m => m.status === "uploaded").length;
-  const requiredCount = allMaterials.filter(m => m.required).length;
-  const requiredUploaded = allMaterials.filter(m => m.required && m.status === "uploaded").length;
+  const kpiCards = useMemo(() => getKpiTrendCards(data), [data]);
+  const riskSummary = useMemo(() => getRiskSummary(data), [data]);
+  const actionEntries = useMemo(() => getActionEntries(), []);
   const tc = titleColorClasses[titleType];
 
   return (
     <div className="space-y-4">
-      {/* 统计概览 */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          { label: "材料总数", value: allMaterials.length, sub: `${requiredCount} 强制` },
-          { label: "已上传", value: uploadedCount, sub: `${Math.round(uploadedCount / allMaterials.length * 100)}%` },
-          { label: "强制材料完成", value: `${requiredUploaded}/${requiredCount}`, sub: requiredUploaded === requiredCount ? "全部完成" : `${requiredCount - requiredUploaded} 项缺失` },
-          { label: "缺失材料", value: allMaterials.filter(m => m.status === "missing").length, sub: allMaterials.filter(m => m.required && m.status === "missing").length + " 强制" },
-        ].map((s, i) => (
-          <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3">
-            <div className="text-xs text-white/40 mb-1">{s.label}</div>
-            <div className="text-2xl font-bold text-white">{s.value}</div>
-            <div className="text-xs text-white/30 mt-0.5">{s.sub}</div>
-          </div>
-        ))}
-      </div>
+      {/* ========== 第一层：顶部总览卡片区（4个核心卡片） ========== */}
+      <KpiOverviewCards kpiCards={kpiCards} />
+
+      {/* ========== 第二层：风险与运营提醒区 ========== */}
+      <RiskAndReminderBar riskSummary={riskSummary} />
+
+      {/* ========== 第三层：行动入口区 ========== */}
+      <ActionEntryBar actionEntries={actionEntries} />
 
       {/* 准入前置材料 */}
       <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
