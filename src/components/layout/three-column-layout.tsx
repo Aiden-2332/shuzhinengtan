@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Building2, Users, Wrench, ShieldCheck } from "lucide-react";
 
 interface ThreeColumnLayoutProps {
+  children?: React.ReactNode;
   level: "L1" | "L2" | "L3" | "L4";
   leftPanel: React.ReactNode;
   rightPanel: React.ReactNode;
@@ -15,6 +16,8 @@ interface ThreeColumnLayoutProps {
   colorMode?: "carbon" | "energy";
   year?: number;
   campus?: string;
+  bottomPanel?: React.ReactNode;
+  centerBottomPanel?: React.ReactNode;
 }
 
 const levelConfig = {
@@ -45,6 +48,7 @@ const levelConfig = {
 };
 
 export function ThreeColumnLayout({
+  children,
   level,
   leftPanel,
   rightPanel,
@@ -54,6 +58,8 @@ export function ThreeColumnLayout({
   colorMode,
   year = 2026,
   campus = "主校区",
+  bottomPanel,
+  centerBottomPanel,
 }: ThreeColumnLayoutProps) {
   const config = levelConfig[level];
   const [showWatermark, setShowWatermark] = useState(true);
@@ -95,7 +101,7 @@ export function ThreeColumnLayout({
         </div>
       </div>
 
-      {/* 主体内容区：左面板 + 3D场景 + 右面板 */}
+      {/* 主体内容区：左面板 + 中间(3D场景+底部面板) + 右面板 */}
       <div className="flex-1 flex min-h-0">
         {/* 左侧指标面板 */}
         <div className="w-[20%] min-w-[220px] bg-[#0c1838]/60 border-r border-cyan-500/10 overflow-y-auto overflow-x-hidden">
@@ -104,15 +110,24 @@ export function ThreeColumnLayout({
           </div>
         </div>
 
-        {/* 中间 3D 场景 */}
-        <div className="flex-1 relative">
-          <CampusScene3D
-            level={level}
-            selectedBuilding={selectedBuilding || null}
-            onBuildingClick={onBuildingClick || (() => {})}
-            filterType={filterType || null}
-            colorMode={colorMode || "carbon"}
-          />
+        {/* 中间区域：3D 场景 + 可选底部面板 */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 relative min-h-0">
+            {children || (
+              <CampusScene3D
+                level={level}
+                selectedBuilding={selectedBuilding || null}
+                onBuildingClick={onBuildingClick || (() => {})}
+                filterType={filterType || null}
+                colorMode={colorMode || "carbon"}
+              />
+            )}
+          </div>
+          {centerBottomPanel && (
+            <div className="flex-shrink-0 border-t border-cyan-500/10 bg-[#0a1636]/90 px-3 py-2">
+              {centerBottomPanel}
+            </div>
+          )}
         </div>
 
         {/* 右侧指标面板 */}
@@ -122,6 +137,13 @@ export function ThreeColumnLayout({
           </div>
         </div>
       </div>
+
+      {/* 底部通栏面板（可选） */}
+      {bottomPanel && (
+        <div className="flex-shrink-0 border-t border-cyan-500/10 bg-[#0a1636]/90 px-4 py-2">
+          {bottomPanel}
+        </div>
+      )}
 
       {/* 水印 */}
       {showWatermark && (
