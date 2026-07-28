@@ -41,7 +41,7 @@ import {
   Pie,
 } from "recharts";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
-import { CampusScene3D } from "@/components/3d/campus-scene";
+import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
 import {
   getOperationsKPIs,
   getCarbonOverview,
@@ -715,7 +715,9 @@ export default function OperationsDashboardPage() {
           rightPanel={rightPanel}
           centerBottomPanel={centerBottomPanel}
           colorMode="energy"
-        />
+        >
+          <CampusTileBackground map="2d" tone="operations" />
+        </ThreeColumnLayout>
       </div>
     </div>
   );
