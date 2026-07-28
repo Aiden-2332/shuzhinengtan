@@ -39,14 +39,21 @@
 │   │   ├── dashboard/          # 仪表盘组件（KPI卡片、图表、校园地图）
 │   │   │   ├── campus-map.tsx  # 校园碳地图组件（MapLibre GL 3D/2.5D）
 │   │   │   └── ...             # 其他仪表盘组件
+│   │   ├── calculation/        # 碳核算组件（弹窗/抽屉/标签页/数据表）
+│   │   │   ├── dialogs.tsx     # 一键试算/进度/异常/锁定/解锁/删除弹窗
+│   │   │   ├── drawers.tsx     # 批量复核/报告配置/报告预览抽屉
+│   │   │   ├── tabs.tsx        # 数据源概览/能源结构分析/扩展排放标签页
+│   │   │   └── data-table.tsx  # 数据源明细表（筛选/导出/分页/排序/多选）
 │   │   └── ai-center/          # AI中心组件（16个模块组件）
 │   ├── stores/
 │   │   ├── ai-center-store.ts  # AI中心 Zustand 状态管理
-│   │   └── carbon-asset-store.ts # 碳资产管理 Zustand 状态管理
+│   │   ├── carbon-asset-store.ts # 碳资产管理 Zustand 状态管理
+│   │   └── calculation-store.ts # 碳核算工作台 Zustand 状态管理
 │   ├── data/
 │   │   ├── mock-data.ts        # 模拟数据
 │   │   ├── alarm-data.ts       # 告警中心数据（告警列表、解决建议）
 │   │   ├── ai-center-mock.ts   # AI中心 Mock 数据
+│   │   ├── calculation-data.ts # 碳核算 Mock 数据（25条数据源+localStorage持久化）
 │   │   ├── campus-geojson.ts   # 校园建筑 GeoJSON 数据（北京科技大学）
 │   │   └── carbon-asset-mock.ts # 碳资产管理 Mock 数据（配额/缺口/履约/交易/合规/核查）
 │   ├── types/
@@ -69,7 +76,7 @@
 | 能源监测 | `/energy-monitor` | 碳排全链条溯源图、35台设备管理面板（筛选/详情/批量操作） |
 | 能源分析 | `/energy` | 建筑排名、小时负荷热力图、异常详情 |
 | 用电日历 | `/energy/calendar` | 月历热力图、逐时负荷曲线、TOP10排名、告警中心 |
-| 碳核算工作台 | `/calculation` | 五步核算流程、数据追溯、质量检查 |
+| 碳核算工作台 | `/calculation` | 五步核算流程、数据追溯、质量检查、完整交互（试算/复核/锁定/报告/筛选/导出/CRUD） |
 | AI减排建议 | `/ai-suggestion` | 证据汇总、措施匹配、效益试算 |
 | AI智能分析中心 | `/ai-center` | 预测性分析、实时监控异常报警、AI减排路径优化、政策咨询AI助手 |
 | 碳资产管理 | `/asset` | 六大模块：配额台账/缺口决策引擎/履约任务看板/碳资产增值/合规雷达/核查准备中心 |

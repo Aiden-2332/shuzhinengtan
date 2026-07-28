@@ -258,7 +258,7 @@ export interface FilterState {
 // ========== 碳核算工作台类型定义 ==========
 
 // 核算标准
-export type CalculationStandard = 'JST303' | 'EnergyStat'; // JS/T 303-2026 | 能源统计制度
+export type CalculationStandard = 'JST303' | 'EnergyStat' | 'ISO14064' | 'GHGProtocol'; // JS/T 303-2026 | 能源统计制度 | ISO 14064-1 | GHG Protocol
 
 // 数据源分类
 export type DataSourceCategory = 'boundary' | 'energy' | 'extended' | 'support';
@@ -271,7 +271,17 @@ export type DataSourceSubCategory =
   | 'S-A17' | 'S-A18' | 'S-A19';  // 核算支撑类
 
 // 数据源状态
-export type DataSourceStatus = 'normal' | 'missing' | 'abnormal' | 'pending_review' | 'locked';
+// 数据源状态
+export type DataSourceStatus = 'normal' | 'missing' | 'abnormal' | 'pending_review' | 'locked' | 'approved';
+
+// 审核状态
+export type AuditStatus = 'pending' | 'approved' | 'rejected';
+
+// 凭证状态
+export type EvidenceStatus = 'complete' | 'incomplete' | 'missing';
+
+// 排放范围
+export type EmissionScope = 'scope1' | 'scope2' | 'scope3';
 
 // 核算批次状态
 export type BatchStatus = 'draft' | 'trial' | 'reviewed' | 'locked';
@@ -294,6 +304,9 @@ export interface DataSourceRecord {
   sourceCode: DataSourceSubCategory;
   sourceName: string;
   category: DataSourceCategory;
+  emissionScope?: EmissionScope;
+  dataClassification?: string;
+  campus?: '主校区' | '东校区';
   buildingId?: string;
   buildingName?: string;
   department?: string;
@@ -303,10 +316,19 @@ export interface DataSourceRecord {
   emissionValue?: number; // tCO2
   source: 'meter' | 'bill' | 'manual' | 'import';
   status: DataSourceStatus;
+  auditStatus?: AuditStatus;
+  evidenceStatus?: EvidenceStatus;
+  emissionFactor?: number;
+  emissionFactorSource?: string;
+  emissionFactorVersion?: string;
+  calculationFormula?: string;
   reviewer?: string;
   reviewedAt?: string;
   batchId?: string;
   attachmentCount: number;
+  relatedEvidences?: string[];
+  modifyRecords?: Array<{ time: string; operator: string; field: string; oldValue: string; newValue: string }>;
+  auditRecords?: Array<{ time: string; operator: string; action: string; remark: string }>;
   updatedAt: string;
   updatedBy: string;
 }
