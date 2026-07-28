@@ -20,6 +20,20 @@ import {
   type AlertItem, type KpiTrendCard, type RiskSummary, type ActionEntry,
 } from "@/data/compliance-mock";
 
+import {
+  getAllMaterials, getMaterialsByTitle, saveMaterial, deleteMaterial,
+  generateId, addLog, saveVersion, getVersionsByMaterial,
+  getExportRecords, saveExportRecord, deleteExportRecord,
+  formatFileSize, getStatusLabel, getStatusColor,
+} from "@/lib/compliance-db";
+import type { MaterialRecord, FileVersion, ExportRecord } from "@/types/compliance";
+import { MaterialUploadDrawer } from "@/components/compliance/material-upload-drawer";
+import { FilePreviewDrawer } from "@/components/compliance/file-preview-drawer";
+import { VersionDrawer } from "@/components/compliance/version-drawer";
+import { ExportConfigModal } from "@/components/compliance/export-config-modal";
+import { ConfirmDeleteModal } from "@/components/compliance/confirm-delete-modal";
+import { MaterialStatusTag } from "@/components/compliance/material-status-tag";
+
 // ==================== Toast 通知系统 ====================
 
 interface ToastMessage { id: number; text: string; type: "success" | "info" | "warning" | "error"; }
@@ -443,9 +457,19 @@ function UploadCenter({ data, titleType, onAction }: { data: TitleStandardData; 
                   <div className="flex items-center gap-2 shrink-0">
                     {m.fileName && <span className="text-xs text-white/40">{m.fileName}</span>}
                     {m.fileSize && <span className="text-xs text-white/30">{m.fileSize}</span>}
-                    <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors" title="上传" onClick={() => onAction("upload", {type: "prerequisite"})}>
+                    <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors" title="上传" onClick={() => onAction("upload", {name: m.name, id: m.id})}>
                       <Upload className="w-4 h-4" />
                     </button>
+                    {m.status !== "missing" && m.status !== "expired" && m.status !== "expiring" && (
+                      <>
+                        <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-emerald-400 transition-colors" title="预览" onClick={() => onAction("preview", {name: m.name, id: m.id})}>
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-blue-400 transition-colors" title="下载" onClick={() => onAction("download", {name: m.name, id: m.id})}>
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );
@@ -524,9 +548,19 @@ function UploadCenter({ data, titleType, onAction }: { data: TitleStandardData; 
                                   </div>
                                   {m.fileName && <div className="text-[10px] text-white/30 mt-0.5">{m.fileName} · {m.fileSize}</div>}
                                 </div>
-                                <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60 transition-colors" title="上传" onClick={() => onAction("upload", {name: m.name})}>
+                                <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60 transition-colors" title="上传" onClick={() => onAction("upload", {name: m.name, id: m.id})}>
                                   <Upload className="w-3 h-3" />
                                 </button>
+                                {m.status !== "missing" && m.status !== "expired" && m.status !== "expiring" && (
+                                  <>
+                                    <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-emerald-400 transition-colors" title="预览" onClick={() => onAction("preview", {name: m.name, id: m.id})}>
+                                      <Eye className="w-3 h-3" />
+                                    </button>
+                                    <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-blue-400 transition-colors" title="下载" onClick={() => onAction("download", {name: m.name, id: m.id})}>
+                                      <Download className="w-3 h-3" />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             );
                           })}
@@ -730,10 +764,10 @@ function TraceEngine({ data, titleType, onAction }: { data: TitleStandardData; t
                 </div>
               )}
               <div className="flex gap-2 pt-2">
-                <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors" onClick={() => onAction("preview", {name: selectedMaterial?.material.name ?? ""})}>
+                <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors" onClick={() => onAction("preview", {name: selectedMaterial?.material.name ?? "", id: selectedMaterial?.material.id})}>
                   <Eye className="w-4 h-4" /> 预览
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors" onClick={() => onAction("download", {name: selectedMaterial?.material.name ?? ""})}>
+                <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/10 text-white/70 text-sm hover:bg-white/15 transition-colors" onClick={() => onAction("download", {name: selectedMaterial?.material.name ?? "", id: selectedMaterial?.material.id})}>
                   <Download className="w-4 h-4" /> 下载
                 </button>
               </div>
@@ -970,9 +1004,10 @@ function ArchiveLibrary({ data, titleType, onAction }: { data: TitleStandardData
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center justify-center gap-1">
-                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="预览" onClick={() => onAction("preview", {name: "档案文件"})}><Eye className="w-3 h-3" /></button>
-                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="下载" onClick={() => onAction("download", {name: "档案文件"})}><Download className="w-3 h-3" /></button>
-                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-white/60" title="替换" onClick={() => onAction("replace", {name: "档案文件"})}><RotateCcw className="w-3 h-3" /></button>
+                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-emerald-400" title="预览" onClick={() => onAction("preview", {name: material.name, id: material.id})}><Eye className="w-3 h-3" /></button>
+                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-blue-400" title="下载" onClick={() => onAction("download", {name: material.name, id: material.id})}><Download className="w-3 h-3" /></button>
+                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-amber-400" title="替换" onClick={() => onAction("replace", {name: material.name, id: material.id})}><RotateCcw className="w-3 h-3" /></button>
+                        <button className="p-1 rounded hover:bg-white/10 text-white/30 hover:text-red-400" title="删除" onClick={() => onAction("delete", {name: material.name, id: material.id})}><Trash2 className="w-3 h-3" /></button>
                       </div>
                     </td>
                   </tr>
@@ -1049,7 +1084,7 @@ function ExpiryAlerts({ titleType, onAction }: { titleType: TitleType; onAction:
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      <button className="px-2 py-1 rounded bg-white/10 text-white/60 text-xs hover:bg-white/15 transition-colors" onClick={() => onAction("upload", {name: "补充材料"})}>
+                      <button className="px-2 py-1 rounded bg-white/10 text-white/60 text-xs hover:bg-white/15 transition-colors" onClick={() => onAction("upload", {name: a.materialName})}>
                         补充材料
                       </button>
                     </td>
@@ -1190,6 +1225,25 @@ export default function CompliancePage() {
   const [activeModule, setActiveModule] = useState("upload");
   const { toasts, show } = useToast();
 
+  // ==================== 材料状态 ====================
+  const [materials, setMaterials] = useState<MaterialRecord[]>([]);
+  const [materialsLoaded, setMaterialsLoaded] = useState(false);
+
+  // ==================== 抽屉/弹窗状态 ====================
+  const [uploadTarget, setUploadTarget] = useState<MaterialRecord | null>(null);
+  const [previewTarget, setPreviewTarget] = useState<MaterialRecord | null>(null);
+  const [versionTarget, setVersionTarget] = useState<MaterialRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MaterialRecord | null>(null);
+  const [exportConfigOpen, setExportConfigOpen] = useState(false);
+
+  // ==================== 加载材料 ====================
+  useEffect(() => {
+    getMaterialsByTitle(activeTitle).then((ms) => {
+      setMaterials(ms);
+      setMaterialsLoaded(true);
+    });
+  }, [activeTitle]);
+
   const currentData = standardData[activeTitle];
   const currentTemplate = titleTemplates[activeTitle];
   const tc = titleColorClasses[activeTitle];
@@ -1200,41 +1254,346 @@ export default function CompliancePage() {
     archive: Archive, alert: Bell, export: Package,
   };
 
-  // ==================== 通用操作处理 ====================
-  const handlePreview = useCallback((name: string) => show(`正在预览：${name}`, "info"), [show]);
-  const handleDownload = useCallback((name: string) => show(`正在下载：${name}`, "success"), [show]);
-  const handleDelete = useCallback((name: string) => show(`已删除：${name}`, "warning"), [show]);
-  const handleReplace = useCallback((name: string) => show(`正在替换：${name}`, "info"), [show]);
-  const handleExportPdf = useCallback(() => show("正在生成 PDF 报告，请稍候...", "info"), [show]);
-  const handleExportExcel = useCallback(() => show("正在导出 Excel 文件，请稍候...", "info"), [show]);
-  const handleExportZip = useCallback(() => show("正在打包 ZIP 凭证包，请稍候...", "info"), [show]);
-  const handleUpload = useCallback((name: string) => show(`正在上传：${name}`, "info"), [show]);
-  const handleSearch = useCallback(() => show("正在检索指标与材料关联...", "info"), [show]);
-  const handleJumpToUpload = useCallback(() => { setActiveModule("upload"); show("已跳转到材料上传中心", "info"); }, [show]);
-  const handleJumpToTrace = useCallback(() => { setActiveModule("trace"); show("已跳转到指标溯源查询", "info"); }, [show]);
-  const handleJumpToScore = useCallback(() => { setActiveModule("score"); show("已跳转到自评打分看板", "info"); }, [show]);
-  const handleJumpToArchive = useCallback(() => { setActiveModule("archive"); show("已跳转到材料档案库", "info"); }, [show]);
-  const handleJumpToAlert = useCallback(() => { setActiveModule("alert"); show("已跳转到材料到期预警", "info"); }, [show]);
-  const handleJumpToExport = useCallback(() => { setActiveModule("export"); show("已跳转到导出申报资料", "info"); }, [show]);
+  // ==================== 材料 CRUD 操作 ====================
+
+  /** 合并 DB 材料与 Mock 材料，返回富化的 MaterialItem 列表 */
+  const enrichMaterials = useCallback((mockItems: MaterialItem[]): MaterialItem[] => {
+    return mockItems.map((m) => {
+      const dbRecord = materials.find((r) => r.id === m.id);
+      if (dbRecord && dbRecord.status !== "not_uploaded") {
+        // 映射 MaterialRecord 状态到 MaterialItem 状态
+        const mappedStatus = dbRecord.status === "uploading" || dbRecord.status === "uploaded" || dbRecord.status === "pending_review" || dbRecord.status === "approved" || dbRecord.status === "rejected"
+          ? "uploaded" as const
+          : dbRecord.status === "expired"
+          ? "expired" as const
+          : dbRecord.status === "expiring_soon"
+          ? "expiring" as const
+          : "missing" as const;
+        return {
+          ...m,
+          status: mappedStatus,
+          fileName: dbRecord.fileName,
+          fileSize: dbRecord.fileSize ? formatFileSize(dbRecord.fileSize) : undefined,
+          uploadedAt: dbRecord.uploadedAt,
+        };
+      }
+      return m;
+    });
+  }, [materials]);
+
+  /** 创建上传目标 MaterialRecord */
+  const createUploadRecord = useCallback((mockItem: MaterialItem): MaterialRecord => {
+    return {
+      id: mockItem.id,
+      name: mockItem.name,
+      description: mockItem.description || "",
+      required: mockItem.required ?? false,
+      status: "not_uploaded",
+      titleType: activeTitle,
+      version: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }, [activeTitle]);
+
+  /** 上传完成回调 */
+  const handleUploadComplete = useCallback(async (record: MaterialRecord) => {
+    await saveMaterial(record);
+    // 保存版本
+    if (record.fileData && record.fileName) {
+      await saveVersion({
+        id: generateId(),
+        materialId: record.id,
+        version: record.version || 1,
+        fileName: record.fileName,
+        fileType: record.fileType || "",
+        fileSize: record.fileSize || 0,
+        fileData: record.fileData,
+        changeNote: "首次上传",
+        uploadedBy: record.uploadedBy || "当前用户",
+        uploadedAt: record.uploadedAt || new Date().toISOString(),
+        isCurrent: true,
+      });
+    }
+    // 添加日志
+    await addLog({
+      id: generateId(),
+      materialId: record.id,
+      action: "uploaded",
+      description: `上传文件：${record.fileName}`,
+      operator: record.uploadedBy || "当前用户",
+      operatedAt: new Date().toISOString(),
+      version: record.version,
+    });
+    // 刷新
+    const ms = await getMaterialsByTitle(activeTitle);
+    setMaterials(ms);
+    show(`${record.name} 上传成功`, "success");
+  }, [activeTitle, show]);
+
+  /** 下载材料 */
+  const handleDownload = useCallback(async (record: MaterialRecord) => {
+    if (!record.fileData || !record.fileName) {
+      show("文件数据不存在", "error");
+      return;
+    }
+    const blob = new Blob([record.fileData], { type: record.fileType || "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = record.fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    show(`${record.fileName} 下载成功`, "success");
+    // 添加日志
+    await addLog({
+      id: generateId(),
+      materialId: record.id,
+      action: "downloaded",
+      description: `下载文件：${record.fileName}`,
+      operator: "当前用户",
+      operatedAt: new Date().toISOString(),
+    });
+  }, [show]);
+
+  /** 删除材料 */
+  const handleDelete = useCallback(async (record: MaterialRecord) => {
+    await deleteMaterial(record.id);
+    const ms = await getMaterialsByTitle(activeTitle);
+    setMaterials(ms);
+    show(`${record.name} 已删除`, "warning");
+  }, [activeTitle, show]);
+
+  /** 替换材料 */
+  const handleReplace = useCallback((record: MaterialRecord) => {
+    // 打开上传抽屉，但标记为替换模式
+    const replaceRecord: MaterialRecord = {
+      ...record,
+      status: "not_uploaded",
+      version: (record.version || 0) + 1,
+    };
+    setUploadTarget(replaceRecord);
+  }, []);
+
+  /** 提交审核 */
+  const handleSubmitReview = useCallback(async (record: MaterialRecord) => {
+    const updated: MaterialRecord = {
+      ...record,
+      status: "pending_review",
+      reviewStatus: "pending",
+      updatedAt: new Date().toISOString(),
+    };
+    await saveMaterial(updated);
+    const ms = await getMaterialsByTitle(activeTitle);
+    setMaterials(ms);
+    await addLog({
+      id: generateId(),
+      materialId: record.id,
+      action: "submitted_review",
+      description: "提交审核",
+      operator: "当前用户",
+      operatedAt: new Date().toISOString(),
+    });
+    show(`${record.name} 已提交审核`, "info");
+  }, [activeTitle, show]);
+
+  /** 查看历史版本 */
+  const handleViewVersions = useCallback((record: MaterialRecord) => {
+    setVersionTarget(record);
+  }, []);
+
+  /** 恢复版本 */
+  const handleRestoreVersion = useCallback(async (version: FileVersion) => {
+    const record = materials.find((m) => m.id === version.materialId);
+    if (!record) return;
+    const updated: MaterialRecord = {
+      ...record,
+      fileName: version.fileName,
+      fileType: version.fileType,
+      fileSize: version.fileSize,
+      fileData: version.fileData,
+      version: version.version,
+      status: "uploaded",
+      uploadedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await saveMaterial(updated);
+    const ms = await getMaterialsByTitle(activeTitle);
+    setMaterials(ms);
+    await addLog({
+      id: generateId(),
+      materialId: record.id,
+      action: "version_restored",
+      description: `恢复版本 V${version.version}.0：${version.fileName}`,
+      operator: "当前用户",
+      operatedAt: new Date().toISOString(),
+      version: version.version,
+    });
+    show(`已恢复至 V${version.version}.0`, "success");
+  }, [activeTitle, materials, show]);
+
+  /** 导出 ZIP */
+  const handleExportZip = useCallback(async (config: { year: string; schoolName: string }) => {
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+
+      const uploadedMaterials = materials.filter((m) => m.status === "uploaded" || m.status === "approved");
+
+      // 按类别分组
+      const prerequisites = uploadedMaterials.filter((m) => m.itemId === undefined);
+      const indicatorMaterials = uploadedMaterials.filter((m) => m.itemId !== undefined);
+
+      if (prerequisites.length > 0) {
+        const folder = zip.folder("01_准入前置材料");
+        for (const m of prerequisites) {
+          if (m.fileData && m.fileName) {
+            folder?.file(m.fileName, m.fileData);
+          }
+        }
+      }
+
+      if (indicatorMaterials.length > 0) {
+        const folder = zip.folder("02_指标材料");
+        for (const m of indicatorMaterials) {
+          if (m.fileData && m.fileName) {
+            folder?.file(m.fileName, m.fileData);
+          }
+        }
+      }
+
+      // 生成材料目录清单
+      const catalogContent = uploadedMaterials
+        .map((m, i) => `${i + 1}. ${m.name} - ${m.fileName || "未上传"} - ${getStatusLabel(m.status)}`)
+        .join("\n");
+      zip.file("材料目录清单.txt", catalogContent);
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${currentTemplate.name}_${config.schoolName}_${config.year}年度.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // 保存导出记录
+      await saveExportRecord({
+        id: generateId(),
+        exportedAt: new Date().toISOString(),
+        exportedBy: "当前用户",
+        exportType: currentTemplate.name,
+        year: config.year,
+        fileCount: uploadedMaterials.length,
+        fileSize: String(blob.size),
+        status: "completed",
+        validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        titleType: activeTitle,
+        schoolName: config.schoolName,
+        includeHistory: false,
+        includeReview: false,
+        includeCatalog: true,
+        includeScore: true,
+        includeMissing: true,
+      });
+
+      show("归档包导出成功", "success");
+    } catch {
+      show("导出失败，请重试", "error");
+    }
+  }, [materials, currentTemplate, show]);
 
   // ==================== 统一操作分发 ====================
   const handleAction = useCallback((action: string, params?: Record<string, unknown>) => {
+    const name = String(params?.name ?? params?.type ?? "");
     switch (action) {
       case "viewDetail": show(`查看详情：${params?.cardName ?? ""}`, "info"); break;
-      case "view-missing": show("正在跳转到缺失材料清单...", "info"); break;
-      case "view-required": show("正在筛选强制未完成项...", "info"); break;
-      case "filter-high-risk": show("正在筛选高风险单位...", "info"); break;
+      case "view-missing": setActiveModule("upload"); show("已筛选缺失材料", "info"); break;
+      case "view-required": setActiveModule("upload"); show("已筛选强制未完成项", "info"); break;
+      case "filter-high-risk": setActiveModule("upload"); show("已筛选高风险单位", "info"); break;
       case "go-upload": setActiveModule("upload"); show("已跳转到材料上传中心", "info"); break;
-      case "upload": handleUpload(String(params?.type ?? "")); break;
-      case "exportZip": handleExportZip(); break;
-      case "exportPerIndicator": handleExportZip(); break;
-      case "preview": handlePreview(String(params?.name ?? "")); break;
-      case "download": handleDownload(String(params?.name ?? "")); break;
-      case "delete": handleDelete(String(params?.name ?? "")); break;
-      case "replace": handleReplace(String(params?.name ?? "")); break;
+      case "upload": {
+        // 从 mock 数据中找到对应材料项
+        const mockItem = findMockItem(name, params);
+        if (mockItem) {
+          const existing = materials.find((m) => m.id === mockItem.id);
+          setUploadTarget(existing || createUploadRecord(mockItem));
+        } else {
+          show("未找到对应材料项", "error");
+        }
+        break;
+      }
+      case "preview": {
+        const record = materials.find((m) => m.name === name || m.id === params?.id);
+        if (record && record.status !== "not_uploaded") {
+          setPreviewTarget(record);
+        } else {
+          show("该材料尚未上传，无法预览", "warning");
+        }
+        break;
+      }
+      case "download": {
+        const record = materials.find((m) => m.name === name || m.id === params?.id);
+        if (record && record.fileData) {
+          handleDownload(record);
+        } else {
+          show("该材料尚未上传，无法下载", "warning");
+        }
+        break;
+      }
+      case "delete": {
+        const record = materials.find((m) => m.name === name || m.id === params?.id);
+        if (record) setDeleteTarget(record);
+        break;
+      }
+      case "replace": {
+        const record = materials.find((m) => m.name === name || m.id === params?.id);
+        if (record) handleReplace(record);
+        break;
+      }
+      case "exportZip": setExportConfigOpen(true); break;
+      case "exportPerIndicator": setExportConfigOpen(true); break;
+      case "submitReview": {
+        const record = materials.find((m) => m.name === name || m.id === params?.id);
+        if (record) handleSubmitReview(record);
+        break;
+      }
+      case "viewVersions": {
+        const record = materials.find((m) => m.name === name || m.id === params?.id);
+        if (record) handleViewVersions(record);
+        break;
+      }
       default: show(`操作：${action}`, "info");
     }
-  }, [show, handleUpload, handleExportZip, handlePreview, handleDownload, handleDelete, handleReplace]);
+  }, [show, materials, createUploadRecord, handleDownload, handleReplace, handleSubmitReview, handleViewVersions]);
+
+  /** 从 mock 数据中查找材料项 */
+  const findMockItem = (name: string, params?: Record<string, unknown>): MaterialItem | undefined => {
+    const allMaterials: MaterialItem[] = [...currentData.prerequisites];
+    currentData.indicators.forEach((ind) =>
+      ind.items.forEach((it) => allMaterials.push(...it.materials))
+    );
+    if (params?.id) return allMaterials.find((m) => m.id === params.id);
+    return allMaterials.find((m) => m.name === name);
+  };
+
+  // 富化当前数据
+  const enrichedData = useMemo(() => {
+    return {
+      ...currentData,
+      prerequisites: enrichMaterials(currentData.prerequisites),
+      indicators: currentData.indicators.map((ind) => ({
+        ...ind,
+        items: ind.items.map((it) => ({
+          ...it,
+          materials: enrichMaterials(it.materials),
+        })),
+      })),
+    };
+  }, [currentData, enrichMaterials]);
 
   return (
     <div className="p-6 space-y-4">
@@ -1310,18 +1669,105 @@ export default function CompliancePage() {
 
       {/* 子模块内容 */}
       <div className="min-h-[500px]">
-        {activeModule === "upload" && <UploadCenter data={currentData} titleType={activeTitle} onAction={handleAction} />}
-        {activeModule === "trace" && <TraceEngine data={currentData} titleType={activeTitle} onAction={handleAction} />}
-        {activeModule === "score" && <ScoringDashboard data={currentData} titleType={activeTitle} onAction={handleAction} />}
-        {activeModule === "archive" && <ArchiveLibrary data={currentData} titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "upload" && <UploadCenter data={enrichedData} titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "trace" && <TraceEngine data={enrichedData} titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "score" && <ScoringDashboard data={enrichedData} titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "archive" && <ArchiveLibrary data={enrichedData} titleType={activeTitle} onAction={handleAction} />}
         {activeModule === "alert" && <ExpiryAlerts titleType={activeTitle} onAction={handleAction} />}
-        {activeModule === "export" && <ExportPackage data={currentData} titleType={activeTitle} onAction={handleAction} />}
+        {activeModule === "export" && <ExportPackage data={enrichedData} titleType={activeTitle} onAction={handleAction} />}
       </div>
 
       {/* 底部水印 */}
       <div className="text-center text-[11px] text-white/15 py-2">
         Demo 模拟数据，不用于申报
       </div>
+
+      {/* ==================== 抽屉/弹窗 ==================== */}
+
+      {/* 上传抽屉 */}
+      {uploadTarget && (
+        <MaterialUploadDrawer
+          open={!!uploadTarget}
+          onClose={() => setUploadTarget(null)}
+          material={uploadTarget}
+          onUploadComplete={handleUploadComplete}
+        />
+      )}
+
+      {/* 预览抽屉 */}
+      {previewTarget && (
+        <FilePreviewDrawer
+          open={!!previewTarget}
+          onClose={() => setPreviewTarget(null)}
+          material={previewTarget}
+          onDownload={handleDownload}
+          onReplace={handleReplace}
+          onDelete={(r) => { setPreviewTarget(null); setDeleteTarget(r); }}
+          onViewVersions={handleViewVersions}
+          onSubmitReview={handleSubmitReview}
+        />
+      )}
+
+      {/* 版本抽屉 */}
+      {versionTarget && (
+        <VersionDrawer
+          open={!!versionTarget}
+          onClose={() => setVersionTarget(null)}
+          materialId={versionTarget.id}
+          onRestore={handleRestoreVersion}
+          onPreview={(v) => {
+            const record: MaterialRecord = {
+              id: v.materialId,
+              name: "",
+              description: "",
+              required: false,
+              status: "uploaded",
+              titleType: activeTitle,
+              fileName: v.fileName,
+              fileType: v.fileType,
+              fileSize: v.fileSize,
+              fileData: v.fileData,
+              version: v.version,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            setPreviewTarget(record);
+          }}
+          onDownload={(v) => {
+            if (!v.fileData) return;
+            const blob = new Blob([v.fileData], { type: v.fileType || "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = v.fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            show(`${v.fileName} 下载成功`, "success");
+          }}
+        />
+      )}
+
+      {/* 删除确认 */}
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          open={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => { handleDelete(deleteTarget); setDeleteTarget(null); }}
+          title="确认删除材料"
+          description={`确定要删除材料「${deleteTarget.fileName || deleteTarget.name}」吗？`}
+          warning="此操作不可撤销，文件及所有历史版本将被永久删除。"
+        />
+      )}
+
+      {/* 导出配置 */}
+      <ExportConfigModal
+        open={exportConfigOpen}
+        onClose={() => setExportConfigOpen(false)}
+        titleType={activeTitle}
+        onExport={handleExportZip}
+      />
 
       {/* Toast 通知 */}
       <ToastContainer toasts={toasts} />
