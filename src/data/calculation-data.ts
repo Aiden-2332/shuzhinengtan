@@ -25,7 +25,7 @@ export const STANDARD_META: Record<CalculationStandard, { label: string; descrip
     scopeNote: '范围一(直接排放) + 范围二(外购电力热力) + 范围三(通勤差旅等)',
   },
   EnergyStat: {
-    label: '公共机构能源资源统计制度',
+    label: 'DB11/T1785-2020',
     description: '国家机关事务管理局能源资源消耗统计制度，侧重能源消耗量',
     scopeNote: '电力、天然气、热力、水资源等能源资源消耗统计',
   },
