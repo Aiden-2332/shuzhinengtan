@@ -1,0 +1,110 @@
+{
+  "enterprise": {
+    "name": "北京科技大学",
+    "unified_code": "91110108400012345X",
+    "address": "北京市海淀区学院路30号",
+    "legal_representative": "杨仁树",
+    "contact_person": "张能源",
+    "contact_phone": "010-62331234",
+    "industry_category": "高等教育（服务业）",
+    "reporting_year": 2026,
+    "reporting_period": "1月1日-12月31日",
+    "campus_area": 80.5,
+    "student_count": 28000,
+    "staff_count": 3500
+  },
+  "activity_data": [
+    {
+      "source_id": "C-01",
+      "source_name": "外购电力",
+      "energy_type": "electricity",
+      "activity_value": 26450,
+      "unit": "MWh",
+      "data_source": "电力公司结算单",
+      "meter_id": "EM-001~EM-035"
+    },
+    {
+      "source_id": "C-02",
+      "source_name": "天然气（锅炉）",
+      "energy_type": "natural_gas",
+      "activity_value": 180.5,
+      "unit": "万Nm³",
+      "data_source": "燃气公司结算单",
+      "meter_id": "GM-001~GM-003"
+    },
+    {
+      "source_id": "C-03",
+      "source_name": "外购热力",
+      "energy_type": "heat",
+      "activity_value": 85000,
+      "unit": "GJ",
+      "data_source": "热力公司结算单",
+      "meter_id": "HM-001~HM-002"
+    },
+    {
+      "source_id": "C-04",
+      "source_name": "公务车汽油",
+      "energy_type": "gasoline",
+      "activity_value": 15.2,
+      "unit": "t",
+      "data_source": "加油记录台账",
+      "meter_id": null
+    },
+    {
+      "source_id": "C-05",
+      "source_name": "公务车柴油",
+      "energy_type": "diesel",
+      "activity_value": 3.8,
+      "unit": "t",
+      "data_source": "加油记录台账",
+      "meter_id": null
+    }
+  ],
+  "emission_factors": [
+    {
+      "source_id": "C-01",
+      "energy_type": "electricity",
+      "factor_name": "电力排放因子",
+      "factor_value": 0.604,
+      "factor_unit": "tCO₂/MWh",
+      "factor_source": "北京市生态环境局 2024年度",
+      "oxidation_rate": 1.0
+    },
+    {
+      "source_id": "C-02",
+      "energy_type": "natural_gas",
+      "factor_name": "天然气排放因子",
+      "factor_value": 2.1622,
+      "factor_unit": "tCO₂/万Nm³",
+      "factor_source": "DB11/T 1785-2020 附录B",
+      "oxidation_rate": 0.99
+    },
+    {
+      "source_id": "C-03",
+      "energy_type": "heat",
+      "factor_name": "热力排放因子",
+      "factor_value": 0.11,
+      "factor_unit": "tCO₂/GJ",
+      "factor_source": "DB11/T 1785-2020 附录B",
+      "oxidation_rate": 1.0
+    },
+    {
+      "source_id": "C-04",
+      "energy_type": "gasoline",
+      "factor_name": "汽油排放因子",
+      "factor_value": 2.9251,
+      "factor_unit": "tCO₂/t",
+      "factor_source": "DB11/T 1785-2020 附录B",
+      "oxidation_rate": 0.98
+    },
+    {
+      "source_id": "C-05",
+      "energy_type": "diesel",
+      "factor_name": "柴油排放因子",
+      "factor_value": 3.0959,
+      "factor_unit": "tCO₂/t",
+      "factor_source": "DB11/T 1785-2020 附录B",
+      "oxidation_rate": 0.98
+    }
+  ]
+}

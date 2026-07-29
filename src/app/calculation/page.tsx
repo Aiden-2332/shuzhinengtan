@@ -11,6 +11,7 @@ import { TrialCalcModal, TrialCalcProgress, AnomalyModal, LockConfirmModal, Unlo
 import { FilterDrawer, DetailDrawer, BatchReviewDrawer, ReportConfigModal, ReportProgressModal, ReportPreviewDrawer, AddRecordModal, EditRecordModal, ImportModal } from '@/components/calculation/drawers';
 import { OverviewTab, EnergyStructureTab, ExtendedEmissionTab } from '@/components/calculation/tabs';
 import { DataSourceTable } from '@/components/calculation/data-table';
+import { ComplianceReportButton } from '@/components/calculation/ComplianceReportButton';
 
 import {
   Calculator, FileText, CheckCircle2, TrendingDown,
@@ -178,6 +179,7 @@ export default function CalculationPage() {
               <FileText className="w-4 h-4" />
               生成合规报告
             </button>
+            <ComplianceReportButton />
           </div>
           <div className="flex flex-col items-end">
             <div className="flex items-center gap-2 text-sm text-slate-400">
