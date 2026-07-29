@@ -11,8 +11,12 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { Minus, Move, Plus, RotateCcw } from "lucide-react";
-
-type CampusMapKind = "2d" | "2_5d";
+import { CampusBuildingLayer } from "@/components/dashboard/campus-building-layer";
+import { CampusMapOverlayControls } from "@/components/dashboard/campus-map-overlay-controls";
+import {
+  getCampusMapBuildings,
+  type CampusMapKind,
+} from "@/data/campus-map-buildings";
 
 interface CampusTileBackgroundProps {
   map: CampusMapKind;
@@ -50,6 +54,7 @@ interface DragGesture {
   startY: number;
   offsetX: number;
   offsetY: number;
+  moved: boolean;
 }
 
 interface PinchGesture {
@@ -64,6 +69,7 @@ const TILE_BUFFER = 1;
 const MAX_NATIVE_SCALE = 1;
 const BUTTON_ZOOM_FACTOR = 1.5;
 const WHEEL_ZOOM_SPEED = 0.0015;
+const DRAG_CLICK_THRESHOLD = 5;
 
 // These values mirror public/campus-map/metadata.json. z5 is the native
 // source resolution, so the interaction never scales beyond 100% clarity.
@@ -269,6 +275,10 @@ export function CampusTileBackground({
   const [viewport, setViewport] = useState<ViewportSize>({ width: 0, height: 0 });
   const [view, setView] = useState<ViewState | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
+  const [showBuildingLabels, setShowBuildingLabels] = useState(true);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+
+  const mappedBuildings = getCampusMapBuildings(map);
 
   const scheduleView = useCallback((candidate: ViewState) => {
     const constrained = constrainView(candidate, viewportRef.current, config);
@@ -315,6 +325,36 @@ export function CampusTileBackground({
   const resetView = useCallback(() => {
     scheduleView(getFitView(viewportRef.current, config));
   }, [config, scheduleView]);
+
+  const focusBuilding = useCallback((buildingId: string) => {
+    const building = mappedBuildings.find((item) => item.id === buildingId);
+    const current = viewRef.current;
+    const currentViewport = viewportRef.current;
+    if (!building || !current) return;
+
+    const fitScale = getFitScale(currentViewport, config);
+    const targetScale = clamp(
+      Math.max(current.scale, fitScale * 3.5),
+      fitScale,
+      MAX_NATIVE_SCALE,
+    );
+
+    scheduleView({
+      scale: targetScale,
+      offsetX: currentViewport.width / 2 - building.centroid[0] * targetScale,
+      offsetY: currentViewport.height / 2 - building.centroid[1] * targetScale,
+    });
+  }, [config, mappedBuildings, scheduleView]);
+
+  const selectFromSearch = useCallback((buildingId: string) => {
+    setSelectedBuildingId(buildingId);
+    focusBuilding(buildingId);
+  }, [focusBuilding]);
+
+  const selectBuilding = useCallback((buildingId: string | null) => {
+    setSelectedBuildingId(buildingId);
+    if (buildingId) focusBuilding(buildingId);
+  }, [focusBuilding]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -420,6 +460,7 @@ export function CampusTileBackground({
         startY: point.y,
         offsetX: current.offsetX,
         offsetY: current.offsetY,
+        moved: false,
       };
     }
   }, [beginPinch]);
@@ -454,6 +495,12 @@ export function CampusTileBackground({
     const drag = dragRef.current;
     const current = viewRef.current;
     if (!drag || !current || drag.pointerId !== event.pointerId) return;
+    if (
+      !drag.moved &&
+      Math.hypot(point.x - drag.startX, point.y - drag.startY) >= DRAG_CLICK_THRESHOLD
+    ) {
+      drag.moved = true;
+    }
     scheduleView({
       scale: current.scale,
       offsetX: drag.offsetX + point.x - drag.startX,
@@ -462,6 +509,7 @@ export function CampusTileBackground({
   }, [beginPinch, config, scheduleView]);
 
   const handlePointerEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const completedDrag = dragRef.current;
     pointersRef.current.delete(event.pointerId);
     pinchRef.current = null;
 
@@ -479,12 +527,21 @@ export function CampusTileBackground({
         startY: point.y,
         offsetX: current.offsetX,
         offsetY: current.offsetY,
+        moved: true,
       };
       return;
     }
 
     dragRef.current = null;
-    if (remaining.length === 0) setIsInteracting(false);
+    if (remaining.length === 0) {
+      setIsInteracting(false);
+      if (
+        completedDrag?.pointerId === event.pointerId &&
+        !completedDrag.moved
+      ) {
+        setSelectedBuildingId(null);
+      }
+    }
   }, []);
 
   const handleDoubleClick = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
@@ -521,8 +578,8 @@ export function CampusTileBackground({
       role="application"
       aria-label="可缩放校园地图"
       tabIndex={0}
-      className={`absolute inset-0 overflow-hidden bg-[#081028] select-none outline-none ${isInteracting ? "cursor-grabbing" : "cursor-grab"} ${className}`}
-      style={{ touchAction: "none" }}
+      className={`absolute inset-0 overflow-clip bg-[#081028] select-none outline-none ${isInteracting ? "cursor-grabbing" : "cursor-grab"} ${className}`}
+      style={{ touchAction: "none", contain: "layout paint" }}
       data-campus-map={map}
       data-campus-map-zoom={plan?.zoom ?? "loading"}
       data-campus-map-max-zoom={config.maxZoom}
@@ -559,8 +616,36 @@ export function CampusTileBackground({
 
       <div className="pointer-events-none absolute inset-0 z-10" style={{ background: tint }} />
 
+      {view ? (
+        <CampusBuildingLayer
+          buildings={mappedBuildings}
+          mapWidth={config.width}
+          mapHeight={config.height}
+          view={view}
+          viewport={viewport}
+          showLabels={showBuildingLabels}
+          selectedBuildingId={selectedBuildingId}
+          animateTransform={!isInteracting}
+          onSelect={selectBuilding}
+        />
+      ) : null}
+
       <div
-        className="absolute right-3 top-3 z-20 flex flex-col items-end gap-2"
+        className="absolute top-3 z-20"
+        style={{ left: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
+      >
+        <CampusMapOverlayControls
+          buildings={mappedBuildings}
+          selectedBuildingId={selectedBuildingId}
+          showLabels={showBuildingLabels}
+          onShowLabelsChange={setShowBuildingLabels}
+          onBuildingSelect={selectFromSearch}
+        />
+      </div>
+
+      <div
+        className="absolute top-3 z-20 flex flex-col items-end gap-2"
+        style={{ right: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
         onPointerDown={(event) => event.stopPropagation()}
         onDoubleClick={(event) => event.stopPropagation()}
       >
