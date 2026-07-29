@@ -47,7 +47,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        <main className={`flex-1 overflow-y-auto relative ${isCockpit ? "" : "p-6"} ${isEnergy ? "energy-theme" : ""}`}>
+        <main className={`flex-1 min-h-0 relative ${isCockpit ? "overflow-hidden" : "overflow-y-auto p-6"} ${isEnergy ? "energy-theme" : ""}`}>
           {children}
         </main>
       </div>

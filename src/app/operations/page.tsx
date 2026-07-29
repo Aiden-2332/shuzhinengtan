@@ -673,52 +673,14 @@ export default function OperationsDashboardPage() {
   const centerBottomPanel = <RealtimeLoadChart data={loadData} />;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* 顶部筛选栏 */}
-      <div className="flex items-center justify-between px-6 py-2 bg-[#0a1628]/90 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5">
-            <span className="text-[11px] text-slate-400">年度</span>
-            <select
-              className="bg-transparent text-[11px] text-slate-200 outline-none appearance-none cursor-pointer"
-              value={selectedYear}
-            >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5">
-            <span className="text-[11px] text-slate-400">校区</span>
-            <select
-              className="bg-transparent text-[11px] text-slate-200 outline-none appearance-none cursor-pointer"
-              value={selectedCampus}
-            >
-              <option value="主校区">主校区</option>
-              <option value="东校区">东校区</option>
-            </select>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Circle className="w-2 h-2 text-green-400 fill-green-400 animate-pulse" />
-          <span className="text-[10px] text-slate-400">数据实时</span>
-        </div>
-      </div>
-
-      {/* KPI 栏 */}
-      <TopKpiBar kpis={kpis} />
-
-      {/* 三栏布局 */}
-      <div className="flex-1 min-h-0">
-        <ThreeColumnLayout
-          level="L3"
-          leftPanel={leftPanel}
-          rightPanel={rightPanel}
-          centerBottomPanel={centerBottomPanel}
-          colorMode="energy"
-        >
-          <CampusTileBackground map="2d" tone="operations" />
-        </ThreeColumnLayout>
-      </div>
-    </div>
+    <ThreeColumnLayout
+      level="L3"
+      leftPanel={leftPanel}
+      rightPanel={rightPanel}
+      centerBottomPanel={centerBottomPanel}
+      colorMode="energy"
+    >
+      <CampusTileBackground map="2d" tone="operations" />
+    </ThreeColumnLayout>
   );
 }
