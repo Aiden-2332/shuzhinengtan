@@ -6,7 +6,7 @@ import {
   GraduationCap, Building2, Leaf, ChevronDown, ChevronUp,
   X, Eye, Download, RotateCcw, Link2, AlertTriangle, CheckCircle2,
   Clock, FileText, ShieldCheck, TrendingUp, TrendingDown,
-  Filter, RefreshCw, ArrowRight, Circle, ChevronLeft,
+  Filter, RefreshCw, Circle, ChevronLeft,
   History, User, Calendar, Hash, MapPin, Zap, FileBarChart,
   Wrench, BookOpen, ClipboardCheck, AlertCircle, Ban, MoreHorizontal,
   FileCheck, Plus, Trash2, ExternalLink, Info,
@@ -14,10 +14,10 @@ import {
 
 import {
   titleTemplates, standardData, scoringResults, alertItems, subModules,
-  getKpiTrendCards, getRiskSummary, getActionEntries,
+  getKpiTrendCards, getRiskSummary,
   type TitleType, type TitleStandardData, type MaterialItem,
   type Level1Indicator, type EvaluationItem, type ScoringResult,
-  type AlertItem, type KpiTrendCard, type RiskSummary, type ActionEntry,
+  type AlertItem, type KpiTrendCard, type RiskSummary,
 } from "@/data/compliance-mock";
 
 import {
@@ -348,37 +348,6 @@ function RiskAndReminderBar({ riskSummary, onAction }: { riskSummary: RiskSummar
 
 // ==================== 数据总览：第三层 - 行动入口 ====================
 
-const actionIconMap: Record<string, typeof Upload> = {
-  AlertCircle, ShieldCheck, Filter, Upload,
-};
-
-function ActionEntryBar({ actionEntries, onAction }: { actionEntries: ActionEntry[]; onAction: (action: string, params?: Record<string, unknown>) => void }) {
-  return (
-    <div className="flex items-center gap-2 p-3 bg-white/[0.03] border border-white/10 rounded-xl">
-      <span className="text-xs text-white/40 font-medium mr-1 shrink-0">快捷操作</span>
-      {actionEntries.map((entry) => {
-        const Icon = actionIconMap[entry.icon] || Upload;
-        const urgencyCls = entry.urgency === "critical"
-          ? "border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
-          : entry.urgency === "warning"
-          ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50"
-          : "border-white/15 text-white/60 hover:bg-white/10 hover:text-white/90 hover:border-white/30";
-        return (
-          <button
-            key={entry.id}
-            onClick={() => onAction(entry.action, { entryId: entry.id, label: entry.label })}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all duration-150 ${urgencyCls}`}
-          >
-            <Icon className="w-3.5 h-3.5" />
-            <span>{entry.label}</span>
-            <ArrowRight className="w-3 h-3 opacity-50" />
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 // ==================== 子模块 1: 称号材料上传中心 ====================
 
 function UploadCenter({ data, titleType, onAction }: { data: TitleStandardData; titleType: TitleType; onAction: (action: string, params?: Record<string, unknown>) => void }) {
@@ -404,7 +373,6 @@ function UploadCenter({ data, titleType, onAction }: { data: TitleStandardData; 
   }, [data]);
   const kpiCards = useMemo(() => getKpiTrendCards(data), [data]);
   const riskSummary = useMemo(() => getRiskSummary(data), [data]);
-  const actionEntries = useMemo(() => getActionEntries(), []);
   const tc = titleColorClasses[titleType];
 
   return (
@@ -414,9 +382,6 @@ function UploadCenter({ data, titleType, onAction }: { data: TitleStandardData; 
 
       {/* ========== 第二层：风险与运营提醒区 ========== */}
       <RiskAndReminderBar riskSummary={riskSummary} onAction={onAction} />
-
-      {/* ========== 第三层：行动入口区 ========== */}
-      <ActionEntryBar actionEntries={actionEntries} onAction={onAction} />
 
       {/* 准入前置材料 */}
       <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
