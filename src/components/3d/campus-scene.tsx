@@ -63,7 +63,7 @@ class MaterialFactory {
   getBuildingRoof(): THREE.MeshStandardMaterial {
     if (!this.cache.has("roof")) {
       this.cache.set("roof", new THREE.MeshStandardMaterial({
-        color: "#6b5b4f",
+        color: "#4a4038",
         roughness: 0.7,
         metalness: 0.1,
       }));
@@ -85,13 +85,15 @@ class MaterialFactory {
   getWindowGlass(): THREE.MeshPhysicalMaterial {
     if (!this.cache.has("win-glass")) {
       this.cache.set("win-glass", new THREE.MeshPhysicalMaterial({
-        color: "#a8d4e6",
+        color: "#e8c878",
         roughness: 0.05,
-        metalness: 0.9,
-        transmission: 0.2,
+        metalness: 0.05,
+        emissive: "#e8c878",
+        emissiveIntensity: 0.25,
+        transmission: 0.15,
         transparent: true,
-        opacity: 0.8,
-        clearcoat: 1.0,
+        opacity: 0.7,
+        clearcoat: 0.3,
         clearcoatRoughness: 0.1,
       }));
     }
@@ -101,7 +103,7 @@ class MaterialFactory {
   getGround(): THREE.MeshStandardMaterial {
     if (!this.cache.has("ground")) {
       this.cache.set("ground", new THREE.MeshStandardMaterial({
-        color: "#5a7247",
+        color: "#3d5040",
         roughness: 0.95,
       }));
     }
@@ -132,7 +134,7 @@ class MaterialFactory {
       this.cache.set(key, new THREE.MeshBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.08,
+        opacity: 0.12,
         depthWrite: false,
       }));
     }
@@ -685,7 +687,7 @@ class EnvironmentSystem {
     trunkMesh.position.y = 1.25;
     treeGeo.add(trunkMesh);
 
-    const crownColors = ["#2d5016", "#3d6b1f", "#4a7c28"];
+    const crownColors = ["#284030", "#305038", "#386040"];
     for (let i = 0; i < 3; i++) {
       const crown = new THREE.Mesh(
         new THREE.SphereGeometry(1.8 - i * 0.3, 8, 6),
@@ -716,7 +718,7 @@ class EnvironmentSystem {
     const merged = mergeGeometries(geometries);
     
     const treeMat = new THREE.MeshStandardMaterial({
-      color: "#3d6b1f",
+      color: "#2d5035",
       roughness: 0.85,
     });
 
@@ -750,7 +752,7 @@ class EnvironmentSystem {
       roughness: 0.4,
       metalness: 0.6,
       emissive: "#fbbf24",
-      emissiveIntensity: 0.15,
+      emissiveIntensity: 0.45,
     });
 
     const instancedMesh = new THREE.InstancedMesh(merged, lightMat, LIGHT_COUNT);
@@ -809,7 +811,7 @@ class EnvironmentSystem {
           const angle = Math.atan2(dx, dz);
 
           const lineGeo = new THREE.PlaneGeometry(0.15, length);
-          const lineMat = new THREE.MeshBasicMaterial({ color: "#ffffff" });
+          const lineMat = new THREE.MeshBasicMaterial({ color: "#5a5550" });
           const lineMesh = new THREE.Mesh(lineGeo, lineMat);
           lineMesh.rotation.x = -Math.PI / 2;
           lineMesh.rotation.z = -angle;
@@ -833,12 +835,12 @@ class EnvironmentSystem {
     for (const gs of data.greenSpaces) {
       const geo = new THREE.PlaneGeometry(gs.width, gs.depth);
       const colors: Record<string, string> = {
-        lawn: "#5a7247",
-        flowerbed: "#6b8e4e",
-        hedge: "#3d5c2e",
+        lawn: "#3d5040",
+        flowerbed: "#4a6b4e",
+        hedge: "#2d4030",
       };
       const mat = new THREE.MeshStandardMaterial({
-        color: colors[gs.type] || "#5a7247",
+        color: colors[gs.type] || "#3d5040",
         roughness: 0.95,
       });
       const mesh = new THREE.Mesh(geo, mat);
@@ -859,7 +861,7 @@ class EnvironmentSystem {
     for (const wb of data.waterBodies) {
       const geo = new THREE.CircleGeometry(1, 32);
       const mat = new THREE.MeshPhysicalMaterial({
-        color: "#1e4d6b",
+        color: "#1a3548",
         roughness: 0.05,
         metalness: 0.3,
         transmission: 0.1,
@@ -886,7 +888,7 @@ class EnvironmentSystem {
       if (sf.type === "track") {
         // 跑道
         const trackGeo = new THREE.PlaneGeometry(sf.width, sf.depth);
-        const trackMat = new THREE.MeshStandardMaterial({ color: "#c45c3d", roughness: 0.9 });
+        const trackMat = new THREE.MeshStandardMaterial({ color: "#6b4a3a", roughness: 0.9 });
         const track = new THREE.Mesh(trackGeo, trackMat);
         track.rotation.x = -Math.PI / 2;
         track.position.y = 0.02;
@@ -895,7 +897,7 @@ class EnvironmentSystem {
 
         // 草坪
         const fieldGeo = new THREE.PlaneGeometry(sf.width * 0.55, sf.depth * 0.55);
-        const fieldMat = new THREE.MeshStandardMaterial({ color: "#4a7c59", roughness: 0.9 });
+        const fieldMat = new THREE.MeshStandardMaterial({ color: "#2d4a35", roughness: 0.9 });
         const field = new THREE.Mesh(fieldGeo, fieldMat);
         field.rotation.x = -Math.PI / 2;
         field.position.y = 0.03;
@@ -905,7 +907,7 @@ class EnvironmentSystem {
         // 跑道线
         for (let i = 0; i < 4; i++) {
           const lineGeo = new THREE.PlaneGeometry(sf.width * (0.95 - i * 0.1), 0.12);
-          const lineMat = new THREE.MeshBasicMaterial({ color: "#ffffff" });
+          const lineMat = new THREE.MeshBasicMaterial({ color: "#5a5550" });
           const line = new THREE.Mesh(lineGeo, lineMat);
           line.rotation.x = -Math.PI / 2;
           line.position.y = 0.04;
@@ -914,7 +916,7 @@ class EnvironmentSystem {
         }
       } else if (sf.type === "basketball") {
         const courtGeo = new THREE.PlaneGeometry(sf.width, sf.depth);
-        const courtMat = new THREE.MeshStandardMaterial({ color: "#c47a3d", roughness: 0.9 });
+        const courtMat = new THREE.MeshStandardMaterial({ color: "#5a4a3a", roughness: 0.9 });
         const court = new THREE.Mesh(courtGeo, courtMat);
         court.rotation.x = -Math.PI / 2;
         court.position.y = 0.02;
@@ -922,7 +924,7 @@ class EnvironmentSystem {
         fieldGroup.add(court);
       } else if (sf.type === "tennis") {
         const courtGeo = new THREE.PlaneGeometry(sf.width, sf.depth);
-        const courtMat = new THREE.MeshStandardMaterial({ color: "#2d6b3e", roughness: 0.9 });
+        const courtMat = new THREE.MeshStandardMaterial({ color: "#2d4a35", roughness: 0.9 });
         const court = new THREE.Mesh(courtGeo, courtMat);
         court.rotation.x = -Math.PI / 2;
         court.position.y = 0.02;
@@ -945,7 +947,7 @@ class EnvironmentSystem {
     for (const pl of data.parkingLots) {
       const lotGroup = new THREE.Group();
       const groundGeo = new THREE.PlaneGeometry(pl.width, pl.depth);
-      const groundMat = new THREE.MeshStandardMaterial({ color: "#4b5563", roughness: 0.95 });
+      const groundMat = new THREE.MeshStandardMaterial({ color: "#3d4350", roughness: 0.95 });
       const ground = new THREE.Mesh(groundGeo, groundMat);
       ground.rotation.x = -Math.PI / 2;
       ground.position.y = 0.015;
@@ -1397,8 +1399,8 @@ export function CampusScene3D({
       scene.background = new THREE.Color("#0a1628");
       scene.fog = new THREE.FogExp2("#0a1628", 0.0025);
     } else {
-      scene.background = new THREE.Color("#87ceeb");
-      scene.fog = new THREE.FogExp2("#c8dce8", 0.004);
+      scene.background = new THREE.Color("#1a2840");
+      scene.fog = new THREE.FogExp2("#1e3048", 0.0035);
     }
 
     // 相机
@@ -1417,7 +1419,7 @@ export function CampusScene3D({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 0.82;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
 
@@ -1452,13 +1454,13 @@ export function CampusScene3D({
       moonLight.shadow.bias = -0.0001;
       scene.add(moonLight);
     } else {
-      // 日景: 标准光照
-      const ambientLight = new THREE.AmbientLight("#ffffff", 0.5);
+      // 蓝调暮色: 低角度暖色暮光 + 蓝灰环境光
+      const ambientLight = new THREE.AmbientLight("#3a4a60", 0.35);
       scene.add(ambientLight);
-      const hemiLight = new THREE.HemisphereLight("#b0d4f1", "#5a7247", 0.3);
+      const hemiLight = new THREE.HemisphereLight("#3a5070", "#1a2840", 0.25);
       scene.add(hemiLight);
-      const sunLight = new THREE.DirectionalLight("#fff8e7", 1.8);
-      sunLight.position.set(50, 60, 50);
+      const sunLight = new THREE.DirectionalLight("#d4a870", 0.9);
+      sunLight.position.set(50, 15, 50);
       sunLight.castShadow = true;
       sunLight.shadow.mapSize.width = SHADOW_MAP_SIZE;
       sunLight.shadow.mapSize.height = SHADOW_MAP_SIZE;
@@ -1471,9 +1473,28 @@ export function CampusScene3D({
       sunLight.shadow.bias = -0.0001;
       sunLight.shadow.normalBias = 0.02;
       scene.add(sunLight);
-      const fillLight = new THREE.DirectionalLight("#b0d4f1", 0.4);
+      const fillLight = new THREE.DirectionalLight("#3a5070", 0.25);
       fillLight.position.set(-40, 30, -40);
       scene.add(fillLight);
+      // 克制局部夜间照明
+      const addWarmLight = (x: number, y: number, z: number, intensity: number, dist: number) => {
+        const light = new THREE.PointLight("#f5d090", intensity, dist);
+        light.position.set(x, y, z);
+        scene.add(light);
+      };
+      // 体育馆入口照明
+      addWarmLight(70, 8, -8, 1.2, 40);
+      // 图书馆主入口
+      addWarmLight(-15, 10, -20, 0.8, 35);
+      // 主要道路交叉口
+      addWarmLight(0, 6, 0, 0.6, 50);
+      addWarmLight(30, 6, -15, 0.5, 40);
+      // 教学区
+      addWarmLight(-25, 10, -45, 0.7, 40);
+      // 重点能源设施 - 青蓝色轮廓光
+      const energyLight = new THREE.PointLight("#5a80b0", 0.35, 30);
+      energyLight.position.set(70, 3, 55);
+      scene.add(energyLight);
     }
 
     // ── 材质工厂 ──
