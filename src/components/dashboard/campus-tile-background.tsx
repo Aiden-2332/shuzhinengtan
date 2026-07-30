@@ -10,19 +10,23 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { Minus, Move, Plus, RotateCcw } from "lucide-react";
 import { CampusBuildingLayer } from "@/components/dashboard/campus-building-layer";
-import { CampusMapOverlayControls } from "@/components/dashboard/campus-map-overlay-controls";
 import {
+  CAMPUS_MAP_HEADER_SLOT_ID,
+  CampusMapOverlayControls,
+} from "@/components/dashboard/campus-map-overlay-controls";
+import {
+  getCampusBuildingLayer,
   getCampusMapBuildings,
+  type CampusLayerFilter,
   type CampusMapKind,
 } from "@/data/campus-map-buildings";
 
 interface CampusTileBackgroundProps {
   map: CampusMapKind;
   className?: string;
-  /** Adds a dark dashboard tint above the map without blocking foreground UI. */
-  tone?: "leader" | "operations";
 }
 
 interface ViewportSize {
@@ -67,6 +71,10 @@ interface PinchGesture {
 const TILE_SIZE = 512;
 const TILE_BUFFER = 1;
 const MAX_NATIVE_SCALE = 1;
+// Start a little wider than a hard edge-to-edge fit. This gives both
+// cockpits a calm outer breathing area and room to inspect edge buildings.
+const INITIAL_MAP_SCALE_FACTOR = 0.66;
+const OUTER_PAN_MARGIN_RATIO = 0.18;
 const BUTTON_ZOOM_FACTOR = 1.5;
 const WHEEL_ZOOM_SPEED = 0.0015;
 const DRAG_CLICK_THRESHOLD = 5;
@@ -98,7 +106,7 @@ function getFitScale(viewport: ViewportSize, config: MapConfig) {
     viewport.width / config.width,
     viewport.height / config.height,
     MAX_NATIVE_SCALE,
-  );
+  ) * INITIAL_MAP_SCALE_FACTOR;
 }
 
 function constrainView(
@@ -111,19 +119,31 @@ function constrainView(
   const scaledWidth = config.width * scale;
   const scaledHeight = config.height * scale;
 
-  const offsetX = scaledWidth <= viewport.width
-    ? (viewport.width - scaledWidth) / 2
-    : clamp(candidate.offsetX, viewport.width - scaledWidth, 0);
-  const offsetY = scaledHeight <= viewport.height
-    ? (viewport.height - scaledHeight) / 2
-    : clamp(candidate.offsetY, viewport.height - scaledHeight, 0);
+  const constrainAxis = (scaledSize: number, viewportSize: number, offset: number) => {
+    if (scaledSize > viewportSize) {
+      return clamp(offset, viewportSize - scaledSize, 0);
+    }
+
+    // Keep the reduced map visually centered by default, while retaining a
+    // modest amount of panning freedom to make edge buildings inspectable.
+    const centeredOffset = (viewportSize - scaledSize) / 2;
+    const margin = Math.min(viewportSize * OUTER_PAN_MARGIN_RATIO, scaledSize * 0.28);
+    return clamp(offset, centeredOffset - margin, centeredOffset + margin);
+  };
+
+  const offsetX = constrainAxis(scaledWidth, viewport.width, candidate.offsetX);
+  const offsetY = constrainAxis(scaledHeight, viewport.height, candidate.offsetY);
 
   return { scale, offsetX, offsetY };
 }
 
 function getFitView(viewport: ViewportSize, config: MapConfig): ViewState {
   const scale = getFitScale(viewport, config);
-  return constrainView({ scale, offsetX: 0, offsetY: 0 }, viewport, config);
+  return constrainView({
+    scale,
+    offsetX: (viewport.width - config.width * scale) / 2,
+    offsetY: (viewport.height - config.height * scale) / 2,
+  }, viewport, config);
 }
 
 function getLevelDimensions(config: MapConfig, zoom: number) {
@@ -260,7 +280,6 @@ function TileLayer({
 export function CampusTileBackground({
   map,
   className = "",
-  tone = "leader",
 }: CampusTileBackgroundProps) {
   const config = MAP_CONFIG[map];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -276,9 +295,24 @@ export function CampusTileBackground({
   const [view, setView] = useState<ViewState | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
   const [showBuildingLabels, setShowBuildingLabels] = useState(true);
+  const [activeLayer, setActiveLayer] = useState<CampusLayerFilter>("all");
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [headerToolbarSlot, setHeaderToolbarSlot] = useState<HTMLElement | null>(null);
 
   const mappedBuildings = getCampusMapBuildings(map);
+  const visibleBuildings = useMemo(
+    () =>
+      activeLayer === "all"
+        ? mappedBuildings
+        : mappedBuildings.filter(
+            (building) => getCampusBuildingLayer(building) === activeLayer,
+          ),
+    [activeLayer, mappedBuildings],
+  );
+
+  useEffect(() => {
+    setHeaderToolbarSlot(document.getElementById(CAMPUS_MAP_HEADER_SLOT_ID));
+  }, []);
 
   const scheduleView = useCallback((candidate: ViewState) => {
     const constrained = constrainView(candidate, viewportRef.current, config);
@@ -347,9 +381,28 @@ export function CampusTileBackground({
   }, [config, mappedBuildings, scheduleView]);
 
   const selectFromSearch = useCallback((buildingId: string) => {
+    const building = mappedBuildings.find((item) => item.id === buildingId);
+    if (building && activeLayer !== "all") {
+      setActiveLayer(getCampusBuildingLayer(building));
+    }
     setSelectedBuildingId(buildingId);
     focusBuilding(buildingId);
-  }, [focusBuilding]);
+  }, [activeLayer, focusBuilding, mappedBuildings]);
+
+  const changeLayer = useCallback((layer: CampusLayerFilter) => {
+    setActiveLayer(layer);
+    if (layer === "all" || !selectedBuildingId) return;
+
+    const selectedBuilding = mappedBuildings.find(
+      (building) => building.id === selectedBuildingId,
+    );
+    if (
+      selectedBuilding &&
+      getCampusBuildingLayer(selectedBuilding) !== layer
+    ) {
+      setSelectedBuildingId(null);
+    }
+  }, [mappedBuildings, selectedBuildingId]);
 
   const selectBuilding = useCallback((buildingId: string | null) => {
     setSelectedBuildingId(buildingId);
@@ -565,9 +618,6 @@ export function CampusTileBackground({
     };
   }, [config, view, viewport]);
 
-  const tint = tone === "leader"
-    ? "linear-gradient(180deg, rgba(8,16,40,0.16), rgba(8,16,40,0.38))"
-    : "linear-gradient(180deg, rgba(8,16,40,0.10), rgba(8,16,40,0.30))";
   const fitScale = getFitScale(viewport, config);
   const canZoomOut = Boolean(view && view.scale > fitScale + 0.000_001);
   const canZoomIn = Boolean(view && view.scale < MAX_NATIVE_SCALE - 0.000_001);
@@ -578,7 +628,7 @@ export function CampusTileBackground({
       role="application"
       aria-label="可缩放校园地图"
       tabIndex={0}
-      className={`absolute inset-0 overflow-clip bg-[#081028] select-none outline-none ${isInteracting ? "cursor-grabbing" : "cursor-grab"} ${className}`}
+      className={`campus-tile-map absolute inset-0 overflow-clip select-none outline-none ${isInteracting ? "cursor-grabbing" : "cursor-grab"} ${className}`}
       style={{ touchAction: "none", contain: "layout paint" }}
       data-campus-map={map}
       data-campus-map-zoom={plan?.zoom ?? "loading"}
@@ -614,34 +664,35 @@ export function CampusTileBackground({
         </>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-0 z-10" style={{ background: tint }} />
-
       {view ? (
         <CampusBuildingLayer
-          buildings={mappedBuildings}
+          buildings={visibleBuildings}
           mapWidth={config.width}
           mapHeight={config.height}
           view={view}
           viewport={viewport}
           showLabels={showBuildingLabels}
+          fitScale={fitScale}
           selectedBuildingId={selectedBuildingId}
           animateTransform={!isInteracting}
           onSelect={selectBuilding}
         />
       ) : null}
 
-      <div
-        className="absolute top-3 z-20"
-        style={{ left: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
-      >
-        <CampusMapOverlayControls
-          buildings={mappedBuildings}
-          selectedBuildingId={selectedBuildingId}
-          showLabels={showBuildingLabels}
-          onShowLabelsChange={setShowBuildingLabels}
-          onBuildingSelect={selectFromSearch}
-        />
-      </div>
+      {headerToolbarSlot
+        ? createPortal(
+            <CampusMapOverlayControls
+              buildings={mappedBuildings}
+              selectedBuildingId={selectedBuildingId}
+              showLabels={showBuildingLabels}
+              activeLayer={activeLayer}
+              onShowLabelsChange={setShowBuildingLabels}
+              onLayerChange={changeLayer}
+              onBuildingSelect={selectFromSearch}
+            />,
+            headerToolbarSlot,
+          )
+        : null}
 
       <div
         className="absolute top-3 z-20 flex flex-col items-end gap-2"
