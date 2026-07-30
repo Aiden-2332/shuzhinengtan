@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { X } from "lucide-react";
+import { Building2, X } from "lucide-react";
 
 import type { CampusMapBuilding } from "@/data/campus-map-buildings";
 
@@ -22,6 +22,7 @@ export interface CampusBuildingLayerProps {
   selectedBuildingId: string | null;
   animateTransform: boolean;
   onSelect: (id: string | null) => void;
+  cockpit?: boolean;
 }
 
 interface ProjectedBuilding {
@@ -57,7 +58,15 @@ export function CampusBuildingLayer({
   selectedBuildingId,
   animateTransform,
   onSelect,
+  cockpit = false,
 }: CampusBuildingLayerProps) {
+  const grade = (value: number | undefined) => {
+    if (value == null) return null;
+    if (value > 50) return { label: "高排放", color: "#ff5757" };
+    if (value >= 30) return { label: "中高排放", color: "#ff963c" };
+    if (value >= 15) return { label: "中等排放", color: "#ffd34e" };
+    return { label: "低排放", color: "#72dc91" };
+  };
   const projectedBuildings = useMemo<ProjectedBuilding[]>(
     () =>
       buildings.map((building) => {
@@ -140,6 +149,7 @@ export function CampusBuildingLayer({
         >
           {projectedBuildings.map(({ building, points }) => {
             const isSelected = building.id === selectedBuildingId;
+            const level = grade(building.carbon?.energyIntensity);
 
             return (
               <polygon
@@ -149,11 +159,12 @@ export function CampusBuildingLayer({
                 aria-pressed={isSelected}
                 tabIndex={0}
                 points={points}
-                fill={isSelected ? "rgba(0,255,51,0.2)" : "transparent"}
-                stroke={isSelected ? "#00ff33" : "transparent"}
-                strokeWidth={1}
+                fill={cockpit && level ? `${level.color}55` : isSelected ? "rgba(34,211,238,.2)" : "transparent"}
+                stroke={cockpit && level ? level.color : isSelected ? "#22d3ee" : "transparent"}
+                strokeWidth={isSelected ? 2.2 : cockpit && level ? 1.1 : 1}
                 vectorEffect="non-scaling-stroke"
-                className="pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-100 hover:fill-[#00ff33]/20 hover:stroke-[#00ff33] hover:[filter:drop-shadow(0_0_3px_rgba(0,255,51,.45))] focus-visible:fill-[#00ff33]/20 focus-visible:stroke-white"
+                className="pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-200 hover:brightness-125 focus-visible:stroke-white"
+                filter={cockpit && level ? `drop-shadow(0 0 ${isSelected ? 7 : 3}px ${level.color})` : undefined}
                 style={{ pointerEvents: "all" }}
                 onPointerDown={(event) => {
                   event.preventDefault();
@@ -231,13 +242,38 @@ export function CampusBuildingLayer({
           )
         : null}
 
+      {cockpit
+        ? projectedBuildings
+            .filter(({ building, isOnScreen }, index) => building.carbon && isOnScreen && index % 3 === 0)
+            .slice(0, 11)
+            .map(({ building, screenX, screenY }) => (
+              <button
+                key={`pin-${building.id}`}
+                type="button"
+                aria-label={`查看${building.name}碳排放信息`}
+                className="pointer-events-auto absolute z-30 flex -translate-x-1/2 -translate-y-full flex-col items-center text-cyan-200 outline-none transition-transform hover:scale-110 focus-visible:scale-110"
+                style={{ left: screenX, top: screenY - 3 }}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSelect(building.id);
+                }}
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/90 bg-[#062c43]/90 shadow-[0_0_12px_rgba(34,211,238,.65)]">
+                  <Building2 className="h-4 w-4" />
+                </span>
+                <span className="h-4 w-px bg-gradient-to-b from-cyan-200 to-transparent" />
+              </button>
+            ))
+        : null}
+
       {selectedBuilding && popupPosition ? (
         <section
           role="dialog"
           aria-modal="false"
           aria-label={`${selectedBuilding.building.name}能碳信息弹窗位点`}
           data-campus-building-popup-anchor={selectedBuilding.building.id}
-          className={`pointer-events-auto absolute flex h-8 w-9 items-center justify-center rounded-md border border-emerald-300/45 bg-[#07152f]/95 shadow-[0_8px_24px_rgba(0,0,0,.35),0_0_10px_rgba(0,255,51,.2)] backdrop-blur-md ${
+          className={`pointer-events-auto absolute min-w-48 border border-cyan-300/55 bg-[#06172a]/95 px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,.45),0_0_12px_rgba(34,211,238,.18)] backdrop-blur-md ${
             animateTransform
               ? "transition-[left,top] duration-150 ease-out"
               : ""
@@ -251,11 +287,20 @@ export function CampusBuildingLayer({
           onClick={(event) => event.stopPropagation()}
           onDoubleClick={(event) => event.stopPropagation()}
         >
+          <div className="pr-7">
+            <div className="text-sm font-semibold text-white">{selectedBuilding.building.name}</div>
+            <div className="mt-1 text-xs text-cyan-100/70">
+              碳排放强度 <span className="font-mono text-cyan-300">{selectedBuilding.building.carbon?.energyIntensity ?? "--"}</span> kgCO₂e/m²·年
+            </div>
+            <div className="mt-1 text-[11px]" style={{ color: grade(selectedBuilding.building.carbon?.energyIntensity)?.color }}>
+              {grade(selectedBuilding.building.carbon?.energyIntensity)?.label ?? "暂无等级"}
+            </div>
+          </div>
           <button
             type="button"
             aria-label={`关闭${selectedBuilding.building.name}能碳信息弹窗位点`}
             title="关闭弹窗位点"
-            className="flex h-6 w-6 items-center justify-center rounded text-white/65 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+            className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded text-white/65 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             onClick={() => onSelect(null)}
           >
             <X aria-hidden="true" className="h-3.5 w-3.5" />

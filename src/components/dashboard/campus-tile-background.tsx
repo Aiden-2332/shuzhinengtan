@@ -23,6 +23,7 @@ interface CampusTileBackgroundProps {
   className?: string;
   /** Adds a dark dashboard tint above the map without blocking foreground UI. */
   tone?: "leader" | "operations";
+  cockpit?: boolean;
 }
 
 interface ViewportSize {
@@ -261,6 +262,7 @@ export function CampusTileBackground({
   map,
   className = "",
   tone = "leader",
+  cockpit = false,
 }: CampusTileBackgroundProps) {
   const config = MAP_CONFIG[map];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -275,7 +277,7 @@ export function CampusTileBackground({
   const [viewport, setViewport] = useState<ViewportSize>({ width: 0, height: 0 });
   const [view, setView] = useState<ViewState | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
-  const [showBuildingLabels, setShowBuildingLabels] = useState(true);
+  const [showBuildingLabels, setShowBuildingLabels] = useState(!cockpit);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
 
   const mappedBuildings = getCampusMapBuildings(map);
@@ -348,13 +350,13 @@ export function CampusTileBackground({
 
   const selectFromSearch = useCallback((buildingId: string) => {
     setSelectedBuildingId(buildingId);
-    focusBuilding(buildingId);
-  }, [focusBuilding]);
+    if (!cockpit) focusBuilding(buildingId);
+  }, [cockpit, focusBuilding]);
 
   const selectBuilding = useCallback((buildingId: string | null) => {
     setSelectedBuildingId(buildingId);
-    if (buildingId) focusBuilding(buildingId);
-  }, [focusBuilding]);
+    if (buildingId && !cockpit) focusBuilding(buildingId);
+  }, [cockpit, focusBuilding]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -566,7 +568,9 @@ export function CampusTileBackground({
   }, [config, view, viewport]);
 
   const tint = tone === "leader"
-    ? "linear-gradient(180deg, rgba(8,16,40,0.16), rgba(8,16,40,0.38))"
+    ? cockpit
+      ? "radial-gradient(circle at 52% 43%, rgba(13,73,112,.05) 0%, rgba(3,19,38,.22) 48%, rgba(1,8,22,.72) 100%), linear-gradient(180deg, rgba(2,20,43,.40), rgba(1,11,27,.66))"
+      : "linear-gradient(180deg, rgba(8,16,40,0.16), rgba(8,16,40,0.38))"
     : "linear-gradient(180deg, rgba(8,16,40,0.10), rgba(8,16,40,0.30))";
   const fitScale = getFitScale(viewport, config);
   const canZoomOut = Boolean(view && view.scale > fitScale + 0.000_001);
@@ -598,7 +602,7 @@ export function CampusTileBackground({
             zoom={config.minZoom}
             view={view}
             tiles={plan.overviewTiles}
-            className="z-0"
+            className={cockpit ? "z-0 brightness-[.55] saturate-[.65] contrast-[1.12] hue-rotate-[8deg]" : "z-0"}
             animateTransform={!isInteracting}
           />
           {plan.zoom !== config.minZoom ? (
@@ -607,7 +611,7 @@ export function CampusTileBackground({
               zoom={plan.zoom}
               view={view}
               tiles={plan.tiles}
-              className="z-[1]"
+              className={cockpit ? "z-[1] brightness-[.55] saturate-[.65] contrast-[1.12] hue-rotate-[8deg]" : "z-[1]"}
               animateTransform={!isInteracting}
             />
           ) : null}
@@ -627,10 +631,11 @@ export function CampusTileBackground({
           selectedBuildingId={selectedBuildingId}
           animateTransform={!isInteracting}
           onSelect={selectBuilding}
+          cockpit={cockpit}
         />
       ) : null}
 
-      <div
+      {!cockpit && <div
         className="absolute top-3 z-20"
         style={{ left: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
       >
@@ -641,9 +646,9 @@ export function CampusTileBackground({
           onShowLabelsChange={setShowBuildingLabels}
           onBuildingSelect={selectFromSearch}
         />
-      </div>
+      </div>}
 
-      <div
+      {!cockpit && <div
         className="absolute top-3 z-20 flex flex-col items-end gap-2"
         style={{ right: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
         onPointerDown={(event) => event.stopPropagation()}
@@ -688,7 +693,7 @@ export function CampusTileBackground({
           <span className="text-cyan-100/35">·</span>
           <span>{view ? Math.round(view.scale * 100) : 0}%</span>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

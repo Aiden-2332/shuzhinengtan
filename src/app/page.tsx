@@ -134,12 +134,13 @@ function EmissionSourceRing({ data, viewMode, setViewMode }: {
   // Simple SVG ring chart
   const radius = 60;
   const circumference = 2 * Math.PI * radius;
-  let accumulated = 0;
-  const slices = data.map((d) => {
+  const slices = data.map((d, index) => {
     const pct = d.value / total;
     const dash = pct * circumference;
+    const accumulated = data
+      .slice(0, index)
+      .reduce((sum, item) => sum + item.value / total, 0);
     const offset = -accumulated * circumference;
-    accumulated += pct;
     return { ...d, dash, offset, pct };
   });
 
@@ -249,8 +250,8 @@ function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
   const chartW = w - pad.left - pad.right;
   const chartH = h - pad.top - pad.bottom;
 
-  const xScale = useCallback((i: number) => pad.left + (i / (data.length - 1)) * chartW, [chartW]);
-  const yScale = useCallback((v: number) => pad.top + chartH - (v / maxVal) * chartH, [chartH, maxVal]);
+  const xScale = useCallback((i: number) => pad.left + (i / (data.length - 1)) * chartW, [chartW, data.length, pad.left]);
+  const yScale = useCallback((v: number) => pad.top + chartH - (v / maxVal) * chartH, [chartH, maxVal, pad.top]);
 
   const linePath = useCallback((key: "actual" | "target" | "forecast") =>
     visibleData.map((d, i) => `${i === 0 ? "M" : "L"}${xScale(i)},${yScale(d[key])}`).join(" "),
@@ -464,12 +465,13 @@ function CompositionRings() {
 
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
-  let accumulated = 0;
-  const slices = data.map((d) => {
+  const slices = data.map((d, index) => {
     const pct = d.value / total;
     const dash = pct * circumference;
+    const accumulated = data
+      .slice(0, index)
+      .reduce((sum, item) => sum + item.value / total, 0);
     const offset = -accumulated * circumference;
-    accumulated += pct;
     return { ...d, dash, offset, pct };
   });
 
@@ -565,9 +567,9 @@ export default function LeaderDashboard() {
 
   const centerContent = (
     <div className="relative h-full">
-      <CampusTileBackground map="2_5d" tone="leader" />
+      <CampusTileBackground map="2_5d" tone="leader" cockpit />
       {/* 图例 */}
-      <div className="absolute bottom-3 left-3 bg-[#0a1e3d]/80 rounded-lg p-2 border border-cyan-500/10">
+      <div className="absolute left-[calc(var(--cockpit-side-panel-width)+2rem)] top-[106px] z-20 border border-cyan-400/35 bg-[#06172a]/90 p-2.5 backdrop-blur-md">
         <div className="text-[10px] text-gray-400 mb-1.5">碳排放强度</div>
         <div className="flex items-center gap-1.5">
           {[
@@ -606,6 +608,7 @@ export default function LeaderDashboard() {
       level="L1"
       leftPanel={leftPanel}
       rightPanel={rightPanel}
+      topPanel={<TopKpiBar />}
       centerBottomPanel={centerBottomPanel}
       colorMode="carbon"
     >
