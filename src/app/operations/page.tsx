@@ -41,7 +41,9 @@ import {
   Pie,
 } from "recharts";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
-import { CampusScene3D } from "@/components/3d/campus-scene";
+import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
+import { AutoScrollList } from "@/components/dashboard/auto-scroll-list";
+import type { FloatingPanelSpec } from "@/components/dashboard/floating-glass-panel";
 import {
   getOperationsKPIs,
   getCarbonOverview,
@@ -273,6 +275,10 @@ function CarbonOverviewPanel({ data }: { data: CarbonOverview }) {
 /** 告警中心 */
 function AlertCenterPanel({ alerts }: { alerts: AlertItem[] }) {
   const emergencyCount = alerts.filter((a) => a.level === "emergency").length;
+  const orderedAlerts = useMemo(
+    () => [...alerts].sort((a, b) => b.time.localeCompare(a.time)).slice(0, 6),
+    [alerts],
+  );
   const stats = [
     { label: "待处理", value: 5, color: COLORS.danger },
     { label: "超时", value: 2, color: COLORS.warning },
@@ -309,10 +315,14 @@ function AlertCenterPanel({ alerts }: { alerts: AlertItem[] }) {
       </div>
 
       {/* 告警列表 */}
-      <div className="space-y-1.5 max-h-[180px] overflow-y-auto scrollbar-thin">
-        {alerts.slice(0, 6).map((alert, i) => (
+      <AutoScrollList
+        items={orderedAlerts}
+        itemKey={(alert) => `${alert.title}-${alert.location}-${alert.time}`}
+        className="h-[168px]"
+        live
+        ariaLabel="实时告警列表"
+        renderItem={(alert) => (
           <div
-            key={i}
             className={`bg-white/[0.03] border border-white/[0.06] ${statusBorderColor[alert.level]} border-l-2 rounded-r-md p-2.5`}
           >
             <div className="flex items-start justify-between gap-2">
@@ -340,8 +350,8 @@ function AlertCenterPanel({ alerts }: { alerts: AlertItem[] }) {
               </div>
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </div>
   );
 }
@@ -354,10 +364,13 @@ function DeviceWarningPanel({ warnings }: { warnings: DeviceWarningItem[] }) {
         <Wrench className="w-3.5 h-3.5 text-orange-400" />
         设备警告
       </div>
-      <div className="space-y-1.5 max-h-[200px] overflow-y-auto scrollbar-thin">
-        {warnings.map((w, i) => (
+      <AutoScrollList
+        items={warnings}
+        itemKey={(warning) => `${warning.device}-${warning.issue}-${warning.time}`}
+        className="h-[176px]"
+        ariaLabel="设备警告列表"
+        renderItem={(w) => (
           <div
-            key={i}
             className={`bg-white/[0.03] border border-white/[0.06] ${statusBorderColor[w.level]} border-l-2 rounded-r-md p-2.5`}
           >
             <div className="flex items-start justify-between gap-2">
@@ -383,8 +396,8 @@ function DeviceWarningPanel({ warnings }: { warnings: DeviceWarningItem[] }) {
               </div>
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </div>
   );
 }
@@ -403,8 +416,12 @@ function SystemEfficiencyPanel({ systems }: { systems: SystemEfficiencyItem[] })
         <Activity className="w-3.5 h-3.5 text-green-400" />
         重点系统运行效率
       </div>
-      <div className="space-y-2">
-        {systems.map((sys) => {
+      <AutoScrollList
+        items={systems}
+        itemKey={(system) => system.name}
+        className="h-[154px]"
+        ariaLabel="重点系统运行效率"
+        renderItem={(sys) => {
           const icon = icons[sys.name] || <Cpu className="w-3.5 h-3.5" />;
           const effColor =
             sys.efficiency >= 85
@@ -443,8 +460,8 @@ function SystemEfficiencyPanel({ systems }: { systems: SystemEfficiencyItem[] })
               </div>
             </div>
           );
-        })}
-      </div>
+        }}
+      />
     </div>
   );
 }
@@ -508,8 +525,12 @@ function BuildingRankingPanel({ buildings }: { buildings: BuildingEnergyRankItem
         校园楼宇能耗排行
         <span className="text-[10px] text-slate-500 ml-auto">kWh/㎡·月</span>
       </div>
-      <div className="space-y-1.5">
-        {buildings.map((b, i) => {
+      <AutoScrollList
+        items={buildings}
+        itemKey={(building) => building.name}
+        className="h-[132px]"
+        ariaLabel="楼宇能耗排名"
+        renderItem={(b, i) => {
           const barColor =
             b.value >= 90
               ? COLORS.danger
@@ -540,8 +561,8 @@ function BuildingRankingPanel({ buildings }: { buildings: BuildingEnergyRankItem
               </span>
             </div>
           );
-        })}
-      </div>
+        }}
+      />
     </div>
   );
 }
@@ -650,73 +671,30 @@ export default function OperationsDashboardPage() {
   const buildingRanking = useMemo(() => getBuildingEnergyRanking(), []);
   const loadData = useMemo(() => getRealtimeLoadData(), []);
 
-  const leftPanel = (
-    <div className="space-y-4 p-3">
-      <CarbonOverviewPanel data={carbonOverview} />
-      <div className="border-t border-white/[0.06]" />
-      <AlertCenterPanel alerts={alerts} />
-      <div className="border-t border-white/[0.06]" />
-      <DeviceWarningPanel warnings={deviceWarnings} />
-    </div>
-  );
+  const leftPanels: FloatingPanelSpec[] = [
+    { id: "carbon-overview", label: "碳排放总览", priority: "critical", content: <CarbonOverviewPanel data={carbonOverview} /> },
+    { id: "alert-center", label: "告警中心", priority: "critical", content: <AlertCenterPanel alerts={alerts} /> },
+    { id: "device-warning", label: "设备警告", content: <DeviceWarningPanel warnings={deviceWarnings} /> },
+  ];
 
-  const rightPanel = (
-    <div className="space-y-4 p-3">
-      <SystemEfficiencyPanel systems={systemEfficiency} />
-      <div className="border-t border-white/[0.06]" />
-      <InstrumentStatusPanel data={instrumentStatus} />
-      <div className="border-t border-white/[0.06]" />
-      <BuildingRankingPanel buildings={buildingRanking} />
-    </div>
-  );
+  const rightPanels: FloatingPanelSpec[] = [
+    { id: "system-efficiency", label: "重点系统效率", content: <SystemEfficiencyPanel systems={systemEfficiency} /> },
+    { id: "instrument-status", label: "仪表与数据状态", priority: "critical", content: <InstrumentStatusPanel data={instrumentStatus} /> },
+    { id: "building-ranking", label: "楼宇能耗排行", priority: "secondary", content: <BuildingRankingPanel buildings={buildingRanking} /> },
+  ];
 
   const centerBottomPanel = <RealtimeLoadChart data={loadData} />;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* 顶部筛选栏 */}
-      <div className="flex items-center justify-between px-6 py-2 bg-[#0a1628]/90 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5">
-            <span className="text-[11px] text-slate-400">年度</span>
-            <select
-              className="bg-transparent text-[11px] text-slate-200 outline-none appearance-none cursor-pointer"
-              value={selectedYear}
-            >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5">
-            <span className="text-[11px] text-slate-400">校区</span>
-            <select
-              className="bg-transparent text-[11px] text-slate-200 outline-none appearance-none cursor-pointer"
-              value={selectedCampus}
-            >
-              <option value="主校区">主校区</option>
-              <option value="东校区">东校区</option>
-            </select>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Circle className="w-2 h-2 text-green-400 fill-green-400 animate-pulse" />
-          <span className="text-[10px] text-slate-400">数据实时</span>
-        </div>
-      </div>
-
-      {/* KPI 栏 */}
-      <TopKpiBar kpis={kpis} />
-
-      {/* 三栏布局 */}
-      <div className="flex-1 min-h-0">
-        <ThreeColumnLayout
-          level="L3"
-          leftPanel={leftPanel}
-          rightPanel={rightPanel}
-          centerBottomPanel={centerBottomPanel}
-          colorMode="energy"
-        />
-      </div>
-    </div>
+    <ThreeColumnLayout
+      level="L3"
+      leftPanels={leftPanels}
+      rightPanels={rightPanels}
+      centerBottomPanel={centerBottomPanel}
+      centerBottomLabel="校园实时负荷"
+      colorMode="energy"
+    >
+      <CampusTileBackground map="2d" />
+    </ThreeColumnLayout>
   );
 }
