@@ -11,6 +11,7 @@ API 端点：
 import io
 import json
 from typing import Optional
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -171,7 +172,7 @@ async def preview(request: ReportPreviewRequest):
         raise HTTPException(status_code=500, detail=f"预览生成失败: {str(e)}")
 
 
-@app.post("/api/report/generate", response_model=ReportGenerateResponse)
+@app.post("/api/report/generate")
 async def generate(
     request: ReportGenerateRequest,
     format: str = Query("word", description="输出格式: word"),
@@ -197,12 +198,13 @@ async def generate(
         )
 
         filename = f"碳排放报告_{enterprise.name}_{enterprise.reporting_year}.docx"
+        encoded_filename = quote(filename)
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
         return StreamingResponse(
             io.BytesIO(report_bytes.getvalue() if hasattr(report_bytes, 'getvalue') else report_bytes),
             media_type=media_type,
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"},
         )
     except Exception as e:
         import traceback
