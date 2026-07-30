@@ -147,24 +147,62 @@ export function CampusBuildingLayer({
           height={mapHeight}
           viewBox={`0 0 ${mapWidth} ${mapHeight}`}
         >
+          {cockpit ? (
+            <defs>
+              <pattern id="cockpit-window-lights" width="78" height="54" patternUnits="userSpaceOnUse" patternTransform="skewX(-9)">
+                <rect width="78" height="54" fill="transparent" />
+                <rect x="8" y="9" width="18" height="7" rx="2" fill="#ffd98a" opacity=".72" />
+                <rect x="42" y="9" width="17" height="7" rx="2" fill="#8be9ff" opacity=".42" />
+                <rect x="19" y="31" width="16" height="7" rx="2" fill="#ffc96a" opacity=".55" />
+                <rect x="52" y="32" width="14" height="6" rx="2" fill="#b9f3ff" opacity=".35" />
+              </pattern>
+              <filter id="cockpit-warm-light" x="-80%" y="-80%" width="260%" height="260%">
+                <feGaussianBlur stdDeviation="18" />
+              </filter>
+            </defs>
+          ) : null}
           {projectedBuildings.map(({ building, points }) => {
             const isSelected = building.id === selectedBuildingId;
             const level = grade(building.carbon?.energyIntensity);
 
             return (
-              <polygon
-                key={building.id}
+              <g key={building.id}>
+                {cockpit && level ? (
+                  <>
+                    <circle
+                      cx={building.centroid[0]}
+                      cy={building.centroid[1]}
+                      r={isSelected ? 92 : 66}
+                      fill={isSelected ? "#68e8ff" : "#ffc766"}
+                      opacity={isSelected ? ".2" : ".085"}
+                      filter="url(#cockpit-warm-light)"
+                    />
+                    <polygon
+                      points={points}
+                      fill="url(#cockpit-window-lights)"
+                      opacity={isSelected ? ".72" : ".48"}
+                      stroke="#72e9ff"
+                      strokeOpacity={isSelected ? ".95" : ".56"}
+                      strokeWidth={isSelected ? 2 : .8}
+                      vectorEffect="non-scaling-stroke"
+                      className="pointer-events-none"
+                      filter={`drop-shadow(0 0 ${isSelected ? 7 : 2}px rgba(79,224,255,.65))`}
+                    />
+                  </>
+                ) : null}
+                <polygon
                 role="button"
                 aria-label={`选择建筑：${building.name}`}
                 aria-pressed={isSelected}
                 tabIndex={0}
                 points={points}
-                fill={cockpit && level ? `${level.color}55` : isSelected ? "rgba(34,211,238,.2)" : "transparent"}
+                fill={cockpit && level ? `${level.color}${isSelected ? "28" : "16"}` : isSelected ? "rgba(34,211,238,.2)" : "transparent"}
                 stroke={cockpit && level ? level.color : isSelected ? "#22d3ee" : "transparent"}
-                strokeWidth={isSelected ? 2.2 : cockpit && level ? 1.1 : 1}
+                strokeOpacity={cockpit && level ? isSelected ? .92 : .55 : 1}
+                strokeWidth={isSelected ? 1.8 : cockpit && level ? .7 : 1}
                 vectorEffect="non-scaling-stroke"
                 className={`pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-200 hover:brightness-125 focus-visible:stroke-white ${cockpit && level ? "cockpit-building-grade" : ""}`}
-                filter={cockpit && level ? `drop-shadow(0 0 ${isSelected ? 9 : 4}px ${level.color})` : undefined}
+                filter={cockpit && level ? `drop-shadow(0 0 ${isSelected ? 6 : 2}px ${level.color})` : undefined}
                 style={{ pointerEvents: "all" }}
                 onPointerDown={(event) => {
                   event.preventDefault();
@@ -180,7 +218,8 @@ export function CampusBuildingLayer({
                   event.stopPropagation();
                   onSelect(building.id);
                 }}
-              />
+                />
+              </g>
             );
           })}
         </svg>

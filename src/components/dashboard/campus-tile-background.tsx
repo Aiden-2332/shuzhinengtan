@@ -569,7 +569,7 @@ export function CampusTileBackground({
 
   const tint = tone === "leader"
     ? cockpit
-      ? "radial-gradient(circle at 52% 43%, rgba(13,73,112,.05) 0%, rgba(3,19,38,.22) 48%, rgba(1,8,22,.72) 100%), linear-gradient(180deg, rgba(2,20,43,.40), rgba(1,11,27,.66))"
+      ? "radial-gradient(circle at 51% 42%, rgba(34,154,205,.16) 0%, rgba(5,34,60,.2) 34%, rgba(1,10,25,.7) 100%), radial-gradient(ellipse at 48% 58%, rgba(255,190,92,.07), transparent 38%), linear-gradient(180deg, rgba(2,20,43,.34), rgba(1,9,24,.62))"
       : "linear-gradient(180deg, rgba(8,16,40,0.16), rgba(8,16,40,0.38))"
     : "linear-gradient(180deg, rgba(8,16,40,0.10), rgba(8,16,40,0.30))";
   const fitScale = getFitScale(viewport, config);
@@ -602,7 +602,7 @@ export function CampusTileBackground({
             zoom={config.minZoom}
             view={view}
             tiles={plan.overviewTiles}
-            className={cockpit ? "z-0 brightness-[.55] saturate-[.65] contrast-[1.12] hue-rotate-[8deg]" : "z-0"}
+            className={cockpit ? "z-0 brightness-[.62] saturate-[.72] contrast-[1.18] hue-rotate-[10deg]" : "z-0"}
             animateTransform={!isInteracting}
           />
           {plan.zoom !== config.minZoom ? (
@@ -611,7 +611,7 @@ export function CampusTileBackground({
               zoom={plan.zoom}
               view={view}
               tiles={plan.tiles}
-              className={cockpit ? "z-[1] brightness-[.55] saturate-[.65] contrast-[1.12] hue-rotate-[8deg]" : "z-[1]"}
+              className={cockpit ? "z-[1] brightness-[.62] saturate-[.72] contrast-[1.18] hue-rotate-[10deg]" : "z-[1]"}
               animateTransform={!isInteracting}
             />
           ) : null}
