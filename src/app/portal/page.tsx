@@ -23,7 +23,6 @@ import {
   ThermometerSun,
   Activity,
   MonitorSmartphone,
-  GitBranch,
 } from "lucide-react";
 
 interface PortalCategory {
@@ -63,14 +62,6 @@ const categories: PortalCategory[] = [
         icon: Activity,
         color: "text-emerald-400",
         badge: "核心",
-      },
-      {
-        title: "能源流向分析",
-        description: "校园能源输入、转换、输配与终端流向全景",
-        href: "/energy-flow",
-        icon: GitBranch,
-        color: "text-blue-400",
-        badge: "新增",
       },
     ],
   },
