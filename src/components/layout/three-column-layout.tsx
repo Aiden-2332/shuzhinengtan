@@ -33,6 +33,49 @@ export function ThreeColumnLayout({
   centerBottomPanel,
   topPanel,
 }: ThreeColumnLayoutProps) {
+  if (topPanel) {
+    return (
+      <div className="relative isolate h-full min-h-[700px] overflow-hidden bg-[#03101f] p-3 text-slate-100">
+        <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_50%_38%,rgba(11,87,123,.08),transparent_38%),linear-gradient(90deg,rgba(1,8,19,.5),transparent_30%,transparent_70%,rgba(1,8,19,.5))]" />
+        <div
+          className="relative z-10 grid h-full min-h-0 gap-2.5"
+          style={{
+            gridTemplateRows: "84px minmax(0, 1fr)",
+            "--cockpit-side-panel-width": "clamp(190px, 21.5vw, 390px)",
+          } as React.CSSProperties}
+        >
+          <section className="min-h-0">{topPanel}</section>
+          <div
+            className="grid min-h-0 gap-2.5"
+            style={{
+              gridTemplateColumns:
+                "var(--cockpit-side-panel-width) minmax(0, 1fr) var(--cockpit-side-panel-width)",
+            }}
+          >
+            <aside className="min-h-0 overflow-hidden">{leftPanel}</aside>
+            <main
+              className="grid min-h-0 gap-2.5"
+              style={{ gridTemplateRows: "minmax(0, 1fr) 214px" }}
+            >
+              <section className="relative min-h-0 overflow-hidden border border-cyan-400/35 bg-[#041526]/40">
+                {children}
+              </section>
+              {centerBottomPanel ? (
+                <section className="cockpit-tech-panel min-h-0 overflow-hidden border">
+                  {centerBottomPanel}
+                </section>
+              ) : null}
+            </main>
+            <aside className="min-h-0 overflow-hidden">{rightPanel}</aside>
+          </div>
+        </div>
+        <div className="pointer-events-none absolute bottom-1 right-2 z-20 select-none text-[10px] text-slate-300/35">
+          Demo 模拟数据，不用于申报
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative isolate h-full min-h-[700px] overflow-hidden bg-[#0E1624] text-slate-100"

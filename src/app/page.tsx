@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { AlertTriangle, TrendingDown, TrendingUp, ShieldAlert } from "lucide-react";
+import {
+  AlertTriangle,
+  Cloud,
+  Coins,
+  Leaf,
+  PieChart,
+  ShieldCheck,
+  TrendingDown,
+  TrendingUp,
+  ShieldAlert,
+} from "lucide-react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
 import {
@@ -30,33 +40,26 @@ import type {
 // 顶部 KPI 栏
 // ============================================================
 function TopKpiBar() {
+  const icons = [Cloud, PieChart, Coins, Leaf, ShieldCheck];
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5">
-      {leaderKPIs.map((kpi, i) => (
-        <div key={i} className="cockpit-kpi-card min-w-0 flex-1 px-4 py-2.5">
-          <div className="text-gray-400 text-[11px] mb-0.5 truncate">{kpi.label}</div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl font-mono font-bold text-cyan-50 [text-shadow:0_0_10px_rgba(83,225,255,.42)]">{kpi.value}</span>
-            <span className="text-gray-500 text-xs">{kpi.unit}</span>
+    <div className="grid h-full grid-cols-5 gap-3">
+      {leaderKPIs.map((kpi, i) => {
+        const Icon = icons[i];
+        return (
+          <div key={i} className="cockpit-kpi-card flex min-w-0 items-center gap-4 px-5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center text-cyan-300 [filter:drop-shadow(0_0_7px_rgba(72,220,255,.72))]">
+              <Icon className="h-10 w-10" strokeWidth={1.6} />
+            </div>
+            <div className="min-w-0">
+              <div className="mb-1 truncate text-[13px] text-slate-300">{kpi.label}</div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[28px] font-mono font-bold leading-none tracking-wide text-cyan-50 [text-shadow:0_0_10px_rgba(83,225,255,.42)]">{kpi.value}</span>
+                <span className="text-xs text-slate-400">{kpi.unit}</span>
+              </div>
+            </div>
           </div>
-          {kpi.sub && <div className="text-[10px] text-gray-600 mt-0.5">{kpi.sub}</div>}
-        </div>
-      ))}
-      {/* 右侧筛选器 */}
-      <div className="flex items-center gap-2 shrink-0">
-        <select className="bg-[#0a1e3d]/60 border border-cyan-500/10 rounded-md px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500/30">
-          <option>2026年度</option>
-          <option>2025年度</option>
-        </select>
-        <select className="bg-[#0a1e3d]/60 border border-cyan-500/10 rounded-md px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-cyan-500/30">
-          <option>主校区</option>
-          <option>东校区</option>
-        </select>
-        <span className="flex items-center gap-1 text-green-400 text-[10px]">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          数据实时
-        </span>
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -65,59 +68,34 @@ function TopKpiBar() {
 // 经济控制分区面板
 // ============================================================
 function EconomicZonePanel({ data }: { data: EconomicZoneData }) {
-  const riskPct = Math.round((data.usedQuota / data.totalQuota) * 100);
-  const remaining = data.totalQuota - data.usedQuota;
+  const usedPct = Math.round((data.usedQuota / data.totalQuota) * 100);
   return (
-    <div className="space-y-3">
+    <div className="flex h-full flex-col">
       <div className="flex items-center gap-2">
         <div className="w-1 h-4 rounded-full bg-cyan-400" />
         <h3 className="text-white text-sm font-semibold">经济控制分区</h3>
+        <span className="flex h-4 w-4 items-center justify-center rounded-full border border-cyan-400/50 text-[10px] text-cyan-300">i</span>
       </div>
-      <div className="bg-[#0a1e3d]/60 rounded-lg p-3 border border-cyan-500/10">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-gray-400 text-xs">碳排放总量配额</span>
-          <span className="text-white text-sm font-mono font-bold">{data.totalQuota.toLocaleString()} tCO₂</span>
+      <div className="grid min-h-0 flex-1 grid-cols-[1fr_1.5fr_1fr] items-center gap-1 pt-2">
+        <div className="flex flex-col items-center gap-2 text-emerald-300">
+          <span className="text-xs font-semibold">配额合规</span>
+          <ShieldCheck className="h-9 w-9 [filter:drop-shadow(0_0_6px_rgba(74,222,128,.55))]" />
         </div>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-gray-400 text-xs">已用</span>
-          <span className="text-orange-400 text-sm font-mono font-bold">{data.usedQuota.toLocaleString()} tCO₂</span>
-        </div>
-        <div className="w-full h-2 bg-gray-700/50 rounded-full mb-2 overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-cyan-500 to-orange-500 rounded-full transition-all" style={{ width: `${riskPct}%` }} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-red-400 text-xs flex items-center gap-1">
-            <AlertTriangle className="w-3 h-3" />
-            {data.riskLabel}
-          </span>
-          <span className="text-gray-500 text-xs">剩余 {remaining.toLocaleString()} tCO₂</span>
-        </div>
-      </div>
-      {/* 配额合规 / 成本控制 */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
-          <div className="flex items-center gap-1.5 mb-1">
-            <ShieldAlert className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="text-gray-400 text-[10px]">配额合规</span>
+        <div className="relative mx-auto aspect-square w-full max-w-[160px]">
+          <div className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(#ffab45 0 31%, #43b9ff 31% 36%, #52ded0 36% ${usedPct}%, rgba(29,69,91,.45) ${usedPct}% 100%)` }} />
+          <div className="absolute inset-[14%] flex flex-col items-center justify-center rounded-full bg-[#06172a] shadow-[inset_0_0_18px_rgba(31,194,229,.12)]">
+            <span className="text-[10px] text-slate-400">已用</span>
+            <strong className="font-mono text-[22px] leading-tight text-white">{data.usedQuota.toLocaleString()}</strong>
+            <span className="text-xs text-slate-400">tCO₂</span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-white text-lg font-mono font-bold">{riskPct}</span>
-            <span className="text-gray-500 text-xs">%</span>
-          </div>
-          <div className="text-[10px] text-gray-600 mt-0.5">消耗进度</div>
         </div>
-        <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
-          <div className="flex items-center gap-1.5 mb-1">
-            <TrendingDown className="w-3.5 h-3.5 text-green-400" />
-            <span className="text-gray-400 text-[10px]">成本控制</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-white text-lg font-mono font-bold">{data.costControl[0]?.value ?? 0}</span>
-            <span className="text-gray-500 text-xs">%</span>
-          </div>
-          <div className="text-[10px] text-gray-600 mt-0.5">碳价风险</div>
+        <div className="flex flex-col items-center gap-2 text-amber-300">
+          <span className="text-xs font-semibold">成本控制</span>
+          <TrendingUp className="h-9 w-9 [filter:drop-shadow(0_0_6px_rgba(251,191,36,.5))]" />
         </div>
       </div>
+      <div className="mx-auto -mt-1 rounded-md border border-cyan-400/20 bg-[#06192d] px-5 py-0.5 text-xs text-slate-400">总量 {data.totalQuota.toLocaleString()} tCO₂</div>
+      <div className="mt-1 flex items-center justify-center gap-1 text-xs text-red-400"><AlertTriangle className="h-3.5 w-3.5" />{data.riskLabel}</div>
     </div>
   );
 }
@@ -213,16 +191,18 @@ function RiskWarningPanel({ data }: { data: RiskWarning[] }) {
         <div className="w-1 h-4 rounded-full bg-red-400" />
         <h3 className="text-white text-sm font-semibold">风险预警</h3>
       </div>
-      <div className="space-y-2">
+      <div className="divide-y divide-cyan-400/10">
         {data.map((w, i) => (
-          <div key={i} className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
-            <div className="flex items-center justify-between mb-0.5">
-              <span className="text-gray-400 text-[11px]">{w.label}</span>
+          <div key={i} className="flex min-h-11 items-center gap-2 px-1">
+            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${w.status === "danger" ? "bg-red-500/25 text-red-400" : "bg-slate-500/20 text-slate-400"}`}>
+              {w.status === "danger" ? <AlertTriangle className="h-3.5 w-3.5" /> : <ShieldAlert className="h-3.5 w-3.5" />}
+            </span>
+            <div className="flex min-w-0 flex-1 items-center justify-between">
+              <span className="truncate text-[11px] text-slate-400">{w.label}</span>
               <span className={`text-sm font-mono font-bold ${
                 w.status === "danger" ? "text-red-400" : w.status === "warning" ? "text-orange-400" : "text-green-400"
               }`}>{w.value}</span>
             </div>
-            <div className="text-[10px] text-gray-600">{w.desc}</div>
           </div>
         ))}
       </div>
@@ -558,10 +538,16 @@ export default function LeaderDashboard() {
   const [emissionViewMode, setEmissionViewMode] = useState<"total" | "perCapita">("total");
 
   const leftPanel = (
-    <div className="space-y-4 p-3">
-      <EconomicZonePanel data={economicZoneData} />
-      <EmissionSourceRing data={emissionSourceData} viewMode={emissionViewMode} setViewMode={setEmissionViewMode} />
-      <RiskWarningPanel data={riskWarnings} />
+    <div className="grid h-full min-h-0 gap-2.5" style={{ gridTemplateRows: "1.05fr .92fr 1.15fr" }}>
+      <section className="cockpit-tech-panel min-h-0 overflow-hidden border p-3">
+        <EconomicZonePanel data={economicZoneData} />
+      </section>
+      <section className="cockpit-tech-panel min-h-0 overflow-hidden border p-3">
+        <EmissionSourceRing data={emissionSourceData} viewMode={emissionViewMode} setViewMode={setEmissionViewMode} />
+      </section>
+      <section className="cockpit-tech-panel min-h-0 overflow-hidden border p-3">
+        <RiskWarningPanel data={riskWarnings} />
+      </section>
     </div>
   );
 
@@ -569,7 +555,7 @@ export default function LeaderDashboard() {
     <div className="relative h-full">
       <CampusTileBackground map="2_5d" tone="leader" cockpit />
       {/* 图例 */}
-      <div className="absolute left-[calc(var(--cockpit-side-panel-width)+2rem)] top-[106px] z-20 border border-cyan-400/35 bg-[#06172a]/90 p-2.5 backdrop-blur-md">
+      <div className="absolute left-3 top-3 z-20 border border-cyan-400/35 bg-[#06172a]/90 p-2.5 backdrop-blur-md">
         <div className="text-[10px] text-gray-400 mb-1.5">碳排放强度</div>
         <div className="flex items-center gap-1.5">
           {[
@@ -596,10 +582,16 @@ export default function LeaderDashboard() {
   );
 
   const rightPanel = (
-    <div className="space-y-4 p-3">
-      <ResourceAnalysisPanel data={resourceConsumptionData} />
-      <CompositionRings />
-      <EmissionTop5 data={emissionRankingData} />
+    <div className="grid h-full min-h-0 gap-2.5" style={{ gridTemplateRows: ".72fr 1fr .9fr" }}>
+      <section className="cockpit-tech-panel min-h-0 overflow-hidden border p-3">
+        <ResourceAnalysisPanel data={resourceConsumptionData} />
+      </section>
+      <section className="cockpit-tech-panel min-h-0 overflow-hidden border p-3">
+        <CompositionRings />
+      </section>
+      <section className="cockpit-tech-panel min-h-0 overflow-hidden border p-3">
+        <EmissionTop5 data={emissionRankingData} />
+      </section>
     </div>
   );
 
