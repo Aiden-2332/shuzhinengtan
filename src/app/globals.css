@@ -223,7 +223,8 @@ body {
 }
 
 .cockpit-building-grade {
-  animation: cockpit-building-breathe 3.6s ease-in-out infinite;
+  fill-opacity: 0.72;
+  stroke-opacity: 0.58;
 }
 
 .cockpit-map-pin {
@@ -250,18 +251,12 @@ body {
   animation-delay: 1.4s;
 }
 
-@keyframes cockpit-building-breathe {
-  0%, 100% { fill-opacity: 0.62; stroke-opacity: 0.52; }
-  50% { fill-opacity: 0.78; stroke-opacity: 0.72; }
-}
-
 @keyframes cockpit-pin-radar {
   0% { opacity: 0.75; transform: translate(-50%, -50%) scale(0.72); }
   75%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.55); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cockpit-building-grade,
   .cockpit-map-pin::before,
   .cockpit-map-pin::after {
     animation: none;

@@ -230,7 +230,7 @@ function TileLayer({
           alt=""
           draggable={false}
           decoding="async"
-          className="absolute max-w-none select-none opacity-0 transition-opacity duration-150"
+          className="absolute max-w-none select-none opacity-0"
           style={{
             left: x * TILE_SIZE,
             top: y * TILE_SIZE,
