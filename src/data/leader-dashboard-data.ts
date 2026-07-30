@@ -123,8 +123,10 @@ export const monthlyTrendData: MonthlyTrendPoint[] = [
 
 export interface ResourceConsumptionItem {
   label: string;
-  value: string;
-  unit: string;
+  totalValue: string;
+  totalUnit: string;
+  perCapitaValue: string;
+  perCapitaUnit: string;
   yoy: number;    // 同比 %
   mom: number;    // 环比 %
   yoyLabel: string;
@@ -132,9 +134,9 @@ export interface ResourceConsumptionItem {
 }
 
 export const resourceConsumptionData: ResourceConsumptionItem[] = [
-  { label: "碳排放", value: "12,680", unit: "tCO₂", yoy: -8.6, mom: 2.3, yoyLabel: "同比 ↓8.6%", momLabel: "环比 ↑2.3%" },
-  { label: "能源消耗", value: "26,450", unit: "MWh", yoy: -6.2, mom: 1.8, yoyLabel: "同比 ↓6.2%", momLabel: "环比 ↑1.8%" },
-  { label: "水消耗", value: "128,600", unit: "m³", yoy: -4.1, mom: 3.2, yoyLabel: "同比 ↓4.1%", momLabel: "环比 ↑3.2%" },
+  { label: "碳排放", totalValue: "12,680", totalUnit: "tCO₂", perCapitaValue: "0.58", perCapitaUnit: "tCO₂/人", yoy: -8.6, mom: 2.3, yoyLabel: "同比 ↓8.6%", momLabel: "环比 ↑2.3%" },
+  { label: "能源消耗", totalValue: "26,450", totalUnit: "MWh", perCapitaValue: "1.21", perCapitaUnit: "MWh/人", yoy: -6.2, mom: 1.8, yoyLabel: "同比 ↓6.2%", momLabel: "环比 ↑1.8%" },
+  { label: "水消耗", totalValue: "128,600", totalUnit: "m³", perCapitaValue: "5.9", perCapitaUnit: "m³/人", yoy: -4.1, mom: 3.2, yoyLabel: "同比 ↓4.1%", momLabel: "环比 ↑3.2%" },
 ];
 
 // ============================================================

@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- 字体 -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet"/>
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/echarts/echarts-5.5.1.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #06B6D4;
+      --color-primary-container:    #0A4A66;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #0A1128;
+      --color-surface-container-lowest:   #0D1730;
+      --color-surface:                    #0F1A33;
+      --color-surface-container:          #1A2D4A;
+      --color-surface-container-high:     #1F3555;
+      --color-surface-container-highest:  #253D60;
+      /* === 文字 === */
+      --color-on-surface:           #F0F4F8;
+      --color-on-surface-variant:   #94A3B8;
+      /* === 功能色 === */
+      --color-success:  #16A34A;
+      --color-error:    #DC2626;
+      --color-warning:  #F59E0B;
+      /* === 边框 === */
+      --color-outline:          #1E3A5F;
+      --color-outline-variant:  #2A4060;
+      /* === 圆角 === */
+      --radius-sm:   0.25rem;
+      --radius-md:   0.375rem;
+      --radius-lg:   0.5rem;
+      --radius-xl:   0.75rem;
+      --radius-2xl:  1rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 2px 8px rgba(0,0,0,0.3);
+      --shadow-float:  0 10px 25px rgba(0,0,0,0.4);
+      --shadow-dialog: 0 25px 50px rgba(0,0,0,0.5);
+      /* === 字体 === */
+      --font-sans: "Noto Sans SC", "Geist", system-ui, sans-serif;
+    }
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.3); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.5); }
+
+    /* 档案卡片悬停效果 */
+    .archive-card {
+      transition: all 0.2s ease;
+    }
+    .archive-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(6, 182, 212, 0.15);
+    }
+
+    /* 标签样式 */
+    .tag-green { background: rgba(22, 163, 74, 0.15); color: #16A34A; }
+    .tag-yellow { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+    .tag-red { background: rgba(220, 38, 38, 0.15); color: #DC2626; }
+    .tag-blue { background: rgba(6, 182, 212, 0.15); color: #06B6D4; }
+    .tag-purple { background: rgba(155, 107, 255, 0.15); color: #9b6bff; }
+
+    /* 文件行悬停 */
+    .file-row {
+      transition: background 0.15s ease;
+    }
+    .file-row:hover {
+      background: rgba(6, 182, 212, 0.05);
+    }
+
+    /* 进度条动画 */
+    @keyframes progress-fill {
+      from { width: 0%; }
+    }
+    .progress-animated {
+      animation: progress-fill 1.2s ease-out;
+    }
+
+    /* Tab 激活样式 */
+    .tab-active {
+      background: rgba(6, 182, 212, 0.15);
+      color: #06B6D4;
+      border-bottom: 2px solid #06B6D4;
+    }
+
+    /* 弹窗遮罩 */
+    .modal-overlay {
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%230D1730"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%2394A3B8" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans">
+
+  <!-- 导航组件 -->
+  <div class="flex h-screen overflow-hidden">
+    <!-- Background Grid -->
+    <div class="fixed inset-0 opacity-20 pointer-events-none"
+      style="background-image: linear-gradient(rgba(6, 182, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.1) 1px, transparent 1px); background-size: 50px 50px;">
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-surface-container-lowest/95 backdrop-blur-xl border-r border-primary/20 flex flex-col h-full overflow-hidden relative z-10">
+      <!-- Logo -->
+      <div class="h-16 flex items-center px-6 border-b border-primary/20">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+            <i data-lucide="leaf" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-base font-bold text-white">高校智慧碳管理</h1>
+            <p class="text-xs text-primary">Smart Carbon Platform</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <!-- 碳控制塔 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>碳控制塔</span>
+          </div>
+          <div class="space-y-1">
+            <a href="home.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="layout-dashboard" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">领导组驾驶舱</span>
+            </a>
+            <a href="operations.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="factory" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">后勤组驾驶舱</span>
+            </a>
+          </div>
+        </div>
+        <!-- AI 智能分析 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="brain" class="w-4 h-4"></i>
+            <span>AI 智能分析</span>
+          </div>
+          <div class="space-y-1">
+            <a href="ai-hub.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="brain" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">AI 智能分析中心</span>
+            </a>
+          </div>
+        </div>
+        <!-- 能源管理 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="zap" class="w-4 h-4"></i>
+            <span>能源管理</span>
+          </div>
+          <div class="space-y-1">
+            <a href="energy-monitor.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="zap" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">能源监测</span>
+            </a>
+            <a href="energy.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="chart-column" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">能源分析</span>
+            </a>
+            <a href="energy-devices.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="server" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">设备管理</span>
+            </a>
+            <a href="energy-calendar.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="calendar" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">用电日历</span>
+            </a>
+          </div>
+        </div>
+        <!-- 碳管理 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="calculator" class="w-4 h-4"></i>
+            <span>碳管理</span>
+          </div>
+          <div class="space-y-1">
+            <a href="calculation.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="calculator" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">碳核算工作台</span>
+            </a>
+            <a href="evaluation.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="award" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">绿色/低碳校园评价</span>
+            </a>
+          </div>
+        </div>
+        <!-- 减排管理 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="lightbulb" class="w-4 h-4"></i>
+            <span>减排管理</span>
+          </div>
+          <div class="space-y-1">
+            <a href="ai-suggestion.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="lightbulb" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">AI 减排建议</span>
+            </a>
+          </div>
+        </div>
+        <!-- 碳资产 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="wallet" class="w-4 h-4"></i>
+            <span>碳资产</span>
+          </div>
+          <div class="space-y-1">
+            <a href="asset.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="wallet" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">碳资产管理</span>
+            </a>
+          </div>
+        </div>
+        <!-- 合规与档案 -->
+        <div class="mb-4">
+          <div class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            <span>合规与档案</span>
+          </div>
+          <div class="space-y-1">
+            <a href="compliance.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-gray-400 hover:bg-surface-container/50 hover:text-primary">
+              <i data-lucide="shield-check" class="w-4 h-4 text-gray-500"></i>
+              <span class="flex-1">合规与披露</span>
+            </a>
+            <a href="materials-archive.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 bg-gradient-to-r from-primary/20 to-blue-500/20 text-primary border border-primary/30"
+               aria-current="page">
+              <i data-lucide="archive" class="w-4 h-4 text-primary"></i>
+              <span class="flex-1">资料归档</span>
+              <i data-lucide="chevron-right" class="w-4 h-4 text-primary"></i>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-primary/20">
+        <div class="text-xs text-gray-500 text-center">Demo 模拟数据，不用于申报</div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden relative z-10">
+      <!-- Header -->
+      <header class="h-16 bg-surface-container-lowest/95 backdrop-blur-xl border-b border-primary/20 flex items-center justify-between px-6">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container/50 border border-primary/20">
+            <i data-lucide="calendar" class="w-4 h-4 text-primary"></i>
+            <select id="select-year" class="bg-transparent text-sm text-gray-300 outline-none cursor-pointer border-none">
+              <option value="2026">2026 年度</option>
+              <option value="2025">2025 年度</option>
+              <option value="2024">2024 年度</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container/50 border border-primary/20">
+            <i data-lucide="map-pin" class="w-4 h-4 text-primary"></i>
+            <select id="select-campus" class="bg-transparent text-sm text-gray-300 outline-none cursor-pointer border-none">
+              <option value="all">全校</option>
+              <option value="main">主校区</option>
+              <option value="east">东校区</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container/50 border border-primary/20">
+            <i data-lucide="folder-tree" class="w-4 h-4 text-primary"></i>
+            <select id="select-category" class="bg-transparent text-sm text-gray-300 outline-none cursor-pointer border-none">
+              <option value="all">全部类别</option>
+              <option value="green-cert">绿电凭证</option>
+              <option value="ccer">CCER 抵销</option>
+              <option value="energy-bill">能源账单</option>
+              <option value="audit-report">核查报告</option>
+              <option value="meter-record">计量台账</option>
+              <option value="policy">政策文件</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <button class="relative p-2 rounded-lg hover:bg-surface-container/50 transition-colors">
+            <i data-lucide="bell" class="w-5 h-5 text-gray-400"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+          </button>
+          <div class="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-container/50 border border-primary/20">
+            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+              <i data-lucide="user" class="w-4 h-4 text-white"></i>
+            </div>
+            <div class="text-sm">
+              <div class="text-gray-300 font-medium">审计专员</div>
+              <div class="text-xs text-gray-500">合规管理员</div>
+            </div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto p-6 relative">
+        <!-- @main-content:start -->
+
+        <!-- ===== 页面标题 ===== -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-on-surface">资料归档中心</h1>
+            <p class="text-sm text-on-surface-variant mt-1">碳凭证档案管理 · 材料归集 · 审计溯源</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="btn-batch-download" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all inline-flex items-center gap-2">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>批量下载
+            </button>
+            <button id="btn-upload" class="bg-surface-container text-on-surface border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all inline-flex items-center gap-2">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i>上传材料
+            </button>
+            <button id="btn-export-package" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+              <i data-lucide="package" class="w-3.5 h-3.5"></i>导出核查包
+            </button>
+          </div>
+        </div>
+
+        <!-- ===== 顶部统计卡片 ===== -->
+        <div class="grid grid-cols-5 gap-4 mb-6">
+          <!-- 卡片-归档总数 -->
+          <div class="bg-surface rounded-lg shadow-card p-4 border border-primary/10 archive-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">归档总数</p>
+                <p class="text-2xl font-bold text-on-surface mt-1">1,247</p>
+                <p class="text-xs text-on-surface-variant mt-1">份材料</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                <i data-lucide="archive" class="w-5 h-5 text-primary"></i>
+              </div>
+            </div>
+          </div>
+          <!-- 卡片-绿电凭证 -->
+          <div class="bg-surface rounded-lg shadow-card p-4 border border-success/20 archive-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">绿电凭证</p>
+                <p class="text-2xl font-bold text-success mt-1">48</p>
+                <p class="text-xs text-on-surface-variant mt-1">覆盖 3,200 MWh</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center">
+                <i data-lucide="leaf" class="w-5 h-5 text-success"></i>
+              </div>
+            </div>
+          </div>
+          <!-- 卡片-CCER 抵销 -->
+          <div class="bg-surface rounded-lg shadow-card p-4 border border-warning/20 archive-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">CCER 抵销</p>
+                <p class="text-2xl font-bold text-warning mt-1">12</p>
+                <p class="text-xs text-on-surface-variant mt-1">累计 1,075 tCO₂</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-warning/15 flex items-center justify-center">
+                <i data-lucide="refresh-ccw" class="w-5 h-5 text-warning"></i>
+              </div>
+            </div>
+          </div>
+          <!-- 卡片-核查报告 -->
+          <div class="bg-surface rounded-lg shadow-card p-4 border border-primary/20 archive-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">核查报告</p>
+                <p class="text-2xl font-bold text-on-surface mt-1">8</p>
+                <p class="text-xs text-on-surface-variant mt-1">3 年完整归档</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                <i data-lucide="file-check" class="w-5 h-5 text-primary"></i>
+              </div>
+            </div>
+          </div>
+          <!-- 卡片-缺失材料 -->
+          <div class="bg-surface rounded-lg shadow-card p-4 border border-error/20 archive-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">缺失材料</p>
+                <p class="text-2xl font-bold text-error mt-1">23</p>
+                <p class="text-xs text-error mt-1">需尽快补齐</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-error/15 flex items-center justify-center">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-error"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 分类 Tab 切换 ===== -->
+        <div class="flex items-center gap-1 mb-4 border-b border-primary/20">
+          <button class="tab-btn tab-active px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors" data-tab="all">
+            <i data-lucide="layers" class="w-3.5 h-3.5 inline mr-1.5"></i>全部材料
+          </button>
+          <button class="tab-btn px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:text-on-surface rounded-t-lg transition-colors" data-tab="green-cert">
+            <i data-lucide="leaf" class="w-3.5 h-3.5 inline mr-1.5"></i>绿电凭证
+          </button>
+          <button class="tab-btn px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:text-on-surface rounded-t-lg transition-colors" data-tab="ccer">
+            <i data-lucide="refresh-ccw" class="w-3.5 h-3.5 inline mr-1.5"></i>CCER 抵销
+          </button>
+          <button class="tab-btn px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:text-on-surface rounded-t-lg transition-colors" data-tab="energy-bill">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 inline mr-1.5"></i>能源账单
+          </button>
+          <button class="tab-btn px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:text-on-surface rounded-t-lg transition-colors" data-tab="audit-report">
+            <i data-lucide="file-check" class="w-3.5 h-3.5 inline mr-1.5"></i>核查报告
+          </button>
+          <button class="tab-btn px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:text-on-surface rounded-t-lg transition-colors" data-tab="meter-record">
+            <i data-lucide="clipboard-list" class="w-3.5 h-3.5 inline mr-1.5"></i>计量台账
+          </button>
+          <button class="tab-btn px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:text-on-surface rounded-t-lg transition-colors" data-tab="policy">
+            <i data-lucide="book-open" class="w-3.5 h-3.5 inline mr-1.5"></i>政策文件
+          </button>
+        </div>
+
+        <!-- ===== 搜索与筛选栏 ===== -->
+        <div class="bg-surface rounded-lg shadow-card p-4 mb-4 border border-primary/10">
+          <div class="flex items-center gap-4 flex-wrap">
+            <div class="flex-1 min-w-[240px]">
+              <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/50"></i>
+                <input id="input-search" type="text" placeholder="搜索材料名称 / 编号 / 关键词..." class="w-full bg-surface-container border-none rounded-md pl-9 pr-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+              </div>
+            </div>
+            <div class="relative min-w-[140px]">
+              <select id="select-status" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors appearance-none cursor-pointer">
+                <option value="all">全部状态</option>
+                <option value="complete">已归档</option>
+                <option value="pending">待补充</option>
+                <option value="missing">缺失</option>
+                <option value="expired">即将过期</option>
+              </select>
+              <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/50 pointer-events-none"></i>
+            </div>
+            <div class="relative min-w-[140px]">
+              <select id="select-period" class="w-full bg-surface-container border-none rounded-md px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors appearance-none cursor-pointer">
+                <option value="all">全部时段</option>
+                <option value="2026">2026 年</option>
+                <option value="2025">2025 年</option>
+                <option value="2024">2024 年</option>
+                <option value="2023">2023 年及以前</option>
+              </select>
+              <i data-lucide="chevron-down" class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/50 pointer-events-none"></i>
+            </div>
+            <button id="btn-reset-filter" class="text-xs text-primary hover:underline font-medium">重置筛选</button>
+          </div>
+        </div>
+
+        <!-- ===== 材料清单表格 ===== -->
+        <div class="bg-surface rounded-lg shadow-card overflow-hidden border border-primary/10">
+          <!-- 表头 -->
+          <div class="grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 bg-surface-container text-xs font-semibold text-on-surface-variant uppercase tracking-wide items-center">
+            <span class="text-center">#</span>
+            <span>材料名称</span>
+            <span>材料编号</span>
+            <span>类别</span>
+            <span>归档日期</span>
+            <span>关联楼栋/范围</span>
+            <span>状态</span>
+            <span>操作</span>
+          </div>
+
+          <div id="archive-list" class="divide-y divide-outline-variant/20">
+
+            <!-- 列表-材料1：2026年1月绿电交易凭证 -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="green-cert" data-status="complete">
+              <span class="text-xs text-on-surface-variant text-center">1</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="leaf" class="w-4 h-4 text-success shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">2026年1月绿电交易凭证</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">GC-2026-01-001</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-green">绿电凭证</span></span>
+              <span class="text-sm text-on-surface-variant">2026-02-15</span>
+              <span class="text-sm text-on-surface-variant">全校</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-green"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>已归档</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-1">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料2：2026年2月绿电交易凭证 -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="green-cert" data-status="complete">
+              <span class="text-xs text-on-surface-variant text-center">2</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="leaf" class="w-4 h-4 text-success shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">2026年2月绿电交易凭证</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">GC-2026-02-001</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-green">绿电凭证</span></span>
+              <span class="text-sm text-on-surface-variant">2026-03-12</span>
+              <span class="text-sm text-on-surface-variant">全校</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-green"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>已归档</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-2">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料3：2026年3月绿电交易凭证（即将过期） -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="green-cert" data-status="expired">
+              <span class="text-xs text-on-surface-variant text-center">3</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="leaf" class="w-4 h-4 text-warning shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">2026年3月绿电交易凭证</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">GC-2026-03-001</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-green">绿电凭证</span></span>
+              <span class="text-sm text-on-surface-variant">2026-04-10</span>
+              <span class="text-sm text-on-surface-variant">全校</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-yellow"><span class="w-1.5 h-1.5 rounded-full bg-warning"></span>即将过期</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-3">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料4：CCER 抵销凭证 - 福建风电项目 -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="ccer" data-status="complete">
+              <span class="text-xs text-on-surface-variant text-center">4</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="refresh-ccw" class="w-4 h-4 text-warning shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">CCER 抵销凭证 - 福建莆田风电项目</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">CCER-2026-FJ-0032</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-yellow">CCER 抵销</span></span>
+              <span class="text-sm text-on-surface-variant">2026-06-20</span>
+              <span class="text-sm text-on-surface-variant">全校配额抵销</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-green"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>已归档</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-4">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料5：CCER 抵销凭证 - 内蒙古光伏项目 -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="ccer" data-status="complete">
+              <span class="text-xs text-on-surface-variant text-center">5</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="refresh-ccw" class="w-4 h-4 text-warning shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">CCER 抵销凭证 - 内蒙古光伏项目</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">CCER-2026-NMG-0187</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-yellow">CCER 抵销</span></span>
+              <span class="text-sm text-on-surface-variant">2026-08-05</span>
+              <span class="text-sm text-on-surface-variant">全校配额抵销</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-green"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>已归档</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-5">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料6：2026年Q1 主校区电力账单 -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="energy-bill" data-status="complete">
+              <span class="text-xs text-on-surface-variant text-center">6</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-primary shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">2026年Q1 主校区电力账单</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">EB-2026-Q1-MAIN</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-blue">能源账单</span></span>
+              <span class="text-sm text-on-surface-variant">2026-04-05</span>
+              <span class="text-sm text-on-surface-variant">主校区</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-green"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>已归档</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-6">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料7：2026年Q1 东校区电力账单（缺失） -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="energy-bill" data-status="missing">
+              <span class="text-xs text-on-surface-variant text-center">7</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-error shrink-0"></i>
+                <span class="text-sm font-medium text-error">2026年Q1 东校区电力账单</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">EB-2026-Q1-EAST</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-blue">能源账单</span></span>
+              <span class="text-sm text-on-surface-variant">—</span>
+              <span class="text-sm text-on-surface-variant">东校区</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-red"><span class="w-1.5 h-1.5 rounded-full bg-error"></span>缺失</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-error text-xs font-medium hover:underline remind-btn" data-id="detail-7">催办</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors upload-btn">上传</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料8：2025年度第三方核查报告 -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="audit-report" data-status="complete">
+              <span class="text-xs text-on-surface-variant text-center">8</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="file-check" class="w-4 h-4 text-primary shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">2025年度第三方核查报告</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">AR-2025-001</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-purple">核查报告</span></span>
+              <span class="text-sm text-on-surface-variant">2026-04-30</span>
+              <span class="text-sm text-on-surface-variant">全校</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-green"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>已归档</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-8">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料9：2024年度第三方核查报告 -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="audit-report" data-status="complete">
+              <span class="text-xs text-on-surface-variant text-center">9</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="file-check" class="w-4 h-4 text-primary shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">2024年度第三方核查报告</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">AR-2024-001</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-purple">核查报告</span></span>
+              <span class="text-sm text-on-surface-variant">2025-04-28</span>
+              <span class="text-sm text-on-surface-variant">全校</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-green"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>已归档</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-9">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料10：主配电房电表检定证书 -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="meter-record" data-status="complete">
+              <span class="text-xs text-on-surface-variant text-center">10</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="clipboard-list" class="w-4 h-4 text-primary shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">主配电房电表检定证书</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">MR-2026-MAIN-EM</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-blue">计量台账</span></span>
+              <span class="text-sm text-on-surface-variant">2026-01-15</span>
+              <span class="text-sm text-on-surface-variant">主配电房</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-green"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>已归档</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-10">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料11：教学楼燃气表检定证书（待补充） -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="meter-record" data-status="pending">
+              <span class="text-xs text-on-surface-variant text-center">11</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="clipboard-list" class="w-4 h-4 text-warning shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">教学楼燃气表检定证书</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">MR-2026-TEACH-GAS</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-blue">计量台账</span></span>
+              <span class="text-sm text-on-surface-variant">—</span>
+              <span class="text-sm text-on-surface-variant">教学楼A~D</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-yellow"><span class="w-1.5 h-1.5 rounded-full bg-warning"></span>待补充</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-warning text-xs font-medium hover:underline remind-btn" data-id="detail-11">催办</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors upload-btn">上传</button>
+              </div>
+            </div>
+
+            <!-- 列表-材料12：北京市碳市场管理办法（2026版） -->
+            <div class="archive-row grid grid-cols-[40px_1.5fr_1fr_0.8fr_0.8fr_1fr_0.8fr_1fr] gap-2 px-4 py-3 hover:bg-surface-container/30 transition-colors items-center file-row" data-category="policy" data-status="complete">
+              <span class="text-xs text-on-surface-variant text-center">12</span>
+              <div class="flex items-center gap-2">
+                <i data-lucide="book-open" class="w-4 h-4 text-primary shrink-0"></i>
+                <span class="text-sm font-medium text-on-surface">北京市碳市场管理办法（2026版）</span>
+              </div>
+              <span class="text-sm text-on-surface-variant font-mono">POL-BJ-2026-001</span>
+              <span class="text-sm"><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium tag-purple">政策文件</span></span>
+              <span class="text-sm text-on-surface-variant">2026-01-01</span>
+              <span class="text-sm text-on-surface-variant">全校适用</span>
+              <span class="text-sm"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium tag-green"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>已归档</span></span>
+              <div class="flex items-center gap-2">
+                <button class="text-primary text-xs font-medium hover:underline view-detail-btn" data-id="detail-12">查看</button>
+                <button class="text-xs text-on-surface-variant hover:text-primary transition-colors download-btn">下载</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 分页 -->
+          <div class="flex items-center justify-between px-4 py-3 bg-surface-container/50 border-t border-primary/10">
+            <span class="text-xs text-on-surface-variant">共 1,247 条记录，显示第 1-12 条</span>
+            <div class="flex items-center gap-1">
+              <button class="w-8 h-8 rounded-md flex items-center justify-center text-xs text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-colors disabled:opacity-40" disabled>
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <button class="w-8 h-8 rounded-md flex items-center justify-center text-xs font-medium bg-primary/20 text-primary">1</button>
+              <button class="w-8 h-8 rounded-md flex items-center justify-center text-xs text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-colors">2</button>
+              <button class="w-8 h-8 rounded-md flex items-center justify-center text-xs text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-colors">3</button>
+              <span class="text-xs text-on-surface-variant px-1">...</span>
+              <button class="w-8 h-8 rounded-md flex items-center justify-center text-xs text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-colors">104</button>
+              <button class="w-8 h-8 rounded-md flex items-center justify-center text-xs text-on-surface-variant bg-surface-container hover:bg-surface-container-high transition-colors">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 底部：归档进度 & 缺失清单 ===== -->
+        <div class="grid grid-cols-2 gap-6 mt-6">
+          <!-- 归档进度统计 -->
+          <div class="bg-surface rounded-lg shadow-card p-5 border border-primary/10">
+            <h3 class="text-sm font-semibold text-on-surface mb-4 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-primary"></i>归档完成度
+            </h3>
+            <div class="flex items-center gap-6">
+              <!-- 环形进度 -->
+              <div class="relative w-28 h-28 shrink-0">
+                <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(6,182,212,0.1)" stroke-width="8"/>
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="#06B6D4" stroke-width="8"
+                    stroke-dasharray="264" stroke-dashoffset="40" stroke-linecap="round" class="progress-animated"/>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                  <span class="text-xl font-bold text-on-surface">85%</span>
+                  <span class="text-xs text-on-surface-variant">完成率</span>
+                </div>
+              </div>
+              <!-- 分类统计 -->
+              <div class="flex-1 space-y-3">
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-on-surface-variant">绿电凭证</span>
+                    <span class="text-success font-medium">48/48</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+                    <div class="h-full bg-success rounded-full" style="width:100%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-on-surface-variant">CCER 抵销</span>
+                    <span class="text-warning font-medium">12/12</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+                    <div class="h-full bg-warning rounded-full" style="width:100%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-on-surface-variant">能源账单</span>
+                    <span class="text-primary font-medium">36/42</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+                    <div class="h-full bg-primary rounded-full" style="width:85.7%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-on-surface-variant">核查报告</span>
+                    <span class="text-purple-400 font-medium">8/8</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+                    <div class="h-full bg-purple-400 rounded-full" style="width:100%"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-on-surface-variant">计量台账</span>
+                    <span class="text-warning font-medium">28/35</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+                    <div class="h-full bg-warning rounded-full" style="width:80%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 缺失材料清单 -->
+          <div class="bg-surface rounded-lg shadow-card p-5 border border-error/20">
+            <h3 class="text-sm font-semibold text-on-surface mb-4 flex items-center gap-2">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-error"></i>缺失材料清单
+              <span class="text-xs text-error font-normal ml-auto">共 23 项缺失</span>
+            </h3>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              <!-- 缺失-1 -->
+              <div class="flex items-center justify-between bg-surface-container/50 rounded-lg px-3 py-2.5">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-2 h-2 rounded-full bg-error shrink-0"></span>
+                  <div class="min-w-0">
+                    <p class="text-xs text-on-surface truncate">2026年Q1 东校区电力账单</p>
+                    <p class="text-xs text-on-surface-variant">截止: 2026-04-30 · 责任人: 李工</p>
+                  </div>
+                </div>
+                <button class="text-xs text-primary font-medium hover:underline shrink-0 ml-2">催办</button>
+              </div>
+              <!-- 缺失-2 -->
+              <div class="flex items-center justify-between bg-surface-container/50 rounded-lg px-3 py-2.5">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-2 h-2 rounded-full bg-error shrink-0"></span>
+                  <div class="min-w-0">
+                    <p class="text-xs text-on-surface truncate">教学楼燃气表检定证书</p>
+                    <p class="text-xs text-on-surface-variant">截止: 2026-06-30 · 责任人: 张工</p>
+                  </div>
+                </div>
+                <button class="text-xs text-primary font-medium hover:underline shrink-0 ml-2">催办</button>
+              </div>
+              <!-- 缺失-3 -->
+              <div class="flex items-center justify-between bg-surface-container/50 rounded-lg px-3 py-2.5">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-2 h-2 rounded-full bg-error shrink-0"></span>
+                  <div class="min-w-0">
+                    <p class="text-xs text-on-surface truncate">2026年5月食堂燃气账单</p>
+                    <p class="text-xs text-on-surface-variant">截止: 2026-06-20 · 责任人: 王主任</p>
+                  </div>
+                </div>
+                <button class="text-xs text-primary font-medium hover:underline shrink-0 ml-2">催办</button>
+              </div>
+              <!-- 缺失-4 -->
+              <div class="flex items-center justify-between bg-surface-container/50 rounded-lg px-3 py-2.5">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-2 h-2 rounded-full bg-error shrink-0"></span>
+                  <div class="min-w-0">
+                    <p class="text-xs text-on-surface truncate">实验楼水表检定证书</p>
+                    <p class="text-xs text-on-surface-variant">截止: 2026-05-15 · 责任人: 赵工</p>
+                  </div>
+                </div>
+                <button class="text-xs text-primary font-medium hover:underline shrink-0 ml-2">催办</button>
+              </div>
+              <!-- 缺失-5 -->
+              <div class="flex items-center justify-between bg-surface-container/50 rounded-lg px-3 py-2.5">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-2 h-2 rounded-full bg-error shrink-0"></span>
+                  <div class="min-w-0">
+                    <p class="text-xs text-on-surface truncate">体育馆2026年Q2电力账单</p>
+                    <p class="text-xs text-on-surface-variant">截止: 2026-07-31 · 责任人: 孙工</p>
+                  </div>
+                </div>
+                <button class="text-xs text-primary font-medium hover:underline shrink-0 ml-2">催办</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- @main-content:end -->
+      </main>
+    </div>
+  </div>
+
+  <!-- ===== 材料详情弹窗 ===== -->
+  <div id="modal-detail" class="fixed inset-0 z-50 hidden flex items-center justify-center" style="display:none;">
+    <div class="modal-overlay absolute inset-0" id="modal-overlay"></div>
+    <div class="relative bg-surface-container-lowest border border-primary/20 rounded-xl shadow-dialog w-full max-w-2xl max-h-[80vh] overflow-y-auto z-10">
+      <!-- 弹窗头部 -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-primary/20 sticky top-0 bg-surface-container-lowest/95 backdrop-blur-xl z-10">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+            <i data-lucide="file-text" class="w-4 h-4 text-primary"></i>
+          </div>
+          <div>
+            <h3 id="modal-title" class="text-sm font-semibold text-on-surface">材料详情</h3>
+            <p id="modal-code" class="text-xs text-on-surface-variant">编号: —</p>
+          </div>
+        </div>
+        <button id="btn-close-modal" class="p-1.5 rounded-lg hover:bg-surface-container/50 transition-colors">
+          <i data-lucide="x" class="w-5 h-5 text-on-surface-variant"></i>
+        </button>
+      </div>
+      <!-- 弹窗内容 -->
+      <div class="p-6 space-y-5">
+        <!-- 基本信息 -->
+        <div>
+          <h4 class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-3">基本信息</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-surface-container/50 rounded-lg p-3">
+              <p class="text-xs text-on-surface-variant">材料类别</p>
+              <p id="modal-category" class="text-sm font-medium text-on-surface mt-1">—</p>
+            </div>
+            <div class="bg-surface-container/50 rounded-lg p-3">
+              <p class="text-xs text-on-surface-variant">归档日期</p>
+              <p id="modal-date" class="text-sm font-medium text-on-surface mt-1">—</p>
+            </div>
+            <div class="bg-surface-container/50 rounded-lg p-3">
+              <p class="text-xs text-on-surface-variant">关联范围</p>
+              <p id="modal-scope" class="text-sm font-medium text-on-surface mt-1">—</p>
+            </div>
+            <div class="bg-surface-container/50 rounded-lg p-3">
+              <p class="text-xs text-on-surface-variant">归档状态</p>
+              <p id="modal-status" class="text-sm font-medium mt-1">—</p>
+            </div>
+            <div class="bg-surface-container/50 rounded-lg p-3">
+              <p class="text-xs text-on-surface-variant">文件大小</p>
+              <p id="modal-size" class="text-sm font-medium text-on-surface mt-1">—</p>
+            </div>
+            <div class="bg-surface-container/50 rounded-lg p-3">
+              <p class="text-xs text-on-surface-variant">上传人</p>
+              <p id="modal-uploader" class="text-sm font-medium text-on-surface mt-1">—</p>
+            </div>
+          </div>
+        </div>
+        <!-- 审计轨迹 -->
+        <div>
+          <h4 class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-3">审计轨迹</h4>
+          <div class="space-y-2">
+            <div id="audit-trail-container" class="space-y-2">
+              <!-- 动态填充 -->
+            </div>
+          </div>
+        </div>
+        <!-- 操作按钮 -->
+        <div class="flex items-center gap-3 pt-2 border-t border-primary/20">
+          <button id="btn-modal-download" class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all inline-flex items-center gap-2">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>下载文件
+          </button>
+          <button id="btn-modal-audit" class="bg-surface-container text-on-surface border border-primary/20 px-4 py-2 rounded-md text-sm font-medium hover:bg-surface-container-high active:scale-[0.98] transition-all inline-flex items-center gap-2">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>审计溯源
+          </button>
+          <button id="btn-modal-delete" class="bg-surface-container text-on-surface border border-error/30 px-4 py-2 rounded-md text-sm font-medium hover:bg-error/10 hover:text-error active:scale-[0.98] transition-all inline-flex items-center gap-2">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>删除
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全页面水印 -->
+  <div class="fixed bottom-2 right-4 text-xs text-on-surface-variant/50 pointer-events-none select-none z-50">
+    Demo模拟数据 仅课题演示
+  </div>
+
+  <script>
+    // ===== Mock 数据映射 =====
+    var mockData = {
+      'detail-1': {
+        title: '2026年1月绿电交易凭证',
+        code: 'GC-2026-01-001',
+        category: '绿电凭证',
+        date: '2026-02-15',
+        scope: '全校',
+        status: '已归档',
+        statusClass: 'tag-green',
+        size: '2.4 MB',
+        uploader: '张老师（节能办）',
+        auditTrail: [
+          { time: '2026-02-15 14:30', action: '上传归档', user: '张老师', detail: '通过电力交易平台下载并上传' },
+          { time: '2026-02-14 10:00', action: '交易确认', user: '系统自动', detail: '北京电力交易中心确认绿电交易' },
+          { time: '2026-01-28 09:00', action: '发起采购', user: '李主任', detail: '发起1月绿电采购申请，电量 280 MWh' }
+        ]
+      },
+      'detail-2': {
+        title: '2026年2月绿电交易凭证',
+        code: 'GC-2026-02-001',
+        category: '绿电凭证',
+        date: '2026-03-12',
+        scope: '全校',
+        status: '已归档',
+        statusClass: 'tag-green',
+        size: '2.3 MB',
+        uploader: '张老师（节能办）',
+        auditTrail: [
+          { time: '2026-03-12 16:00', action: '上传归档', user: '张老师', detail: '通过电力交易平台下载并上传' },
+          { time: '2026-03-11 11:00', action: '交易确认', user: '系统自动', detail: '北京电力交易中心确认绿电交易' },
+          { time: '2026-02-25 10:00', action: '发起采购', user: '李主任', detail: '发起2月绿电采购申请，电量 260 MWh' }
+        ]
+      },
+      'detail-3': {
+        title: '2026年3月绿电交易凭证',
+        code: 'GC-2026-03-001',
+        category: '绿电凭证',
+        date: '2026-04-10',
+        scope: '全校',
+        status: '即将过期',
+        statusClass: 'tag-yellow',
+        size: '2.5 MB',
+        uploader: '张老师（节能办）',
+        auditTrail: [
+          { time: '2026-04-10 15:00', action: '上传归档', user: '张老师', detail: '通过电力交易平台下载并上传' },
+          { time: '2026-04-09 09:00', action: '交易确认', user: '系统自动', detail: '北京电力交易中心确认绿电交易' },
+          { time: '2026-03-28 14:00', action: '发起采购', user: '李主任', detail: '发起3月绿电采购申请，电量 300 MWh' }
+        ]
+      },
+      'detail-4': {
+        title: 'CCER 抵销凭证 - 福建莆田风电项目',
+        code: 'CCER-2026-FJ-0032',
+        category: 'CCER 抵销',
+        date: '2026-06-20',
+        scope: '全校配额抵销',
+        status: '已归档',
+        statusClass: 'tag-green',
+        size: '1.8 MB',
+        uploader: '王主任（碳管理）',
+        auditTrail: [
+          { time: '2026-06-20 10:30', action: '上传归档', user: '王主任', detail: 'CCER 交易平台下载凭证并归档' },
+          { time: '2026-06-18 14:00', action: '交易完成', user: '系统自动', detail: 'CCER 交易平台确认交割 500 tCO₂' },
+          { time: '2026-06-10 09:00', action: '审批通过', user: '校领导', detail: '批准 CCER 采购方案，预算 4 万元' }
+        ]
+      },
+      'detail-5': {
+        title: 'CCER 抵销凭证 - 内蒙古光伏项目',
+        code: 'CCER-2026-NMG-0187',
+        category: 'CCER 抵销',
+        date: '2026-08-05',
+        scope: '全校配额抵销',
+        status: '已归档',
+        statusClass: 'tag-green',
+        size: '1.6 MB',
+        uploader: '王主任（碳管理）',
+        auditTrail: [
+          { time: '2026-08-05 16:00', action: '上传归档', user: '王主任', detail: 'CCER 交易平台下载凭证并归档' },
+          { time: '2026-08-03 11:00', action: '交易完成', user: '系统自动', detail: 'CCER 交易平台确认交割 575 tCO₂' },
+          { time: '2026-07-25 15:00', action: '审批通过', user: '校领导', detail: '批准 CCER 采购方案，预算 4.6 万元' }
+        ]
+      },
+      'detail-6': {
+        title: '2026年Q1 主校区电力账单',
+        code: 'EB-2026-Q1-MAIN',
+        category: '能源账单',
+        date: '2026-04-05',
+        scope: '主校区',
+        status: '已归档',
+        statusClass: 'tag-green',
+        size: '3.2 MB',
+        uploader: '李工（后勤）',
+        auditTrail: [
+          { time: '2026-04-05 09:00', action: '上传归档', user: '李工', detail: '扫描纸质账单并上传系统' },
+          { time: '2026-04-03 08:00', action: '账单接收', user: '系统自动', detail: '国家电网出具 Q1 电力账单' }
+        ]
+      },
+      'detail-8': {
+        title: '2025年度第三方核查报告',
+        code: 'AR-2025-001',
+        category: '核查报告',
+        date: '2026-04-30',
+        scope: '全校',
+        status: '已归档',
+        statusClass: 'tag-green',
+        size: '8.5 MB',
+        uploader: '王主任（碳管理）',
+        auditTrail: [
+          { time: '2026-04-30 17:00', action: '上传归档', user: '王主任', detail: '核查机构出具正式报告后上传' },
+          { time: '2026-04-25 10:00', action: '核查完成', user: '第三方核查机构', detail: '完成现场核查，出具核查结论' },
+          { time: '2026-04-01 09:00', action: '提交核查', user: '王主任', detail: '提交年度排放报告至核查机构' }
+        ]
+      },
+      'detail-9': {
+        title: '2024年度第三方核查报告',
+        code: 'AR-2024-001',
+        category: '核查报告',
+        date: '2025-04-28',
+        scope: '全校',
+        status: '已归档',
+        statusClass: 'tag-green',
+        size: '7.9 MB',
+        uploader: '王主任（碳管理）',
+        auditTrail: [
+          { time: '2025-04-28 16:00', action: '上传归档', user: '王主任', detail: '核查机构出具正式报告后上传' },
+          { time: '2025-04-22 14:00', action: '核查完成', user: '第三方核查机构', detail: '完成现场核查，出具核查结论' },
+          { time: '2025-03-28 09:00', action: '提交核查', user: '王主任', detail: '提交年度排放报告至核查机构' }
+        ]
+      },
+      'detail-10': {
+        title: '主配电房电表检定证书',
+        code: 'MR-2026-MAIN-EM',
+        category: '计量台账',
+        date: '2026-01-15',
+        scope: '主配电房',
+        status: '已归档',
+        statusClass: 'tag-green',
+        size: '1.2 MB',
+        uploader: '张工（计量）',
+        auditTrail: [
+          { time: '2026-01-15 11:00', action: '上传归档', user: '张工', detail: '检定机构出具证书后扫描上传' },
+          { time: '2026-01-10 09:00', action: '检定完成', user: '检定机构', detail: '完成电表周期检定，精度合格' }
+        ]
+      },
+      'detail-12': {
+        title: '北京市碳市场管理办法（2026版）',
+        code: 'POL-BJ-2026-001',
+        category: '政策文件',
+        date: '2026-01-01',
+        scope: '全校适用',
+        status: '已归档',
+        statusClass: 'tag-green',
+        size: '4.1 MB',
+        uploader: '系统管理员',
+        auditTrail: [
+          { time: '2026-01-01 08:00', action: '系统录入', user: '系统管理员', detail: '政策发布后自动同步至平台' }
+        ]
+      }
+    };
+
+    // ===== Tab 切换 =====
+    $('.tab-btn').on('click', function() {
+      var tab = $(this).data('tab');
+      $('.tab-btn').removeClass('tab-active').addClass('text-on-surface-variant hover:text-on-surface');
+      $(this).addClass('tab-active').removeClass('text-on-surface-variant hover:text-on-surface');
+
+      if (tab === 'all') {
+        $('.archive-row').show();
+      } else {
+        $('.archive-row').each(function() {
+          if ($(this).data('category') === tab) {
+            $(this).show();
+          } else {
+            $(this).hide();
+          }
+        });
+      }
+    });
+
+    // ===== 查看详情弹窗 =====
+    $('.view-detail-btn').on('click', function() {
+      var detailId = $(this).data('id');
+      var data = mockData[detailId];
+      if (!data) return;
+
+      $('#modal-title').text(data.title);
+      $('#modal-code').text('编号: ' + data.code);
+      $('#modal-category').text(data.category);
+      $('#modal-date').text(data.date);
+      $('#modal-scope').text(data.scope);
+      $('#modal-status').text(data.status).attr('class', 'text-sm font-medium mt-1 ' + data.statusClass.replace('tag-', 'text-'));
+      $('#modal-size').text(data.size);
+      $('#modal-uploader').text(data.uploader);
+
+      // 填充审计轨迹
+      var trailHtml = '';
+      $.each(data.auditTrail, function(i, item) {
+        trailHtml += '<div class="flex items-start gap-3 bg-surface-container/30 rounded-lg px-3 py-2.5">';
+        trailHtml += '<div class="flex flex-col items-center shrink-0">';
+        trailHtml += '<div class="w-2 h-2 rounded-full ' + (i === 0 ? 'bg-primary' : 'bg-on-surface-variant/30') + ' mt-1.5"></div>';
+        if (i < data.auditTrail.length - 1) {
+          trailHtml += '<div class="w-px h-full bg-outline-variant/30 my-0.5"></div>';
+        }
+        trailHtml += '</div>';
+        trailHtml += '<div class="flex-1 min-w-0">';
+        trailHtml += '<div class="flex items-center justify-between">';
+        trailHtml += '<span class="text-xs font-medium text-on-surface">' + item.action + '</span>';
+        trailHtml += '<span class="text-xs text-on-surface-variant">' + item.time + '</span>';
+        trailHtml += '</div>';
+        trailHtml += '<p class="text-xs text-on-surface-variant mt-0.5">' + item.user + ' · ' + item.detail + '</p>';
+        trailHtml += '</div></div>';
+      });
+      $('#audit-trail-container').html(trailHtml);
+
+      $('#modal-detail').fadeIn(200);
+      lucide.createIcons();
+    });
+
+    // ===== 关闭弹窗 =====
+    $('#btn-close-modal, #modal-overlay').on('click', function() {
+      $('#modal-detail').fadeOut(200);
+    });
+
+    // ===== 下载按钮 =====
+    $('.download-btn').on('click', function(e) {
+      e.stopPropagation();
+      alert('模拟下载：文件下载功能（Demo 演示）');
+    });
+
+    // ===== 催办按钮 =====
+    $('.remind-btn').on('click', function(e) {
+      e.stopPropagation();
+      var row = $(this).closest('.archive-row');
+      var name = row.find('.text-sm.font-medium').text().trim();
+      alert('已向责任人发送催办通知：' + name);
+    });
+
+    // ===== 上传按钮 =====
+    $('.upload-btn').on('click', function(e) {
+      e.stopPropagation();
+      alert('模拟上传：打开文件选择器（Demo 演示）');
+    });
+
+    // ===== 弹窗内下载 =====
+    $('#btn-modal-download').on('click', function() {
+      alert('模拟下载：' + $('#modal-title').text());
+    });
+
+    // ===== 弹窗内审计溯源 =====
+    $('#btn-modal-audit').on('click', function() {
+      alert('跳转至 MRV 全链路溯源页面（Demo 演示）');
+    });
+
+    // ===== 弹窗内删除 =====
+    $('#btn-modal-delete').on('click', function() {
+      if (confirm('确认删除该归档材料？此操作不可撤销。')) {
+        alert('模拟删除成功（Demo 演示）');
+        $('#modal-detail').fadeOut(200);
+      }
+    });
+
+    // ===== 批量下载 =====
+    $('#btn-batch-download').on('click', function() {
+      alert('模拟批量下载：请先勾选需要下载的材料（Demo 演示）');
+    });
+
+    // ===== 上传材料 =====
+    $('#btn-upload').on('click', function() {
+      alert('模拟上传：打开文件上传对话框（Demo 演示）');
+    });
+
+    // ===== 导出核查包 =====
+    $('#btn-export-package').on('click', function() {
+      alert('模拟导出：正在打包核查材料...\n包含：排放报告 + 核查报告 + 能源账单 + 绿电凭证 + 计量台账\n预计生成 .zip 文件（Demo 演示）');
+    });
+
+    // ===== 搜索过滤 =====
+    $('#input-search').on('input', function() {
+      var keyword = $(this).val().toLowerCase();
+      $('.archive-row').each(function() {
+        var text = $(this).text().toLowerCase();
+        if (text.indexOf(keyword) > -1) {
+          $(this).show();
+        } else {
+          $(this).hide();
+        }
+      });
+    });
+
+    // ===== 状态筛选 =====
+    $('#select-status').on('change', function() {
+      var status = $(this).val();
+      if (status === 'all') {
+        $('.archive-row').show();
+      } else {
+        $('.archive-row').each(function() {
+          if ($(this).data('status') === status) {
+            $(this).show();
+          } else {
+            $(this).hide();
+          }
+        });
+      }
+    });
+
+    // ===== 重置筛选 =====
+    $('#btn-reset-filter').on('click', function() {
+      $('#input-search').val('');
+      $('#select-status').val('all');
+      $('#select-period').val('all');
+      $('.archive-row').show();
+    });
+
+    // ===== 年度切换联动 =====
+    $('#select-year').on('change', function() {
+      var year = $(this).val();
+      alert('已切换至 ' + year + ' 年度数据（Demo 演示，数据不变）');
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

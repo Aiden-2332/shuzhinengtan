@@ -1,0 +1,159 @@
+.scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #03111f;
+}
+
+.mapFrame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.mapFrame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 52% 48%, rgba(31, 115, 154, 0.05) 0 24%, rgba(0, 17, 34, 0.18) 64%, rgba(0, 7, 18, 0.66) 100%),
+    linear-gradient(180deg, rgba(0, 20, 42, 0.25), rgba(0, 11, 27, 0.52));
+  box-shadow: inset 0 0 52px rgba(0, 3, 13, 0.76);
+}
+
+.baseImage,
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.baseImage {
+  z-index: 1;
+  filter: brightness(0.52) saturate(0.68) contrast(1.16) hue-rotate(172deg);
+}
+
+.overlay {
+  z-index: 3;
+}
+
+.building {
+  cursor: pointer;
+  transition: opacity 180ms ease-out, stroke-width 180ms ease-out, filter 180ms ease-out;
+}
+
+.building:hover,
+.building:focus-visible,
+.building[data-active="true"] {
+  opacity: 0.96;
+  stroke-width: 4;
+  filter: url("#campus-building-glow-active");
+  outline: none;
+}
+
+.panel {
+  position: absolute;
+  z-index: 7;
+  border: 1px solid rgba(54, 218, 236, 0.45);
+  background: rgba(2, 19, 34, 0.84);
+  box-shadow: inset 0 0 12px rgba(38, 221, 240, 0.05);
+  backdrop-filter: blur(7px);
+  color: #dffcff;
+}
+
+.heading {
+  left: 14px;
+  top: 14px;
+  padding: 10px 13px;
+}
+
+.legend {
+  right: 14px;
+  top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+}
+
+.marker {
+  cursor: pointer;
+  overflow: visible;
+  outline: none;
+}
+
+.markerCore,
+.markerLine {
+  transition: stroke-width 180ms ease-out, opacity 180ms ease-out;
+}
+
+.marker:hover .markerCore,
+.marker:focus-visible .markerCore,
+.marker[data-active="true"] .markerCore {
+  stroke-width: 3;
+}
+
+.marker:hover .markerLine,
+.marker:focus-visible .markerLine,
+.marker[data-active="true"] .markerLine {
+  opacity: 1;
+  stroke-width: 2.5;
+}
+
+.pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: campus-pin-breathe 2.2s ease-in-out infinite;
+}
+
+.tooltip {
+  pointer-events: none;
+  transform-box: fill-box;
+  filter: drop-shadow(0 4px 7px rgba(0, 7, 18, 0.5));
+}
+
+@keyframes campus-pin-breathe {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.84);
+  }
+  50% {
+    opacity: 0.62;
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+    opacity: 0.35;
+  }
+
+  .building,
+  .markerCore,
+  .markerLine {
+    transition: none;
+  }
+}
+
+@media (max-width: 1400px) {
+  .heading {
+    left: 10px;
+    top: 10px;
+  }
+
+  .legend {
+    right: 10px;
+    top: 10px;
+    gap: 6px;
+  }
+}

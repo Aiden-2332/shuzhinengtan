@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { AlertTriangle, TrendingDown, TrendingUp, ShieldAlert } from "lucide-react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
@@ -241,9 +241,18 @@ function RiskWarningPanel({ data }: { data: RiskWarning[] }) {
 }
 
 // ============================================================
-// 月度累计趋势 (折线图)
+// 月度累计趋势 (可拖动时间轴折线图)
 // ============================================================
 function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
+  const [sliderIndex, setSliderIndex] = useState(data.length - 1);
+  const [selectedYear, setSelectedYear] = useState("2026");
+  const [isDragging, setIsDragging] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  // 根据 sliderIndex 裁剪可见数据
+  const visibleData = useMemo(() => data.slice(0, sliderIndex + 1), [data, sliderIndex]);
+  const currentPoint = data[sliderIndex];
+
   const maxVal = Math.max(...data.map(d => d.target));
   const h = 140;
   const w = 600;
@@ -251,25 +260,77 @@ function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
   const chartW = w - pad.left - pad.right;
   const chartH = h - pad.top - pad.bottom;
 
-  const xScale = (i: number) => pad.left + (i / (data.length - 1)) * chartW;
-  const yScale = (v: number) => pad.top + chartH - (v / maxVal) * chartH;
+  const xScale = useCallback((i: number) => pad.left + (i / (data.length - 1)) * chartW, [chartW]);
+  const yScale = useCallback((v: number) => pad.top + chartH - (v / maxVal) * chartH, [chartH, maxVal]);
 
-  const linePath = (key: "actual" | "target" | "forecast") =>
-    data.map((d, i) => `${i === 0 ? "M" : "L"}${xScale(i)},${yScale(d[key])}`).join(" ");
+  const linePath = useCallback((key: "actual" | "target" | "forecast") =>
+    visibleData.map((d, i) => `${i === 0 ? "M" : "L"}${xScale(i)},${yScale(d[key])}`).join(" "),
+    [visibleData, xScale, yScale]);
+
+  // 拖动处理
+  const handlePointerDown = useCallback(() => setIsDragging(true), []);
+  const handlePointerUp = useCallback(() => setIsDragging(false), []);
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging || !sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setSliderIndex(Math.round(ratio * (data.length - 1)));
+  }, [isDragging, data.length]);
+
+  // 全局 pointer 事件（拖出滑块区域也能响应）
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: PointerEvent) => {
+      if (!sliderRef.current) return;
+      const rect = sliderRef.current.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      setSliderIndex(Math.round(ratio * (data.length - 1)));
+    };
+    const onUp = () => setIsDragging(false);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [isDragging, data.length]);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 select-none">
+      {/* 标题 + 年份选择 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-1 h-4 rounded-full bg-cyan-400" />
           <h3 className="text-white text-sm font-semibold">月度累计趋势</h3>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-[10px]"><span className="w-2 h-0.5 bg-cyan-400 inline-block" /> 实际累计</span>
-          <span className="flex items-center gap-1 text-[10px]"><span className="w-2 h-0.5 bg-gray-500 inline-block" /> 目标累计</span>
-          <span className="flex items-center gap-1 text-[10px]"><span className="w-2 h-0.5 bg-orange-400 inline-block" /> 预测累计</span>
+        <div className="flex items-center gap-1">
+          {["2024", "2025", "2026"].map(y => (
+            <button
+              key={y}
+              onClick={() => setSelectedYear(y)}
+              className={`px-2 py-0.5 text-[10px] rounded transition-colors ${
+                selectedYear === y ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              {y}年
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* 图例 + 当前值 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1 text-[10px] text-gray-400"><span className="w-2 h-0.5 bg-cyan-400 inline-block" /> 实际</span>
+          <span className="flex items-center gap-1 text-[10px] text-gray-400"><span className="w-2 h-0.5 bg-gray-500 inline-block" /> 目标</span>
+          <span className="flex items-center gap-1 text-[10px] text-gray-400"><span className="w-2 h-0.5 bg-orange-400 inline-block" /> 预测</span>
+        </div>
+        <span className="text-cyan-400 text-[10px] font-mono">
+          {currentPoint.month} · 累计 {currentPoint.actual.toLocaleString()} tCO₂
+        </span>
+      </div>
+
+      {/* SVG 折线图 */}
       <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet">
         {/* Grid lines */}
         {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => (
@@ -280,21 +341,63 @@ function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
             </text>
           </g>
         ))}
+        {/* 当前月份竖线 */}
+        <line x1={xScale(sliderIndex)} y1={pad.top} x2={xScale(sliderIndex)} y2={pad.top + chartH} stroke="#22d3ee" strokeWidth="0.5" strokeDasharray="3 2" opacity="0.6" />
         {/* Lines */}
         <path d={linePath("actual")} fill="none" stroke="#22d3ee" strokeWidth="2" />
         <path d={linePath("target")} fill="none" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 3" />
         <path d={linePath("forecast")} fill="none" stroke="#fb923c" strokeWidth="1.5" strokeDasharray="3 2" />
+        {/* 当前点标记 */}
+        <circle cx={xScale(sliderIndex)} cy={yScale(currentPoint.actual)} r="3" fill="#22d3ee" stroke="#0a1628" strokeWidth="1.5" />
         {/* Month labels */}
         {data.map((d, i) => (
-          <text key={i} x={xScale(i)} y={h - 4} textAnchor="middle" fill="#475569" fontSize="8">
+          <text key={i} x={xScale(i)} y={h - 4} textAnchor="middle" fill={i === sliderIndex ? "#22d3ee" : "#475569"} fontSize="8">
             {d.month}
           </text>
         ))}
       </svg>
-      <div className="flex justify-between text-[10px] text-gray-600 px-1">
-        <span>实际累计: {data[data.length - 1].actual.toLocaleString()} tCO₂</span>
-        <span>目标累计: {data[data.length - 1].target.toLocaleString()} tCO₂</span>
-        <span>预测累计: {data[data.length - 1].forecast.toLocaleString()} tCO₂</span>
+
+      {/* 可拖动时间轴 */}
+      <div
+        ref={sliderRef}
+        className="relative h-8 cursor-pointer touch-none"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerMove={handlePointerMove}
+      >
+        {/* 轨道 */}
+        <div className="absolute top-3 left-0 right-0 h-1 bg-gray-700/50 rounded-full" />
+        {/* 已走过部分 */}
+        <div
+          className="absolute top-3 left-0 h-1 bg-cyan-400/60 rounded-full transition-[width] duration-75"
+          style={{ width: `${(sliderIndex / (data.length - 1)) * 100}%` }}
+        />
+        {/* 滑块手柄 */}
+        <div
+          className="absolute top-1 w-4 h-4 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/40 border-2 border-[#0a1628] -translate-x-1/2 cursor-grab active:cursor-grabbing transition-none"
+          style={{ left: `${(sliderIndex / (data.length - 1)) * 100}%` }}
+        />
+        {/* 月份刻度 */}
+        {data.map((d, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setSliderIndex(i)}
+            className={`absolute top-5 text-[8px] -translate-x-1/2 transition-colors ${
+              i === sliderIndex ? "text-cyan-400 font-semibold" : "text-gray-600 hover:text-gray-400"
+            }`}
+            style={{ left: `${(i / (data.length - 1)) * 100}%` }}
+          >
+            {d.month.replace("月", "")}
+          </button>
+        ))}
+      </div>
+
+      {/* 底部数值摘要 */}
+      <div className="flex justify-between text-[10px] text-gray-500 px-1">
+        <span>实际: {currentPoint.actual.toLocaleString()}</span>
+        <span>目标: {currentPoint.target.toLocaleString()}</span>
+        <span>预测: {currentPoint.forecast.toLocaleString()}</span>
       </div>
     </div>
   );
@@ -336,7 +439,13 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
           <div className="bg-[#0a1e3d]/60 rounded-lg p-3 border border-cyan-500/10">
             <div className="flex items-center justify-between mb-1">
               <span className="text-gray-400 text-xs">{item.label}</span>
-              <span className="text-white text-lg font-mono font-bold">{item.value} <span className="text-gray-500 text-xs">{item.unit}</span></span>
+              <span className="text-white text-lg font-mono font-bold">
+                {viewMode === "total" ? item.totalValue : item.perCapitaValue}
+                {" "}
+                <span className="text-gray-500 text-xs">
+                  {viewMode === "total" ? item.totalUnit : item.perCapitaUnit}
+                </span>
+              </span>
             </div>
             <div className="flex items-center gap-3">
               <span className={`text-[10px] flex items-center gap-0.5 ${item.yoy < 0 ? "text-green-400" : "text-red-400"}`}>

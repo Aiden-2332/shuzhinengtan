@@ -29,6 +29,19 @@ kill_port_if_listening() {
 
 echo "Clearing port ${DEPLOY_RUN_PORT} before start."
 kill_port_if_listening
+
+# Start report backend (Python FastAPI microservice)
+REPORT_PORT=8001
+echo "Starting report backend on port ${REPORT_PORT}..."
+bash "${COZE_WORKSPACE_PATH}/scripts/start-report-backend.sh" 2>&1 | while IFS= read -r line; do echo "[report-backend] $line"; done &
+REPORT_PID=$!
+sleep 2
+if ! ss -H -lntp 2>/dev/null | awk -v port="${REPORT_PORT}" '$4 ~ ":"port"$"' | grep -q LISTEN; then
+  echo "Warning: report backend may not have started on port ${REPORT_PORT}"
+else
+  echo "Report backend started on port ${REPORT_PORT} (PID: ${REPORT_PID})"
+fi
+
 echo "Starting HTTP service on port ${DEPLOY_RUN_PORT} for dev..."
 
 PORT=${DEPLOY_RUN_PORT} pnpm tsx watch src/server.ts
