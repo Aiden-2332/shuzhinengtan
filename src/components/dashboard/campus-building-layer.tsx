@@ -163,8 +163,8 @@ export function CampusBuildingLayer({
                 stroke={cockpit && level ? level.color : isSelected ? "#22d3ee" : "transparent"}
                 strokeWidth={isSelected ? 2.2 : cockpit && level ? 1.1 : 1}
                 vectorEffect="non-scaling-stroke"
-                className="pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-200 hover:brightness-125 focus-visible:stroke-white"
-                filter={cockpit && level ? `drop-shadow(0 0 ${isSelected ? 7 : 3}px ${level.color})` : undefined}
+                className={`pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-200 hover:brightness-125 focus-visible:stroke-white ${cockpit && level ? "cockpit-building-grade" : ""}`}
+                filter={cockpit && level ? `drop-shadow(0 0 ${isSelected ? 9 : 4}px ${level.color})` : undefined}
                 style={{ pointerEvents: "all" }}
                 onPointerDown={(event) => {
                   event.preventDefault();
@@ -251,7 +251,7 @@ export function CampusBuildingLayer({
                 key={`pin-${building.id}`}
                 type="button"
                 aria-label={`查看${building.name}碳排放信息`}
-                className="pointer-events-auto absolute z-30 flex -translate-x-1/2 -translate-y-full flex-col items-center text-cyan-200 outline-none transition-transform hover:scale-110 focus-visible:scale-110"
+                className="cockpit-map-pin pointer-events-auto absolute z-30 flex -translate-x-1/2 -translate-y-full flex-col items-center text-cyan-100 outline-none transition-transform hover:scale-110 focus-visible:scale-110"
                 style={{ left: screenX, top: screenY - 3 }}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
@@ -259,7 +259,7 @@ export function CampusBuildingLayer({
                   onSelect(building.id);
                 }}
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/90 bg-[#062c43]/90 shadow-[0_0_12px_rgba(34,211,238,.65)]">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-100 bg-[#07324a]/95 shadow-[inset_0_0_8px_rgba(100,235,255,.25),0_0_8px_rgba(34,211,238,.8),0_0_18px_rgba(34,211,238,.38)]">
                   <Building2 className="h-4 w-4" />
                 </span>
                 <span className="h-4 w-px bg-gradient-to-b from-cyan-200 to-transparent" />

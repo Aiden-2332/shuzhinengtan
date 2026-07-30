@@ -62,16 +62,16 @@ export function ThreeColumnLayout({
       )}
 
       {/* 三面悬浮数据板：左、右、底；中央地图始终保持为视觉主体。 */}
-      <aside className="absolute bottom-4 left-4 z-10 w-[var(--cockpit-side-panel-width)] overflow-hidden border border-cyan-400/45 bg-[#06172a]/[0.91] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-xl" style={{ top: "calc(var(--cockpit-top-panel-height) + 0.75rem)" }}>
+      <aside className="cockpit-tech-panel absolute bottom-4 left-4 z-10 w-[var(--cockpit-side-panel-width)] overflow-hidden border backdrop-blur-xl" style={{ top: "calc(var(--cockpit-top-panel-height) + 0.75rem)" }}>
         <div className="h-full overflow-hidden">{leftPanel}</div>
       </aside>
 
-      <aside className="absolute bottom-4 right-4 z-10 w-[var(--cockpit-side-panel-width)] overflow-hidden border border-cyan-400/45 bg-[#06172a]/[0.91] shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur-xl" style={{ top: "calc(var(--cockpit-top-panel-height) + 0.75rem)" }}>
+      <aside className="cockpit-tech-panel absolute bottom-4 right-4 z-10 w-[var(--cockpit-side-panel-width)] overflow-hidden border backdrop-blur-xl" style={{ top: "calc(var(--cockpit-top-panel-height) + 0.75rem)" }}>
         <div className="h-full overflow-hidden">{rightPanel}</div>
       </aside>
 
       {centerBottomPanel && (
-        <section className="absolute bottom-4 z-10 h-[clamp(185px,22vh,235px)] overflow-hidden border border-cyan-400/45 bg-[#06172a]/[0.93] shadow-[0_18px_48px_rgba(0,0,0,0.35)] backdrop-blur-xl" style={{ left: "calc(var(--cockpit-side-panel-width) + 2rem)", right: "calc(var(--cockpit-side-panel-width) + 2rem)" }}>
+        <section className="cockpit-tech-panel absolute bottom-4 z-10 h-[clamp(185px,22vh,235px)] overflow-hidden border backdrop-blur-xl" style={{ left: "calc(var(--cockpit-side-panel-width) + 2rem)", right: "calc(var(--cockpit-side-panel-width) + 2rem)" }}>
           <div className="h-full overflow-hidden">{centerBottomPanel}</div>
         </section>
       )}

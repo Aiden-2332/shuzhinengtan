@@ -33,10 +33,10 @@ function TopKpiBar() {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5">
       {leaderKPIs.map((kpi, i) => (
-        <div key={i} className="flex-1 bg-[#0a1e3d]/60 rounded-lg px-4 py-2.5 border border-cyan-500/10 min-w-0">
+        <div key={i} className="cockpit-kpi-card min-w-0 flex-1 px-4 py-2.5">
           <div className="text-gray-400 text-[11px] mb-0.5 truncate">{kpi.label}</div>
           <div className="flex items-baseline gap-1">
-            <span className="text-white text-xl font-mono font-bold">{kpi.value}</span>
+            <span className="text-xl font-mono font-bold text-cyan-50 [text-shadow:0_0_10px_rgba(83,225,255,.42)]">{kpi.value}</span>
             <span className="text-gray-500 text-xs">{kpi.unit}</span>
           </div>
           {kpi.sub && <div className="text-[10px] text-gray-600 mt-0.5">{kpi.sub}</div>}
