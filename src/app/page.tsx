@@ -8,7 +8,8 @@ import {
   Leaf,
   PieChart,
   ShieldCheck,
-  TrendingDown,
+  Droplets,
+  Zap,
   TrendingUp,
   ShieldAlert,
 } from "lucide-react";
@@ -32,7 +33,6 @@ import type {
   RiskWarning,
   MonthlyTrendPoint,
   ResourceConsumptionItem,
-  CompositionItem,
   EmissionRankingItem,
 } from "@/data/leader-dashboard-data";
 
@@ -330,7 +330,7 @@ function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
       {/* 可拖动时间轴 */}
       <div
         ref={sliderRef}
-        className="relative h-8 cursor-pointer touch-none"
+        className="hidden"
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerMove={handlePointerMove}
@@ -364,7 +364,7 @@ function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
       </div>
 
       {/* 底部数值摘要 */}
-      <div className="flex justify-between text-[10px] text-gray-500 px-1">
+      <div className="hidden">
         <span>实际: {currentPoint.actual.toLocaleString()}</span>
         <span>目标: {currentPoint.target.toLocaleString()}</span>
         <span>预测: {currentPoint.forecast.toLocaleString()}</span>
@@ -378,8 +378,9 @@ function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
 // ============================================================
 function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
   const [viewMode, setViewMode] = useState<"total" | "perCapita">("total");
+  const icons = [Cloud, Zap, Droplets];
   return (
-    <div className="space-y-3">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-1 h-4 rounded-full bg-cyan-400" />
@@ -400,28 +401,24 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
           </button>
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="mt-2 grid min-h-0 flex-1 grid-rows-[30px_repeat(3,1fr)] overflow-hidden rounded border border-cyan-400/20">
+        <div className="grid grid-cols-[1.1fr_1.35fr_.8fr_.8fr] items-center border-b border-cyan-400/15 px-3 text-[10px] text-slate-400">
+          <span>资源类型</span><span>本年累计</span><span>同比</span><span>环比</span>
+        </div>
         {data.map((item, i) => (
-          <div key={i} className="bg-[#0a1e3d]/60 rounded-lg p-3 border border-cyan-500/10">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-gray-400 text-xs">{item.label}</span>
-              <span className="text-white text-lg font-mono font-bold">
+          <div key={i} className="grid grid-cols-[1.1fr_1.35fr_.8fr_.8fr] items-center border-b border-cyan-400/10 px-3 last:border-0">
+            <span className="flex items-center gap-2 text-xs text-slate-300">
+              {(() => { const Icon = icons[i]; return <Icon className="h-4 w-4 text-cyan-300" />; })()}
+              {item.label}
+            </span>
+            <span className="whitespace-nowrap font-mono text-sm font-semibold text-white">
                 {viewMode === "total" ? item.totalValue : item.perCapitaValue}
-                {" "}
-                <span className="text-gray-500 text-xs">
+                <span className="ml-1 text-[10px] font-normal text-slate-400">
                   {viewMode === "total" ? item.totalUnit : item.perCapitaUnit}
                 </span>
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`text-[10px] flex items-center gap-0.5 ${item.yoy < 0 ? "text-green-400" : "text-red-400"}`}>
-                {item.yoy < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-                {item.yoyLabel}
-              </span>
-              <span className={`text-[10px] flex items-center gap-0.5 ${item.mom < 0 ? "text-green-400" : "text-red-400"}`}>
-                {item.momLabel}
-              </span>
-            </div>
+            </span>
+            <span className={`text-[11px] ${item.yoy < 0 ? "text-emerald-400" : "text-red-400"}`}>{item.yoyLabel}</span>
+            <span className={`text-[11px] ${item.mom < 0 ? "text-emerald-400" : "text-red-400"}`}>{item.momLabel}</span>
           </div>
         ))}
       </div>
@@ -433,70 +430,43 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
 // 三类组成环形图
 // ============================================================
 function CompositionRings() {
-  const [activeTab, setActiveTab] = useState<"carbon" | "energy" | "water">("carbon");
-  const dataMap: Record<string, CompositionItem[]> = {
-    carbon: carbonCompositionData,
-    energy: energyCompositionData,
-    water: waterCompositionData,
-  };
-  const labelMap: Record<string, string> = { carbon: "碳排放组成", energy: "能耗组成", water: "水耗组成" };
-  const data = dataMap[activeTab];
-  const total = useMemo(() => data.reduce((s, d) => s + d.value, 0), [data]);
-
-  const radius = 50;
-  const circumference = 2 * Math.PI * radius;
-  const slices = data.map((d, index) => {
-    const pct = d.value / total;
-    const dash = pct * circumference;
-    const accumulated = data
-      .slice(0, index)
-      .reduce((sum, item) => sum + item.value / total, 0);
-    const offset = -accumulated * circumference;
-    return { ...d, dash, offset, pct };
-  });
+  const groups = [
+    { title: "碳排放组成", data: carbonCompositionData },
+    { title: "能耗组成", data: energyCompositionData },
+    { title: "水耗组成", data: waterCompositionData },
+  ];
 
   return (
-    <div className="space-y-2">
-      <div className="flex bg-[#0a1e3d]/60 rounded-md p-0.5 border border-cyan-500/10">
-        {(["carbon", "energy", "water"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 px-2 py-1 text-[10px] rounded ${activeTab === tab ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500"}`}
-          >
-            {labelMap[tab]}
-          </button>
-        ))}
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="relative shrink-0">
-          <svg width="120" height="120" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r={radius} fill="none" stroke="#1e293b" strokeWidth="12" />
-            {slices.map((s, i) => (
-              <circle
-                key={i}
-                cx="60" cy="60" r={radius}
-                fill="none"
-                stroke={s.color}
-                strokeWidth="12"
-                strokeDasharray={`${s.dash} ${circumference - s.dash}`}
-                strokeDashoffset={s.offset}
-                transform="rotate(-90 60 60)"
-                strokeLinecap="round"
-              />
-            ))}
-          </svg>
-        </div>
-        <div className="flex-1 space-y-1 min-w-0">
-          {data.map((s, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-              <span className="text-gray-400 text-[10px] truncate">{s.name}</span>
-              <span className="text-gray-500 text-[10px] ml-auto shrink-0">{s.value}%</span>
+    <div className="grid h-full grid-cols-3 gap-3">
+      {groups.map((group) => {
+        const total = group.data.reduce((sum, item) => sum + item.value, 0);
+        return (
+          <div key={group.title} className="flex min-w-0 flex-col">
+            <h3 className="mb-1 text-center text-sm font-semibold text-white">{group.title}</h3>
+            <div className="relative mx-auto h-[104px] w-[104px]">
+              <svg width="104" height="104" viewBox="0 0 104 104">
+                <circle cx="52" cy="52" r="38" fill="none" stroke="#17283c" strokeWidth="14" />
+                {group.data.map((item, index) => {
+                  const length = (item.value / total) * 238.76;
+                  const offset = -group.data
+                    .slice(0, index)
+                    .reduce((sum, entry) => sum + (entry.value / total) * 238.76, 0);
+                  return <circle key={item.name} cx="52" cy="52" r="38" fill="none" stroke={item.color} strokeWidth="14" strokeDasharray={`${length} ${238.76 - length}`} strokeDashoffset={offset} transform="rotate(-90 52 52)" />;
+                })}
+              </svg>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="mt-1 space-y-1">
+              {group.data.map((item) => (
+                <div key={item.name} className="flex items-center gap-1.5 text-[10px]">
+                  <span className="h-2 w-2 shrink-0" style={{ backgroundColor: item.color }} />
+                  <span className="min-w-0 flex-1 truncate text-slate-400">{item.name}</span>
+                  <span className="text-slate-300">{item.value}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -511,11 +481,12 @@ function EmissionTop5({ data }: { data: EmissionRankingItem[] }) {
       <div className="flex items-center gap-2">
         <div className="w-1 h-4 rounded-full bg-orange-400" />
         <h3 className="text-white text-sm font-semibold">排放 TOP 5</h3>
+        <span className="ml-auto text-[10px] text-slate-500">单位：tCO₂</span>
       </div>
       <div className="space-y-2">
         {data.map((item, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className={`text-xs font-mono w-4 shrink-0 ${i < 3 ? "text-orange-400" : "text-gray-500"}`}>{i + 1}</span>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-xs font-mono text-white" style={{ backgroundColor: item.color }}>{i + 1}</span>
             <span className="text-gray-300 text-xs truncate flex-1 min-w-0">{item.name}</span>
             <div className="flex-1 h-2 bg-gray-700/50 rounded-full overflow-hidden mx-2">
               <div
@@ -523,7 +494,7 @@ function EmissionTop5({ data }: { data: EmissionRankingItem[] }) {
                 style={{ width: `${(item.value / maxVal) * 100}%`, backgroundColor: item.color }}
               />
             </div>
-            <span className="text-white text-xs font-mono shrink-0">{item.value.toLocaleString()} <span className="text-gray-500">{item.unit}</span></span>
+            <span className="w-14 shrink-0 text-right font-mono text-xs text-white">{item.value.toLocaleString()}</span>
           </div>
         ))}
       </div>
