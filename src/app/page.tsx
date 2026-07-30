@@ -4,6 +4,8 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { AlertTriangle, TrendingDown, TrendingUp, ShieldAlert } from "lucide-react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
+import { AutoScrollList } from "@/components/dashboard/auto-scroll-list";
+import type { FloatingPanelSpec } from "@/components/dashboard/floating-glass-panel";
 import {
   leaderKPIs,
   economicZoneData,
@@ -134,12 +136,13 @@ function EmissionSourceRing({ data, viewMode, setViewMode }: {
   // Simple SVG ring chart
   const radius = 60;
   const circumference = 2 * Math.PI * radius;
-  let accumulated = 0;
-  const slices = data.map((d) => {
+  const slices = data.map((d, index) => {
     const pct = d.value / total;
     const dash = pct * circumference;
-    const offset = -accumulated * circumference;
-    accumulated += pct;
+    const previousValue = data
+      .slice(0, index)
+      .reduce((sum, item) => sum + item.value, 0);
+    const offset = -(previousValue / total) * circumference;
     return { ...d, dash, offset, pct };
   });
 
@@ -188,15 +191,19 @@ function EmissionSourceRing({ data, viewMode, setViewMode }: {
             <span className="text-gray-500 text-[10px]">tCO₂</span>
           </div>
         </div>
-        <div className="flex-1 space-y-1.5 min-w-0">
-          {data.map((s, i) => (
-            <div key={i} className="flex items-center gap-2">
+        <AutoScrollList
+          items={data}
+          itemKey={(item) => item.name}
+          className="h-[112px] min-w-0 flex-1"
+          ariaLabel="排放源构成明细"
+          renderItem={(s) => (
+            <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
               <span className="text-gray-400 text-[11px] truncate">{s.name}</span>
               <span className="text-gray-500 text-[11px] ml-auto shrink-0">{s.percentage}%</span>
             </div>
-          ))}
-        </div>
+          )}
+        />
       </div>
     </div>
   );
@@ -212,9 +219,13 @@ function RiskWarningPanel({ data }: { data: RiskWarning[] }) {
         <div className="w-1 h-4 rounded-full bg-red-400" />
         <h3 className="text-white text-sm font-semibold">风险预警</h3>
       </div>
-      <div className="space-y-2">
-        {data.map((w, i) => (
-          <div key={i} className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
+      <AutoScrollList
+        items={data}
+        itemKey={(item) => item.label}
+        className="h-[132px]"
+        ariaLabel="风险预警列表"
+        renderItem={(w) => (
+          <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
             <div className="flex items-center justify-between mb-0.5">
               <span className="text-gray-400 text-[11px]">{w.label}</span>
               <span className={`text-sm font-mono font-bold ${
@@ -223,8 +234,8 @@ function RiskWarningPanel({ data }: { data: RiskWarning[] }) {
             </div>
             <div className="text-[10px] text-gray-600">{w.desc}</div>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </div>
   );
 }
@@ -409,19 +420,23 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
             onClick={() => setViewMode("total")}
             className={`px-2 py-0.5 text-[10px] rounded ${viewMode === "total" ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500"}`}
           >
-            全校资源总消耗
+            总量
           </button>
           <button
             onClick={() => setViewMode("perCapita")}
             className={`px-2 py-0.5 text-[10px] rounded ${viewMode === "perCapita" ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500"}`}
           >
-            生均资源消耗强度
+            人均
           </button>
         </div>
       </div>
-      <div className="space-y-2">
-        {data.map((item, i) => (
-          <div key={i} className="bg-[#0a1e3d]/60 rounded-lg p-3 border border-cyan-500/10">
+      <AutoScrollList
+        items={data}
+        itemKey={(item) => item.label}
+        className="h-[146px]"
+        ariaLabel="资源消耗明细"
+        renderItem={(item) => (
+          <div className="bg-[#0a1e3d]/60 rounded-lg p-3 border border-cyan-500/10">
             <div className="flex items-center justify-between mb-1">
               <span className="text-gray-400 text-xs">{item.label}</span>
               <span className="text-white text-lg font-mono font-bold">
@@ -442,8 +457,8 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
               </span>
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </div>
   );
 }
@@ -464,12 +479,13 @@ function CompositionRings() {
 
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
-  let accumulated = 0;
-  const slices = data.map((d) => {
+  const slices = data.map((d, index) => {
     const pct = d.value / total;
     const dash = pct * circumference;
-    const offset = -accumulated * circumference;
-    accumulated += pct;
+    const previousValue = data
+      .slice(0, index)
+      .reduce((sum, item) => sum + item.value, 0);
+    const offset = -(previousValue / total) * circumference;
     return { ...d, dash, offset, pct };
   });
 
@@ -505,15 +521,19 @@ function CompositionRings() {
             ))}
           </svg>
         </div>
-        <div className="flex-1 space-y-1 min-w-0">
-          {data.map((s, i) => (
-            <div key={i} className="flex items-center gap-1.5">
+        <AutoScrollList
+          items={data}
+          itemKey={(item) => item.name}
+          className="h-[106px] min-w-0 flex-1"
+          ariaLabel="构成分类明细"
+          renderItem={(s) => (
+            <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
               <span className="text-gray-400 text-[10px] truncate">{s.name}</span>
               <span className="text-gray-500 text-[10px] ml-auto shrink-0">{s.value}%</span>
             </div>
-          ))}
-        </div>
+          )}
+        />
       </div>
     </div>
   );
@@ -530,8 +550,12 @@ function EmissionTop5({ data }: { data: EmissionRankingItem[] }) {
         <div className="w-1 h-4 rounded-full bg-orange-400" />
         <h3 className="text-white text-sm font-semibold">排放 TOP 5</h3>
       </div>
-      <div className="space-y-2">
-        {data.map((item, i) => (
+      <AutoScrollList
+        items={data}
+        itemKey={(item) => item.name}
+        className="h-[118px]"
+        ariaLabel="排放排名"
+        renderItem={(item, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className={`text-xs font-mono w-4 shrink-0 ${i < 3 ? "text-orange-400" : "text-gray-500"}`}>{i + 1}</span>
             <span className="text-gray-300 text-xs truncate flex-1 min-w-0">{item.name}</span>
@@ -543,8 +567,8 @@ function EmissionTop5({ data }: { data: EmissionRankingItem[] }) {
             </div>
             <span className="text-white text-xs font-mono shrink-0">{item.value.toLocaleString()} <span className="text-gray-500">{item.unit}</span></span>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </div>
   );
 }
@@ -555,19 +579,17 @@ function EmissionTop5({ data }: { data: EmissionRankingItem[] }) {
 export default function LeaderDashboard() {
   const [emissionViewMode, setEmissionViewMode] = useState<"total" | "perCapita">("total");
 
-  const leftPanel = (
-    <div className="space-y-4 p-3">
-      <EconomicZonePanel data={economicZoneData} />
-      <EmissionSourceRing data={emissionSourceData} viewMode={emissionViewMode} setViewMode={setEmissionViewMode} />
-      <RiskWarningPanel data={riskWarnings} />
-    </div>
-  );
+  const leftPanels: FloatingPanelSpec[] = [
+    { id: "economic-zone", label: "经济控制分区", priority: "critical", content: <EconomicZonePanel data={economicZoneData} /> },
+    { id: "emission-source", label: "排放源构成", content: <EmissionSourceRing data={emissionSourceData} viewMode={emissionViewMode} setViewMode={setEmissionViewMode} /> },
+    { id: "risk-warning", label: "风险预警", priority: "critical", content: <RiskWarningPanel data={riskWarnings} /> },
+  ];
 
   const centerContent = (
     <div className="relative h-full">
-      <CampusTileBackground map="2_5d" tone="leader" />
+      <CampusTileBackground map="2_5d" />
       {/* 图例 */}
-      <div className="absolute bottom-3 left-3 bg-[#0a1e3d]/80 rounded-lg p-2 border border-cyan-500/10">
+      <div className="map-legend-glass absolute bottom-3 rounded-lg p-2">
         <div className="text-[10px] text-gray-400 mb-1.5">碳排放强度</div>
         <div className="flex items-center gap-1.5">
           {[
@@ -593,20 +615,19 @@ export default function LeaderDashboard() {
     </div>
   );
 
-  const rightPanel = (
-    <div className="space-y-4 p-3">
-      <ResourceAnalysisPanel data={resourceConsumptionData} />
-      <CompositionRings />
-      <EmissionTop5 data={emissionRankingData} />
-    </div>
-  );
+  const rightPanels: FloatingPanelSpec[] = [
+    { id: "resource-analysis", label: "资源消耗分析", priority: "critical", content: <ResourceAnalysisPanel data={resourceConsumptionData} /> },
+    { id: "composition", label: "分类构成", priority: "secondary", content: <CompositionRings /> },
+    { id: "emission-top", label: "排放 TOP 5", content: <EmissionTop5 data={emissionRankingData} /> },
+  ];
 
   return (
     <ThreeColumnLayout
       level="L1"
-      leftPanel={leftPanel}
-      rightPanel={rightPanel}
+      leftPanels={leftPanels}
+      rightPanels={rightPanels}
       centerBottomPanel={centerBottomPanel}
+      centerBottomLabel="月度累计趋势"
       colorMode="carbon"
     >
       {centerContent}
