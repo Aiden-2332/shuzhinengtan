@@ -103,44 +103,45 @@ export interface MonthlyTrendPoint {
 }
 
 // 三年月度累计数据：2024/2025 全年，2026 仅到 7 月
+// 逐年递减体现碳减排成效，2024 最高，2026 最低
 export const monthlyTrendData2024: MonthlyTrendPoint[] = [
-  { month: "1月", actual: 1380, target: 1500, forecast: 1350 },
-  { month: "2月", actual: 2100, target: 2300, forecast: 2050 },
-  { month: "3月", actual: 2950, target: 3200, forecast: 2880 },
-  { month: "4月", actual: 3850, target: 4200, forecast: 3750 },
-  { month: "5月", actual: 4950, target: 5400, forecast: 4820 },
-  { month: "6月", actual: 6280, target: 6800, forecast: 6100 },
-  { month: "7月", actual: 7620, target: 8200, forecast: 7380 },
-  { month: "8月", actual: 8750, target: 9400, forecast: 8480 },
-  { month: "9月", actual: 9980, target: 10600, forecast: 9650 },
-  { month: "10月", actual: 11100, target: 11800, forecast: 10700 },
-  { month: "11月", actual: 11850, target: 12600, forecast: 11300 },
-  { month: "12月", actual: 12420, target: 14000, forecast: 11600 },
+  { month: "1月", actual: 1680, target: 1800, forecast: 1650 },
+  { month: "2月", actual: 2600, target: 2800, forecast: 2550 },
+  { month: "3月", actual: 3750, target: 4000, forecast: 3680 },
+  { month: "4月", actual: 5050, target: 5400, forecast: 4950 },
+  { month: "5月", actual: 6550, target: 7000, forecast: 6420 },
+  { month: "6月", actual: 8280, target: 8800, forecast: 8100 },
+  { month: "7月", actual: 10020, target: 10600, forecast: 9780 },
+  { month: "8月", actual: 11550, target: 12200, forecast: 11280 },
+  { month: "9月", actual: 12980, target: 13600, forecast: 12650 },
+  { month: "10月", actual: 14300, target: 15000, forecast: 13900 },
+  { month: "11月", actual: 15450, target: 16200, forecast: 15000 },
+  { month: "12月", actual: 16420, target: 17200, forecast: 15900 },
 ];
 
 export const monthlyTrendData2025: MonthlyTrendPoint[] = [
-  { month: "1月", actual: 1400, target: 1520, forecast: 1360 },
-  { month: "2月", actual: 2150, target: 2350, forecast: 2080 },
-  { month: "3月", actual: 2980, target: 3250, forecast: 2900 },
-  { month: "4月", actual: 3920, target: 4250, forecast: 3800 },
-  { month: "5月", actual: 5050, target: 5450, forecast: 4900 },
-  { month: "6月", actual: 6380, target: 6850, forecast: 6180 },
-  { month: "7月", actual: 7750, target: 8250, forecast: 7480 },
-  { month: "8月", actual: 8880, target: 9450, forecast: 8580 },
-  { month: "9月", actual: 10100, target: 10700, forecast: 9750 },
-  { month: "10月", actual: 11250, target: 11900, forecast: 10800 },
-  { month: "11月", actual: 11980, target: 12700, forecast: 11400 },
-  { month: "12月", actual: 12580, target: 14100, forecast: 11700 },
+  { month: "1月", actual: 1480, target: 1600, forecast: 1450 },
+  { month: "2月", actual: 2300, target: 2500, forecast: 2250 },
+  { month: "3月", actual: 3280, target: 3500, forecast: 3200 },
+  { month: "4月", actual: 4420, target: 4700, forecast: 4320 },
+  { month: "5月", actual: 5750, target: 6100, forecast: 5620 },
+  { month: "6月", actual: 7280, target: 7700, forecast: 7100 },
+  { month: "7月", actual: 8850, target: 9300, forecast: 8620 },
+  { month: "8月", actual: 10180, target: 10700, forecast: 9920 },
+  { month: "9月", actual: 11500, target: 12000, forecast: 11200 },
+  { month: "10月", actual: 12650, target: 13200, forecast: 12300 },
+  { month: "11月", actual: 13680, target: 14300, forecast: 13300 },
+  { month: "12月", actual: 14580, target: 15200, forecast: 14100 },
 ];
 
 export const monthlyTrendData2026: MonthlyTrendPoint[] = [
-  { month: "1月", actual: 1420, target: 1550, forecast: 1380 },
-  { month: "2月", actual: 2180, target: 2400, forecast: 2100 },
-  { month: "3月", actual: 3020, target: 3300, forecast: 2950 },
-  { month: "4月", actual: 3980, target: 4300, forecast: 3850 },
-  { month: "5月", actual: 5120, target: 5500, forecast: 4980 },
-  { month: "6月", actual: 6480, target: 6900, forecast: 6250 },
-  { month: "7月", actual: 7850, target: 8300, forecast: 7580 },
+  { month: "1月", actual: 1280, target: 1400, forecast: 1250 },
+  { month: "2月", actual: 2000, target: 2200, forecast: 1950 },
+  { month: "3月", actual: 2820, target: 3050, forecast: 2750 },
+  { month: "4月", actual: 3780, target: 4050, forecast: 3680 },
+  { month: "5月", actual: 4920, target: 5250, forecast: 4800 },
+  { month: "6月", actual: 6280, target: 6650, forecast: 6100 },
+  { month: "7月", actual: 7650, target: 8050, forecast: 7420 },
 ];
 
 // ============================================================

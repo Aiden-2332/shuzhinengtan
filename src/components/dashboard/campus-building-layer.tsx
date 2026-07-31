@@ -22,6 +22,8 @@ export interface CampusBuildingLayerProps {
   selectedBuildingId: string | null;
   animateTransform: boolean;
   onSelect: (id: string | null) => void;
+  /** Optional map of buildingId → fill color for choropleth visualization */
+  emissionColorMap?: Map<string, string>;
 }
 
 interface ProjectedBuilding {
@@ -57,6 +59,7 @@ export function CampusBuildingLayer({
   selectedBuildingId,
   animateTransform,
   onSelect,
+  emissionColorMap,
 }: CampusBuildingLayerProps) {
   const projectedBuildings = useMemo<ProjectedBuilding[]>(
     () =>
@@ -140,6 +143,7 @@ export function CampusBuildingLayer({
         >
           {projectedBuildings.map(({ building, points }) => {
             const isSelected = building.id === selectedBuildingId;
+            const emissionColor = emissionColorMap?.get(building.id);
 
             return (
               <polygon
@@ -149,12 +153,17 @@ export function CampusBuildingLayer({
                 aria-pressed={isSelected}
                 tabIndex={0}
                 points={points}
-                fill={isSelected ? "rgba(0,255,51,0.2)" : "transparent"}
-                stroke={isSelected ? "#00ff33" : "transparent"}
+                fill={isSelected ? "rgba(0,255,51,0.35)" : emissionColor ?? "transparent"}
+                stroke={isSelected ? "#00ff33" : emissionColor ? "rgba(255,255,255,0.15)" : "transparent"}
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
-                className="pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-100 hover:fill-[#00ff33]/20 hover:stroke-[#00ff33] hover:[filter:drop-shadow(0_0_3px_rgba(0,255,51,.45))] focus-visible:fill-[#00ff33]/20 focus-visible:stroke-white"
-                style={{ pointerEvents: "all" }}
+                className="pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-100 hover:[filter:drop-shadow(0_0_4px_rgba(0,255,51,.5))]"
+                style={{
+                  pointerEvents: "all",
+                  ...(isSelected
+                    ? { fill: "rgba(0,255,51,0.35)", stroke: "#00ff33", filter: "drop-shadow(0 0 4px rgba(0,255,51,0.5))" }
+                    : {}),
+                }}
                 onPointerDown={(event) => {
                   event.preventDefault();
                   event.stopPropagation();

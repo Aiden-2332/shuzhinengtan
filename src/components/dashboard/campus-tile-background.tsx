@@ -23,6 +23,8 @@ interface CampusTileBackgroundProps {
   className?: string;
   /** Adds a dark dashboard tint above the map without blocking foreground UI. */
   tone?: "leader" | "operations";
+  /** Optional map of buildingId → fill color for choropleth visualization */
+  emissionColorMap?: Map<string, string>;
 }
 
 interface ViewportSize {
@@ -261,6 +263,7 @@ export function CampusTileBackground({
   map,
   className = "",
   tone = "leader",
+  emissionColorMap,
 }: CampusTileBackgroundProps) {
   const config = MAP_CONFIG[map];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -627,6 +630,7 @@ export function CampusTileBackground({
           selectedBuildingId={selectedBuildingId}
           animateTransform={!isInteracting}
           onSelect={selectBuilding}
+          emissionColorMap={emissionColorMap}
         />
       ) : null}
 
