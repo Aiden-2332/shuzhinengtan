@@ -529,68 +529,69 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
 // 三类组成环形图
 // ============================================================
 function CompositionRings() {
-  const [activeTab, setActiveTab] = useState<"carbon" | "energy" | "water">("carbon");
   const dataMap: Record<string, CompositionItem[]> = {
     carbon: carbonCompositionData,
     energy: energyCompositionData,
     water: waterCompositionData,
   };
   const labelMap: Record<string, string> = { carbon: "碳排放组成", energy: "能耗组成", water: "水耗组成" };
-  const data = dataMap[activeTab];
-  const total = useMemo(() => data.reduce((s, d) => s + d.value, 0), [data]);
-
-  const radius = 50;
-  const circumference = 2 * Math.PI * radius;
-  let accumulated = 0;
-  const slices = data.map((d) => {
-    const pct = d.value / total;
-    const dash = pct * circumference;
-    const offset = -accumulated * circumference;
-    accumulated += pct;
-    return { ...d, dash, offset, pct };
-  });
 
   return (
     <div className="space-y-2">
-      <div className="flex bg-[#0a1e3d]/60 rounded-md p-0.5 border border-cyan-500/10">
-        {(["carbon", "energy", "water"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 px-2 py-1 text-[10px] rounded ${activeTab === tab ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500"}`}
-          >
-            {labelMap[tab]}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-4 rounded-full bg-cyan-400" />
+        <h3 className="text-white text-sm font-semibold">组成分析</h3>
       </div>
-      <div className="flex items-center gap-3">
-        <div className="relative shrink-0">
-          <svg width="120" height="120" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r={radius} fill="none" stroke="#1e293b" strokeWidth="12" />
-            {slices.map((s, i) => (
-              <circle
-                key={i}
-                cx="60" cy="60" r={radius}
-                fill="none"
-                stroke={s.color}
-                strokeWidth="12"
-                strokeDasharray={`${s.dash} ${circumference - s.dash}`}
-                strokeDashoffset={s.offset}
-                transform="rotate(-90 60 60)"
-                strokeLinecap="round"
-              />
-            ))}
-          </svg>
-        </div>
-        <div className="flex-1 space-y-1 min-w-0">
-          {data.map((s, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-              <span className="text-gray-400 text-[10px] truncate">{s.name}</span>
-              <span className="text-gray-500 text-[10px] ml-auto shrink-0">{s.value}%</span>
+      <div className="grid grid-cols-3 gap-2">
+        {(["carbon", "energy", "water"] as const).map((tab) => {
+          const data = dataMap[tab];
+          const total = data.reduce((s, d) => s + d.value, 0);
+          const radius = 36;
+          const circumference = 2 * Math.PI * radius;
+          let accumulated = 0;
+          const slices = data.map((d) => {
+            const pct = d.value / total;
+            const dash = pct * circumference;
+            const offset = -accumulated * circumference;
+            accumulated += pct;
+            return { ...d, dash, offset, pct };
+          });
+
+          return (
+            <div key={tab} className="bg-[#0a1e3d]/40 rounded-lg p-2 border border-cyan-500/10">
+              <div className="text-[10px] text-cyan-400 text-center mb-1.5 font-medium">{labelMap[tab]}</div>
+              <div className="flex items-center gap-1.5">
+                <div className="relative shrink-0">
+                  <svg width="76" height="76" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r={radius} fill="none" stroke="#1e293b" strokeWidth="14" />
+                    {slices.map((s, i) => (
+                      <circle
+                        key={i}
+                        cx="60" cy="60" r={radius}
+                        fill="none"
+                        stroke={s.color}
+                        strokeWidth="14"
+                        strokeDasharray={`${s.dash} ${circumference - s.dash}`}
+                        strokeDashoffset={s.offset}
+                        transform="rotate(-90 60 60)"
+                        strokeLinecap="round"
+                      />
+                    ))}
+                  </svg>
+                </div>
+                <div className="flex-1 space-y-0.5 min-w-0">
+                  {data.map((s, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                      <span className="text-gray-400 text-[9px] truncate">{s.name}</span>
+                      <span className="text-gray-500 text-[9px] ml-auto shrink-0">{s.value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
