@@ -102,7 +102,38 @@ export interface MonthlyTrendPoint {
   forecast: number;
 }
 
-export const monthlyTrendData: MonthlyTrendPoint[] = [
+// 三年月度累计数据：2024/2025 全年，2026 仅到 7 月
+export const monthlyTrendData2024: MonthlyTrendPoint[] = [
+  { month: "1月", actual: 1380, target: 1500, forecast: 1350 },
+  { month: "2月", actual: 2100, target: 2300, forecast: 2050 },
+  { month: "3月", actual: 2950, target: 3200, forecast: 2880 },
+  { month: "4月", actual: 3850, target: 4200, forecast: 3750 },
+  { month: "5月", actual: 4950, target: 5400, forecast: 4820 },
+  { month: "6月", actual: 6280, target: 6800, forecast: 6100 },
+  { month: "7月", actual: 7620, target: 8200, forecast: 7380 },
+  { month: "8月", actual: 8750, target: 9400, forecast: 8480 },
+  { month: "9月", actual: 9980, target: 10600, forecast: 9650 },
+  { month: "10月", actual: 11100, target: 11800, forecast: 10700 },
+  { month: "11月", actual: 11850, target: 12600, forecast: 11300 },
+  { month: "12月", actual: 12420, target: 14000, forecast: 11600 },
+];
+
+export const monthlyTrendData2025: MonthlyTrendPoint[] = [
+  { month: "1月", actual: 1400, target: 1520, forecast: 1360 },
+  { month: "2月", actual: 2150, target: 2350, forecast: 2080 },
+  { month: "3月", actual: 2980, target: 3250, forecast: 2900 },
+  { month: "4月", actual: 3920, target: 4250, forecast: 3800 },
+  { month: "5月", actual: 5050, target: 5450, forecast: 4900 },
+  { month: "6月", actual: 6380, target: 6850, forecast: 6180 },
+  { month: "7月", actual: 7750, target: 8250, forecast: 7480 },
+  { month: "8月", actual: 8880, target: 9450, forecast: 8580 },
+  { month: "9月", actual: 10100, target: 10700, forecast: 9750 },
+  { month: "10月", actual: 11250, target: 11900, forecast: 10800 },
+  { month: "11月", actual: 11980, target: 12700, forecast: 11400 },
+  { month: "12月", actual: 12580, target: 14100, forecast: 11700 },
+];
+
+export const monthlyTrendData2026: MonthlyTrendPoint[] = [
   { month: "1月", actual: 1420, target: 1550, forecast: 1380 },
   { month: "2月", actual: 2180, target: 2400, forecast: 2100 },
   { month: "3月", actual: 3020, target: 3300, forecast: 2950 },
@@ -110,11 +141,6 @@ export const monthlyTrendData: MonthlyTrendPoint[] = [
   { month: "5月", actual: 5120, target: 5500, forecast: 4980 },
   { month: "6月", actual: 6480, target: 6900, forecast: 6250 },
   { month: "7月", actual: 7850, target: 8300, forecast: 7580 },
-  { month: "8月", actual: 8980, target: 9500, forecast: 8650 },
-  { month: "9月", actual: 10200, target: 10800, forecast: 9850 },
-  { month: "10月", actual: 11350, target: 12000, forecast: 10900 },
-  { month: "11月", actual: 12080, target: 12800, forecast: 11500 },
-  { month: "12月", actual: 12680, target: 14200, forecast: 11800 },
 ];
 
 // ============================================================
