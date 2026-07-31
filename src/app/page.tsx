@@ -658,19 +658,19 @@ export default function LeaderDashboard() {
   const centerContent = (
     <div className="relative h-full">
       <CampusTileBackground map="2_5d" tone="leader" emissionColorMap={emissionColorMap} />
-      {/* 图例 */}
-      <div className="absolute bottom-3 left-3 bg-[#0a1e3d]/80 rounded-lg p-2 border border-cyan-500/10">
-        <div className="text-[10px] text-gray-400 mb-1.5">建筑碳排放等级</div>
-        <div className="flex items-center gap-1.5">
+      {/* 色阶图例 */}
+      <div className="absolute bottom-3 left-3 bg-[#0a1e3d]/90 rounded-lg px-2.5 py-2 border border-cyan-500/20 shadow-lg">
+        <div className="text-[10px] text-gray-300 font-medium mb-1.5">建筑碳排放等级</div>
+        <div className="flex items-center gap-2">
           {[
             { color: "#ef4444", label: "超标 ≥850" },
             { color: "#ff7b25", label: "偏高 650-850" },
             { color: "#3488ff", label: "中等 400-650" },
             { color: "#36d968", label: "低碳 <400" },
           ].map((l, i) => (
-            <div key={i} className="flex items-center gap-0.5">
-              <span className="w-3 h-2 rounded-sm" style={{ backgroundColor: l.color }} />
-              <span className="text-[9px] text-gray-500">{l.label}</span>
+            <div key={i} className="flex items-center gap-1">
+              <span className="w-3.5 h-2.5 rounded-sm" style={{ backgroundColor: l.color }} />
+              <span className="text-[10px] text-gray-400">{l.label}</span>
             </div>
           ))}
         </div>
