@@ -36,9 +36,18 @@ interface ProjectedBuilding {
 
 const LABEL_VIEWPORT_MARGIN = 140;
 const POPUP_EDGE_GAP = 12;
+const EMISSION_FILL_OPACITY = 0.35;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace("#", "");
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 function isActivationKey(key: string): boolean {
@@ -144,6 +153,16 @@ export function CampusBuildingLayer({
           {projectedBuildings.map(({ building, points }) => {
             const isSelected = building.id === selectedBuildingId;
             const emissionColor = emissionColorMap?.get(building.id);
+            const fill = isSelected
+              ? "rgba(0,255,51,0.35)"
+              : emissionColor
+                ? hexToRgba(emissionColor, EMISSION_FILL_OPACITY)
+                : "transparent";
+            const strokeColor = isSelected
+              ? "#00ff33"
+              : emissionColor
+                ? emissionColor
+                : "transparent";
 
             return (
               <polygon
@@ -153,8 +172,8 @@ export function CampusBuildingLayer({
                 aria-pressed={isSelected}
                 tabIndex={0}
                 points={points}
-                fill={isSelected ? "rgba(0,255,51,0.35)" : emissionColor ?? "transparent"}
-                stroke={isSelected ? "#00ff33" : emissionColor ? "rgba(255,255,255,0.15)" : "transparent"}
+                fill={fill}
+                stroke={strokeColor}
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
                 className="pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-100 hover:[filter:drop-shadow(0_0_4px_rgba(0,255,51,.5))]"
