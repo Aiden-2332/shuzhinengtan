@@ -542,7 +542,7 @@ function CompositionRings() {
         <div className="w-1 h-4 rounded-full bg-cyan-400" />
         <h3 className="text-white text-sm font-semibold">组成分析</h3>
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="space-y-2">
         {(["carbon", "energy", "water"] as const).map((tab) => {
           const data = dataMap[tab];
           const total = data.reduce((s, d) => s + d.value, 0);
@@ -558,11 +558,11 @@ function CompositionRings() {
           });
 
           return (
-            <div key={tab} className="bg-[#0a1e3d]/40 rounded-lg p-2 border border-cyan-500/10">
-              <div className="text-[10px] text-cyan-400 text-center mb-1.5 font-medium">{labelMap[tab]}</div>
-              <div className="flex items-center gap-1.5">
+            <div key={tab} className="bg-[#0a1e3d]/40 rounded-lg p-3 border border-cyan-500/10">
+              <div className="text-[11px] text-cyan-400 text-center mb-2 font-medium">{labelMap[tab]}</div>
+              <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
-                  <svg width="76" height="76" viewBox="0 0 120 120">
+                  <svg width="90" height="90" viewBox="0 0 120 120">
                     <circle cx="60" cy="60" r={radius} fill="none" stroke="#1e293b" strokeWidth="14" />
                     {slices.map((s, i) => (
                       <circle
@@ -579,12 +579,12 @@ function CompositionRings() {
                     ))}
                   </svg>
                 </div>
-                <div className="flex-1 space-y-0.5 min-w-0">
+                <div className="flex-1 space-y-1 min-w-0">
                   {data.map((s, i) => (
-                    <div key={i} className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                      <span className="text-gray-400 text-[9px] truncate">{s.name}</span>
-                      <span className="text-gray-500 text-[9px] ml-auto shrink-0">{s.value}%</span>
+                    <div key={i} className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                      <span className="text-gray-400 text-[11px] truncate">{s.name}</span>
+                      <span className="text-gray-500 text-[11px] ml-auto shrink-0">{s.value}%</span>
                     </div>
                   ))}
                 </div>
@@ -688,7 +688,6 @@ export default function LeaderDashboard() {
     <div className="space-y-4 p-3">
       <ResourceAnalysisPanel data={resourceConsumptionData} />
       <CompositionRings />
-      <EmissionTop5 data={emissionRankingData} />
     </div>
   );
 
