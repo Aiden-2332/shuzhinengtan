@@ -11,6 +11,7 @@ import {
   economicZoneData,
   emissionSourceData,
   riskWarnings,
+  complianceProgressData,
   monthlyTrendData2024,
   monthlyTrendData2025,
   monthlyTrendData2026,
@@ -24,6 +25,7 @@ import type {
   EconomicZoneData,
   EmissionSourceItem,
   RiskWarning,
+  ComplianceProgressData,
   MonthlyTrendPoint,
   ResourceConsumptionItem,
   CompositionItem,
@@ -228,6 +230,127 @@ function RiskWarningPanel({ data }: { data: RiskWarning[] }) {
             <div className="text-[10px] text-gray-600">{w.desc}</div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 年度履约进度
+// ============================================================
+function ComplianceProgressPanel({ data }: { data: ComplianceProgressData }) {
+  const statusColor: Record<string, string> = {
+    completed: "text-green-400",
+    on_track: "text-cyan-400",
+    at_risk: "text-orange-400",
+    overdue: "text-red-400",
+  };
+  const statusBg: Record<string, string> = {
+    completed: "bg-green-500/20 border-green-500/30",
+    on_track: "bg-cyan-500/15 border-cyan-500/20",
+    at_risk: "bg-orange-500/15 border-orange-500/20",
+    overdue: "bg-red-500/15 border-red-500/20",
+  };
+  const statusLabel: Record<string, string> = {
+    completed: "已完成",
+    on_track: "进行中",
+    at_risk: "有风险",
+    overdue: "已逾期",
+  };
+
+  // 月度进度条 SVG
+  const barH = 8;
+  const barW = 200;
+  const monthBarH = 6;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-4 rounded-full bg-cyan-400" />
+        <h3 className="text-white text-sm font-semibold">年度履约进度</h3>
+        <span className="text-gray-500 text-[10px] ml-auto">{data.year}年度</span>
+      </div>
+
+      {/* 总进度 + 配额使用 */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
+          <div className="text-gray-400 text-[10px] mb-1">履约总进度</div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-white text-xl font-mono font-bold">{data.overallProgress}</span>
+            <span className="text-gray-500 text-xs">%</span>
+          </div>
+          <div className="w-full h-1.5 bg-gray-700/50 rounded-full mt-1.5 overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full" style={{ width: `${data.overallProgress}%` }} />
+          </div>
+        </div>
+        <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
+          <div className="text-gray-400 text-[10px] mb-1">配额使用</div>
+          <div className="flex items-baseline gap-1">
+            <span className={`text-xl font-mono font-bold ${data.quotaProgress.pct > 80 ? "text-red-400" : data.quotaProgress.pct > 60 ? "text-orange-400" : "text-green-400"}`}>
+              {data.quotaProgress.pct}
+            </span>
+            <span className="text-gray-500 text-xs">%</span>
+          </div>
+          <div className="text-[10px] text-gray-600 mt-0.5">
+            {data.quotaProgress.used.toLocaleString()} / {data.quotaProgress.total.toLocaleString()} tCO₂
+          </div>
+        </div>
+      </div>
+
+      {/* 任务状态统计 */}
+      <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
+        <div className="text-gray-400 text-[10px] mb-1.5">履约任务 ({data.tasks.total}项)</div>
+        <div className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1 text-[10px] text-green-400">
+            <span className="w-2 h-2 rounded-full bg-green-400" /> 完成 {data.tasks.completed}
+          </span>
+          <span className="flex items-center gap-1 text-[10px] text-cyan-400">
+            <span className="w-2 h-2 rounded-full bg-cyan-400" /> 进行中 {data.tasks.inProgress}
+          </span>
+          <span className="flex items-center gap-1 text-[10px] text-orange-400">
+            <span className="w-2 h-2 rounded-full bg-orange-400" /> 风险 {data.tasks.atRisk}
+          </span>
+          <span className="flex items-center gap-1 text-[10px] text-red-400">
+            <span className="w-2 h-2 rounded-full bg-red-400" /> 逾期 {data.tasks.overdue}
+          </span>
+        </div>
+      </div>
+
+      {/* 月度履约进度条 */}
+      <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
+        <div className="text-gray-400 text-[10px] mb-1.5">月度履约进度</div>
+        <div className="space-y-1">
+          {data.monthlyProgress.map((m, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <span className="text-gray-500 text-[9px] w-6 shrink-0">{m.month}</span>
+              <div className="flex-1 h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${m.progress}%`,
+                    backgroundColor: m.progress > 80 ? "#22d3ee" : m.progress > 60 ? "#34d399" : m.progress > 40 ? "#f59e0b" : "#ef4444",
+                  }}
+                />
+              </div>
+              <span className="text-gray-500 text-[9px] w-6 text-right shrink-0">{m.progress}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 关键里程碑 */}
+      <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
+        <div className="text-gray-400 text-[10px] mb-1.5">关键里程碑</div>
+        <div className="space-y-1.5">
+          {data.keyMilestones.map((m, i) => (
+            <div key={i} className={`flex items-center gap-2 rounded px-2 py-1.5 border ${statusBg[m.status]}`}>
+              <span className={`text-[10px] font-medium ${statusColor[m.status]} w-10 shrink-0`}>{statusLabel[m.status]}</span>
+              <span className="text-gray-300 text-[10px] flex-1 truncate">{m.label}</span>
+              <span className="text-gray-500 text-[9px] shrink-0">{m.deadline}</span>
+              <span className={`text-[10px] font-mono font-bold ${statusColor[m.status]} w-8 text-right shrink-0`}>{m.progress}%</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -527,6 +650,7 @@ export default function LeaderDashboard() {
       <EconomicZonePanel data={economicZoneData} />
       <EmissionSourceRing data={emissionSourceData} viewMode={emissionViewMode} setViewMode={setEmissionViewMode} />
       <RiskWarningPanel data={riskWarnings} />
+      <ComplianceProgressPanel data={complianceProgressData} />
     </div>
   );
 

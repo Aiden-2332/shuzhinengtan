@@ -36,7 +36,7 @@ interface ProjectedBuilding {
 
 const LABEL_VIEWPORT_MARGIN = 140;
 const POPUP_EDGE_GAP = 12;
-const EMISSION_FILL_OPACITY = 0.35;
+const EMISSION_FILL_OPACITY = 0.2;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
@@ -161,7 +161,7 @@ export function CampusBuildingLayer({
             const strokeColor = isSelected
               ? "#00ff33"
               : emissionColor
-                ? emissionColor
+                ? hexToRgba(emissionColor, 0.45)
                 : "transparent";
 
             return (

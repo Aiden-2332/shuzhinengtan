@@ -92,6 +92,54 @@ export const riskWarnings: RiskWarning[] = [
 ];
 
 // ============================================================
+// 年度履约进度
+// ============================================================
+
+export interface ComplianceProgressData {
+  year: number;
+  overallProgress: number; // 0-100
+  quotaProgress: { used: number; total: number; pct: number };
+  tasks: {
+    completed: number;
+    inProgress: number;
+    atRisk: number;
+    overdue: number;
+    total: number;
+  };
+  monthlyProgress: { month: string; progress: number }[];
+  keyMilestones: { label: string; deadline: string; status: "completed" | "on_track" | "at_risk" | "overdue"; progress: number }[];
+}
+
+export const complianceProgressData: ComplianceProgressData = {
+  year: 2026,
+  overallProgress: 68,
+  quotaProgress: { used: 16850, total: 21500, pct: 78 },
+  tasks: { completed: 2, inProgress: 2, atRisk: 1, overdue: 1, total: 6 },
+  monthlyProgress: [
+    { month: "1月", progress: 95 },
+    { month: "2月", progress: 92 },
+    { month: "3月", progress: 88 },
+    { month: "4月", progress: 85 },
+    { month: "5月", progress: 82 },
+    { month: "6月", progress: 78 },
+    { month: "7月", progress: 72 },
+    { month: "8月", progress: 65 },
+    { month: "9月", progress: 55 },
+    { month: "10月", progress: 40 },
+    { month: "11月", progress: 25 },
+    { month: "12月", progress: 10 },
+  ],
+  keyMilestones: [
+    { label: "年度核查准备", deadline: "06-30", status: "completed", progress: 100 },
+    { label: "碳市场账户年检", deadline: "03-31", status: "completed", progress: 100 },
+    { label: "月度数据上报", deadline: "07-31", status: "at_risk", progress: 80 },
+    { label: "CCER抵销备案", deadline: "09-30", status: "on_track", progress: 40 },
+    { label: "配额清缴报告", deadline: "10-31", status: "on_track", progress: 60 },
+    { label: "碳排放年度报告", deadline: "12-31", status: "on_track", progress: 0 },
+  ],
+};
+
+// ============================================================
 // 月度累计趋势 (折线图)
 // ============================================================
 
