@@ -42,6 +42,8 @@ import {
 } from "recharts";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
+import { getCampusMapBuildings } from "@/data/campus-map-buildings";
+import { getEmissionColor, getEmissionLevel } from "@/data/campus-data";
 import {
   getOperationsKPIs,
   getCarbonOverview,
@@ -641,6 +643,19 @@ export default function OperationsDashboardPage() {
   const [selectedYear] = useState("2026");
   const [selectedCampus] = useState("主校区");
 
+  // 建筑碳排放色阶映射
+  const emissionColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const buildings = getCampusMapBuildings("2d");
+    buildings.forEach((b) => {
+      if (b.carbon) {
+        const level = getEmissionLevel(b.carbon.annualEmission);
+        map.set(b.id, getEmissionColor(level));
+      }
+    });
+    return map;
+  }, []);
+
   const kpis = useMemo(() => getOperationsKPIs(), []);
   const carbonOverview = useMemo(() => getCarbonOverview(), []);
   const alerts = useMemo(() => getAlertsData(), []);
@@ -680,7 +695,7 @@ export default function OperationsDashboardPage() {
       centerBottomPanel={centerBottomPanel}
       colorMode="energy"
     >
-      <CampusTileBackground map="2d" tone="operations" />
+      <CampusTileBackground map="2d" tone="operations" emissionColorMap={emissionColorMap} />
     </ThreeColumnLayout>
   );
 }

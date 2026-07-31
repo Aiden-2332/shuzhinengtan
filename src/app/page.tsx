@@ -4,6 +4,8 @@ import { useState, useMemo, useCallback } from "react";
 import { AlertTriangle, TrendingDown, TrendingUp, ShieldAlert } from "lucide-react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
+import { getCampusMapBuildings } from "@/data/campus-map-buildings";
+import { getEmissionColor, getEmissionLevel } from "@/data/campus-data";
 import {
   leaderKPIs,
   economicZoneData,
@@ -507,6 +509,19 @@ function EmissionTop5({ data }: { data: EmissionRankingItem[] }) {
 export default function LeaderDashboard() {
   const [emissionViewMode, setEmissionViewMode] = useState<"total" | "perCapita">("total");
 
+  // 建筑碳排放色阶映射
+  const emissionColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const buildings = getCampusMapBuildings("2_5d");
+    buildings.forEach((b) => {
+      if (b.carbon) {
+        const level = getEmissionLevel(b.carbon.annualEmission);
+        map.set(b.id, getEmissionColor(level));
+      }
+    });
+    return map;
+  }, []);
+
   const leftPanel = (
     <div className="space-y-4 p-3">
       <EconomicZonePanel data={economicZoneData} />
@@ -517,17 +532,16 @@ export default function LeaderDashboard() {
 
   const centerContent = (
     <div className="relative h-full">
-      <CampusTileBackground map="2_5d" tone="leader" />
+      <CampusTileBackground map="2_5d" tone="leader" emissionColorMap={emissionColorMap} />
       {/* 图例 */}
       <div className="absolute bottom-3 left-3 bg-[#0a1e3d]/80 rounded-lg p-2 border border-cyan-500/10">
-        <div className="text-[10px] text-gray-400 mb-1.5">碳排放强度</div>
+        <div className="text-[10px] text-gray-400 mb-1.5">建筑碳排放等级</div>
         <div className="flex items-center gap-1.5">
           {[
-            { color: "#EF4444", label: ">50" },
-            { color: "#F97316", label: "30-50" },
-            { color: "#EAB308", label: "15-30" },
-            { color: "#06B6D4", label: "<15" },
-            { color: "#10B981", label: "负排放" },
+            { color: "#ef4444", label: "超标 ≥850" },
+            { color: "#ff7b25", label: "偏高 650-850" },
+            { color: "#3488ff", label: "中等 400-650" },
+            { color: "#36d968", label: "低碳 <400" },
           ].map((l, i) => (
             <div key={i} className="flex items-center gap-0.5">
               <span className="w-3 h-2 rounded-sm" style={{ backgroundColor: l.color }} />
