@@ -1,20 +1,17 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { AlertTriangle, TrendingDown, TrendingUp, ShieldAlert } from "lucide-react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
-import { getCampusMapBuildings } from "@/data/campus-map-buildings";
-import { getEmissionColor, getEmissionLevel } from "@/data/campus-data";
+import { AutoScrollList } from "@/components/dashboard/auto-scroll-list";
+import type { FloatingPanelSpec } from "@/components/dashboard/floating-glass-panel";
 import {
   leaderKPIs,
   economicZoneData,
   emissionSourceData,
   riskWarnings,
-  complianceProgressData,
-  monthlyTrendData2024,
-  monthlyTrendData2025,
-  monthlyTrendData2026,
+  monthlyTrendData,
   resourceConsumptionData,
   carbonCompositionData,
   energyCompositionData,
@@ -25,7 +22,6 @@ import type {
   EconomicZoneData,
   EmissionSourceItem,
   RiskWarning,
-  ComplianceProgressData,
   MonthlyTrendPoint,
   ResourceConsumptionItem,
   CompositionItem,
@@ -140,12 +136,13 @@ function EmissionSourceRing({ data, viewMode, setViewMode }: {
   // Simple SVG ring chart
   const radius = 60;
   const circumference = 2 * Math.PI * radius;
-  let accumulated = 0;
-  const slices = data.map((d) => {
+  const slices = data.map((d, index) => {
     const pct = d.value / total;
     const dash = pct * circumference;
-    const offset = -accumulated * circumference;
-    accumulated += pct;
+    const previousValue = data
+      .slice(0, index)
+      .reduce((sum, item) => sum + item.value, 0);
+    const offset = -(previousValue / total) * circumference;
     return { ...d, dash, offset, pct };
   });
 
@@ -194,15 +191,19 @@ function EmissionSourceRing({ data, viewMode, setViewMode }: {
             <span className="text-gray-500 text-[10px]">tCO₂</span>
           </div>
         </div>
-        <div className="flex-1 space-y-1.5 min-w-0">
-          {data.map((s, i) => (
-            <div key={i} className="flex items-center gap-2">
+        <AutoScrollList
+          items={data}
+          itemKey={(item) => item.name}
+          className="h-[112px] min-w-0 flex-1"
+          ariaLabel="排放源构成明细"
+          renderItem={(s) => (
+            <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
               <span className="text-gray-400 text-[11px] truncate">{s.name}</span>
               <span className="text-gray-500 text-[11px] ml-auto shrink-0">{s.percentage}%</span>
             </div>
-          ))}
-        </div>
+          )}
+        />
       </div>
     </div>
   );
@@ -218,9 +219,13 @@ function RiskWarningPanel({ data }: { data: RiskWarning[] }) {
         <div className="w-1 h-4 rounded-full bg-red-400" />
         <h3 className="text-white text-sm font-semibold">风险预警</h3>
       </div>
-      <div className="space-y-2">
-        {data.map((w, i) => (
-          <div key={i} className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
+      <AutoScrollList
+        items={data}
+        itemKey={(item) => item.label}
+        className="h-[132px]"
+        ariaLabel="风险预警列表"
+        renderItem={(w) => (
+          <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
             <div className="flex items-center justify-between mb-0.5">
               <span className="text-gray-400 text-[11px]">{w.label}</span>
               <span className={`text-sm font-mono font-bold ${
@@ -229,185 +234,100 @@ function RiskWarningPanel({ data }: { data: RiskWarning[] }) {
             </div>
             <div className="text-[10px] text-gray-600">{w.desc}</div>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </div>
   );
 }
 
 // ============================================================
-// 年度履约进度
+// 月度累计趋势 (可拖动时间轴折线图)
 // ============================================================
-function ComplianceProgressPanel({ data }: { data: ComplianceProgressData }) {
-  const statusColor: Record<string, string> = {
-    completed: "text-green-400",
-    on_track: "text-cyan-400",
-    at_risk: "text-orange-400",
-    overdue: "text-red-400",
-  };
-  const statusBg: Record<string, string> = {
-    completed: "bg-green-500/20 border-green-500/30",
-    on_track: "bg-cyan-500/15 border-cyan-500/20",
-    at_risk: "bg-orange-500/15 border-orange-500/20",
-    overdue: "bg-red-500/15 border-red-500/20",
-  };
-  const statusLabel: Record<string, string> = {
-    completed: "已完成",
-    on_track: "进行中",
-    at_risk: "有风险",
-    overdue: "已逾期",
-  };
+function MonthlyTrendChart({ data }: { data: MonthlyTrendPoint[] }) {
+  const [sliderIndex, setSliderIndex] = useState(data.length - 1);
+  const [selectedYear, setSelectedYear] = useState("2026");
+  const [isDragging, setIsDragging] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
 
-  // 月度进度条 SVG
-  const barH = 8;
-  const barW = 200;
-  const monthBarH = 6;
+  // 根据 sliderIndex 裁剪可见数据
+  const visibleData = useMemo(() => data.slice(0, sliderIndex + 1), [data, sliderIndex]);
+  const currentPoint = data[sliderIndex];
 
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="w-1 h-4 rounded-full bg-cyan-400" />
-        <h3 className="text-white text-sm font-semibold">年度履约进度</h3>
-        <span className="text-gray-500 text-[10px] ml-auto">{data.year}年度</span>
-      </div>
-
-      {/* 总进度 + 配额使用 */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
-          <div className="text-gray-400 text-[10px] mb-1">履约总进度</div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-white text-xl font-mono font-bold">{data.overallProgress}</span>
-            <span className="text-gray-500 text-xs">%</span>
-          </div>
-          <div className="w-full h-1.5 bg-gray-700/50 rounded-full mt-1.5 overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full" style={{ width: `${data.overallProgress}%` }} />
-          </div>
-        </div>
-        <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
-          <div className="text-gray-400 text-[10px] mb-1">配额使用</div>
-          <div className="flex items-baseline gap-1">
-            <span className={`text-xl font-mono font-bold ${data.quotaProgress.pct > 80 ? "text-red-400" : data.quotaProgress.pct > 60 ? "text-orange-400" : "text-green-400"}`}>
-              {data.quotaProgress.pct}
-            </span>
-            <span className="text-gray-500 text-xs">%</span>
-          </div>
-          <div className="text-[10px] text-gray-600 mt-0.5">
-            {data.quotaProgress.used.toLocaleString()} / {data.quotaProgress.total.toLocaleString()} tCO₂
-          </div>
-        </div>
-      </div>
-
-      {/* 任务状态统计 */}
-      <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
-        <div className="text-gray-400 text-[10px] mb-1.5">履约任务 ({data.tasks.total}项)</div>
-        <div className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1 text-[10px] text-green-400">
-            <span className="w-2 h-2 rounded-full bg-green-400" /> 完成 {data.tasks.completed}
-          </span>
-          <span className="flex items-center gap-1 text-[10px] text-cyan-400">
-            <span className="w-2 h-2 rounded-full bg-cyan-400" /> 进行中 {data.tasks.inProgress}
-          </span>
-          <span className="flex items-center gap-1 text-[10px] text-orange-400">
-            <span className="w-2 h-2 rounded-full bg-orange-400" /> 风险 {data.tasks.atRisk}
-          </span>
-          <span className="flex items-center gap-1 text-[10px] text-red-400">
-            <span className="w-2 h-2 rounded-full bg-red-400" /> 逾期 {data.tasks.overdue}
-          </span>
-        </div>
-      </div>
-
-      {/* 月度履约进度条 */}
-      <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
-        <div className="text-gray-400 text-[10px] mb-1.5">月度履约进度</div>
-        <div className="space-y-1">
-          {data.monthlyProgress.map((m, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <span className="text-gray-500 text-[9px] w-6 shrink-0">{m.month}</span>
-              <div className="flex-1 h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${m.progress}%`,
-                    backgroundColor: m.progress > 80 ? "#22d3ee" : m.progress > 60 ? "#34d399" : m.progress > 40 ? "#f59e0b" : "#ef4444",
-                  }}
-                />
-              </div>
-              <span className="text-gray-500 text-[9px] w-6 text-right shrink-0">{m.progress}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 关键里程碑 */}
-      <div className="bg-[#0a1e3d]/60 rounded-lg p-2.5 border border-cyan-500/10">
-        <div className="text-gray-400 text-[10px] mb-1.5">关键里程碑</div>
-        <div className="space-y-1.5">
-          {data.keyMilestones.map((m, i) => (
-            <div key={i} className={`flex items-center gap-2 rounded px-2 py-1.5 border ${statusBg[m.status]}`}>
-              <span className={`text-[10px] font-medium ${statusColor[m.status]} w-10 shrink-0`}>{statusLabel[m.status]}</span>
-              <span className="text-gray-300 text-[10px] flex-1 truncate">{m.label}</span>
-              <span className="text-gray-500 text-[9px] shrink-0">{m.deadline}</span>
-              <span className={`text-[10px] font-mono font-bold ${statusColor[m.status]} w-8 text-right shrink-0`}>{m.progress}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// 月度累计趋势 (三年对比折线图)
-// ============================================================
-function MonthlyTrendChart({
-  data2024,
-  data2025,
-  data2026,
-}: {
-  data2024: MonthlyTrendPoint[];
-  data2025: MonthlyTrendPoint[];
-  data2026: MonthlyTrendPoint[];
-}) {
-  const h = 160;
+  const maxVal = Math.max(...data.map(d => d.target));
+  const h = 140;
   const w = 600;
-  const pad = { top: 10, right: 10, bottom: 24, left: 48 };
+  const pad = { top: 10, right: 10, bottom: 20, left: 45 };
   const chartW = w - pad.left - pad.right;
   const chartH = h - pad.top - pad.bottom;
 
-  // 所有数据中的最大值
-  const allData = [...data2024, ...data2025, ...data2026];
-  const maxVal = Math.max(...allData.map(d => d.actual));
-
-  // X 轴：12 个月
-  const months = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
-
-  const xScale = useCallback((i: number) => pad.left + (i / 11) * chartW, [chartW]);
+  const xScale = useCallback((i: number) => pad.left + (i / (data.length - 1)) * chartW, [chartW]);
   const yScale = useCallback((v: number) => pad.top + chartH - (v / maxVal) * chartH, [chartH, maxVal]);
 
-  // 构建折线路径（仅到有效数据点）
-  const linePath = useCallback((data: MonthlyTrendPoint[]) =>
-    data.map((d, i) => `${i === 0 ? "M" : "L"}${xScale(i)},${yScale(d.actual)}`).join(" "),
-    [xScale, yScale]);
+  const linePath = useCallback((key: "actual" | "target" | "forecast") =>
+    visibleData.map((d, i) => `${i === 0 ? "M" : "L"}${xScale(i)},${yScale(d[key])}`).join(" "),
+    [visibleData, xScale, yScale]);
+
+  // 拖动处理
+  const handlePointerDown = useCallback(() => setIsDragging(true), []);
+  const handlePointerUp = useCallback(() => setIsDragging(false), []);
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging || !sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setSliderIndex(Math.round(ratio * (data.length - 1)));
+  }, [isDragging, data.length]);
+
+  // 全局 pointer 事件（拖出滑块区域也能响应）
+  useEffect(() => {
+    if (!isDragging) return;
+    const onMove = (e: PointerEvent) => {
+      if (!sliderRef.current) return;
+      const rect = sliderRef.current.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      setSliderIndex(Math.round(ratio * (data.length - 1)));
+    };
+    const onUp = () => setIsDragging(false);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [isDragging, data.length]);
 
   return (
-    <div className="space-y-2">
-      {/* 标题 + 图例 */}
+    <div className="space-y-2 select-none">
+      {/* 标题 + 年份选择 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-1 h-4 rounded-full bg-cyan-400" />
           <h3 className="text-white text-sm font-semibold">月度累计趋势</h3>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-[10px] text-gray-400">
-            <span className="w-3 h-0.5 bg-cyan-400 inline-block rounded" /> 2026年
-          </span>
-          <span className="flex items-center gap-1 text-[10px] text-gray-400">
-            <span className="w-3 h-0.5 bg-emerald-400 inline-block rounded" /> 2025年
-          </span>
-          <span className="flex items-center gap-1 text-[10px] text-gray-400">
-            <span className="w-3 h-0.5 bg-orange-400 inline-block rounded" /> 2024年
-          </span>
+        <div className="flex items-center gap-1">
+          {["2024", "2025", "2026"].map(y => (
+            <button
+              key={y}
+              onClick={() => setSelectedYear(y)}
+              className={`px-2 py-0.5 text-[10px] rounded transition-colors ${
+                selectedYear === y ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              {y}年
+            </button>
+          ))}
         </div>
+      </div>
+
+      {/* 图例 + 当前值 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1 text-[10px] text-gray-400"><span className="w-2 h-0.5 bg-cyan-400 inline-block" /> 实际</span>
+          <span className="flex items-center gap-1 text-[10px] text-gray-400"><span className="w-2 h-0.5 bg-gray-500 inline-block" /> 目标</span>
+          <span className="flex items-center gap-1 text-[10px] text-gray-400"><span className="w-2 h-0.5 bg-orange-400 inline-block" /> 预测</span>
+        </div>
+        <span className="text-cyan-400 text-[10px] font-mono">
+          {currentPoint.month} · 累计 {currentPoint.actual.toLocaleString()} tCO₂
+        </span>
       </div>
 
       {/* SVG 折线图 */}
@@ -421,49 +341,63 @@ function MonthlyTrendChart({
             </text>
           </g>
         ))}
-
-        {/* 2024 折线 (全年) */}
-        <path d={linePath(data2024)} fill="none" stroke="#fb923c" strokeWidth="2" opacity="0.7" />
-        {/* 2025 折线 (全年) */}
-        <path d={linePath(data2025)} fill="none" stroke="#34d399" strokeWidth="2" opacity="0.8" />
-        {/* 2026 折线 (仅到7月) */}
-        <path d={linePath(data2026)} fill="none" stroke="#22d3ee" strokeWidth="2.5" />
-
-        {/* 2026 终点标记 */}
-        <circle
-          cx={xScale(data2026.length - 1)}
-          cy={yScale(data2026[data2026.length - 1].actual)}
-          r="4"
-          fill="#22d3ee"
-          stroke="#0a1628"
-          strokeWidth="1.5"
-        />
-
-        {/* 7月截止竖线 */}
-        <line
-          x1={xScale(6)}
-          y1={pad.top}
-          x2={xScale(6)}
-          y2={pad.top + chartH}
-          stroke="#22d3ee"
-          strokeWidth="0.5"
-          strokeDasharray="3 2"
-          opacity="0.4"
-        />
-
+        {/* 当前月份竖线 */}
+        <line x1={xScale(sliderIndex)} y1={pad.top} x2={xScale(sliderIndex)} y2={pad.top + chartH} stroke="#22d3ee" strokeWidth="0.5" strokeDasharray="3 2" opacity="0.6" />
+        {/* Lines */}
+        <path d={linePath("actual")} fill="none" stroke="#22d3ee" strokeWidth="2" />
+        <path d={linePath("target")} fill="none" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 3" />
+        <path d={linePath("forecast")} fill="none" stroke="#fb923c" strokeWidth="1.5" strokeDasharray="3 2" />
+        {/* 当前点标记 */}
+        <circle cx={xScale(sliderIndex)} cy={yScale(currentPoint.actual)} r="3" fill="#22d3ee" stroke="#0a1628" strokeWidth="1.5" />
         {/* Month labels */}
-        {months.map((m, i) => (
-          <text key={i} x={xScale(i)} y={h - 4} textAnchor="middle" fill={i === 6 ? "#22d3ee" : "#475569"} fontSize="8">
-            {m}
+        {data.map((d, i) => (
+          <text key={i} x={xScale(i)} y={h - 4} textAnchor="middle" fill={i === sliderIndex ? "#22d3ee" : "#475569"} fontSize="8">
+            {d.month}
           </text>
         ))}
       </svg>
 
+      {/* 可拖动时间轴 */}
+      <div
+        ref={sliderRef}
+        className="relative h-8 cursor-pointer touch-none"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerMove={handlePointerMove}
+      >
+        {/* 轨道 */}
+        <div className="absolute top-3 left-0 right-0 h-1 bg-gray-700/50 rounded-full" />
+        {/* 已走过部分 */}
+        <div
+          className="absolute top-3 left-0 h-1 bg-cyan-400/60 rounded-full transition-[width] duration-75"
+          style={{ width: `${(sliderIndex / (data.length - 1)) * 100}%` }}
+        />
+        {/* 滑块手柄 */}
+        <div
+          className="absolute top-1 w-4 h-4 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/40 border-2 border-[#0a1628] -translate-x-1/2 cursor-grab active:cursor-grabbing transition-none"
+          style={{ left: `${(sliderIndex / (data.length - 1)) * 100}%` }}
+        />
+        {/* 月份刻度 */}
+        {data.map((d, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => setSliderIndex(i)}
+            className={`absolute top-5 text-[8px] -translate-x-1/2 transition-colors ${
+              i === sliderIndex ? "text-cyan-400 font-semibold" : "text-gray-600 hover:text-gray-400"
+            }`}
+            style={{ left: `${(i / (data.length - 1)) * 100}%` }}
+          >
+            {d.month.replace("月", "")}
+          </button>
+        ))}
+      </div>
+
       {/* 底部数值摘要 */}
       <div className="flex justify-between text-[10px] text-gray-500 px-1">
-        <span className="text-cyan-400">2026 截至7月: {data2026[data2026.length - 1].actual.toLocaleString()} tCO₂</span>
-        <span className="text-emerald-400">2025 全年: {data2025[data2025.length - 1].actual.toLocaleString()} tCO₂</span>
-        <span className="text-orange-400">2024 全年: {data2024[data2024.length - 1].actual.toLocaleString()} tCO₂</span>
+        <span>实际: {currentPoint.actual.toLocaleString()}</span>
+        <span>目标: {currentPoint.target.toLocaleString()}</span>
+        <span>预测: {currentPoint.forecast.toLocaleString()}</span>
       </div>
     </div>
   );
@@ -486,19 +420,23 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
             onClick={() => setViewMode("total")}
             className={`px-2 py-0.5 text-[10px] rounded ${viewMode === "total" ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500"}`}
           >
-            全校资源总消耗
+            总量
           </button>
           <button
             onClick={() => setViewMode("perCapita")}
             className={`px-2 py-0.5 text-[10px] rounded ${viewMode === "perCapita" ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500"}`}
           >
-            生均资源消耗强度
+            人均
           </button>
         </div>
       </div>
-      <div className="space-y-2">
-        {data.map((item, i) => (
-          <div key={i} className="bg-[#0a1e3d]/60 rounded-lg p-3 border border-cyan-500/10">
+      <AutoScrollList
+        items={data}
+        itemKey={(item) => item.label}
+        className="h-[146px]"
+        ariaLabel="资源消耗明细"
+        renderItem={(item) => (
+          <div className="bg-[#0a1e3d]/60 rounded-lg p-3 border border-cyan-500/10">
             <div className="flex items-center justify-between mb-1">
               <span className="text-gray-400 text-xs">{item.label}</span>
               <span className="text-white text-lg font-mono font-bold">
@@ -519,8 +457,8 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
               </span>
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </div>
   );
 }
@@ -529,69 +467,73 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
 // 三类组成环形图
 // ============================================================
 function CompositionRings() {
+  const [activeTab, setActiveTab] = useState<"carbon" | "energy" | "water">("carbon");
   const dataMap: Record<string, CompositionItem[]> = {
     carbon: carbonCompositionData,
     energy: energyCompositionData,
     water: waterCompositionData,
   };
   const labelMap: Record<string, string> = { carbon: "碳排放组成", energy: "能耗组成", water: "水耗组成" };
+  const data = dataMap[activeTab];
+  const total = useMemo(() => data.reduce((s, d) => s + d.value, 0), [data]);
+
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+  const slices = data.map((d, index) => {
+    const pct = d.value / total;
+    const dash = pct * circumference;
+    const previousValue = data
+      .slice(0, index)
+      .reduce((sum, item) => sum + item.value, 0);
+    const offset = -(previousValue / total) * circumference;
+    return { ...d, dash, offset, pct };
+  });
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <div className="w-1 h-4 rounded-full bg-cyan-400" />
-        <h3 className="text-white text-sm font-semibold">组成分析</h3>
+      <div className="flex bg-[#0a1e3d]/60 rounded-md p-0.5 border border-cyan-500/10">
+        {(["carbon", "energy", "water"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 px-2 py-1 text-[10px] rounded ${activeTab === tab ? "bg-cyan-500/20 text-cyan-400" : "text-gray-500"}`}
+          >
+            {labelMap[tab]}
+          </button>
+        ))}
       </div>
-      <div className="space-y-2">
-        {(["carbon", "energy", "water"] as const).map((tab) => {
-          const data = dataMap[tab];
-          const total = data.reduce((s, d) => s + d.value, 0);
-          const radius = 36;
-          const circumference = 2 * Math.PI * radius;
-          let accumulated = 0;
-          const slices = data.map((d) => {
-            const pct = d.value / total;
-            const dash = pct * circumference;
-            const offset = -accumulated * circumference;
-            accumulated += pct;
-            return { ...d, dash, offset, pct };
-          });
-
-          return (
-            <div key={tab} className="bg-[#0a1e3d]/40 rounded-lg p-3 border border-cyan-500/10">
-              <div className="text-[11px] text-cyan-400 text-center mb-2 font-medium">{labelMap[tab]}</div>
-              <div className="flex items-center gap-3">
-                <div className="relative shrink-0">
-                  <svg width="90" height="90" viewBox="0 0 120 120">
-                    <circle cx="60" cy="60" r={radius} fill="none" stroke="#1e293b" strokeWidth="14" />
-                    {slices.map((s, i) => (
-                      <circle
-                        key={i}
-                        cx="60" cy="60" r={radius}
-                        fill="none"
-                        stroke={s.color}
-                        strokeWidth="14"
-                        strokeDasharray={`${s.dash} ${circumference - s.dash}`}
-                        strokeDashoffset={s.offset}
-                        transform="rotate(-90 60 60)"
-                        strokeLinecap="round"
-                      />
-                    ))}
-                  </svg>
-                </div>
-                <div className="flex-1 space-y-1 min-w-0">
-                  {data.map((s, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                      <span className="text-gray-400 text-[11px] truncate">{s.name}</span>
-                      <span className="text-gray-500 text-[11px] ml-auto shrink-0">{s.value}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      <div className="flex items-center gap-3">
+        <div className="relative shrink-0">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r={radius} fill="none" stroke="#1e293b" strokeWidth="12" />
+            {slices.map((s, i) => (
+              <circle
+                key={i}
+                cx="60" cy="60" r={radius}
+                fill="none"
+                stroke={s.color}
+                strokeWidth="12"
+                strokeDasharray={`${s.dash} ${circumference - s.dash}`}
+                strokeDashoffset={s.offset}
+                transform="rotate(-90 60 60)"
+                strokeLinecap="round"
+              />
+            ))}
+          </svg>
+        </div>
+        <AutoScrollList
+          items={data}
+          itemKey={(item) => item.name}
+          className="h-[106px] min-w-0 flex-1"
+          ariaLabel="构成分类明细"
+          renderItem={(s) => (
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+              <span className="text-gray-400 text-[10px] truncate">{s.name}</span>
+              <span className="text-gray-500 text-[10px] ml-auto shrink-0">{s.value}%</span>
             </div>
-          );
-        })}
+          )}
+        />
       </div>
     </div>
   );
@@ -608,8 +550,12 @@ function EmissionTop5({ data }: { data: EmissionRankingItem[] }) {
         <div className="w-1 h-4 rounded-full bg-orange-400" />
         <h3 className="text-white text-sm font-semibold">排放 TOP 5</h3>
       </div>
-      <div className="space-y-2">
-        {data.map((item, i) => (
+      <AutoScrollList
+        items={data}
+        itemKey={(item) => item.name}
+        className="h-[118px]"
+        ariaLabel="排放排名"
+        renderItem={(item, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className={`text-xs font-mono w-4 shrink-0 ${i < 3 ? "text-orange-400" : "text-gray-500"}`}>{i + 1}</span>
             <span className="text-gray-300 text-xs truncate flex-1 min-w-0">{item.name}</span>
@@ -621,8 +567,8 @@ function EmissionTop5({ data }: { data: EmissionRankingItem[] }) {
             </div>
             <span className="text-white text-xs font-mono shrink-0">{item.value.toLocaleString()} <span className="text-gray-500">{item.unit}</span></span>
           </div>
-        ))}
-      </div>
+        )}
+      />
     </div>
   );
 }
@@ -633,44 +579,29 @@ function EmissionTop5({ data }: { data: EmissionRankingItem[] }) {
 export default function LeaderDashboard() {
   const [emissionViewMode, setEmissionViewMode] = useState<"total" | "perCapita">("total");
 
-  // 建筑碳排放色阶映射
-  const emissionColorMap = useMemo(() => {
-    const map = new Map<string, string>();
-    const buildings = getCampusMapBuildings("2_5d");
-    buildings.forEach((b) => {
-      if (b.carbon) {
-        const level = getEmissionLevel(b.carbon.annualEmission);
-        map.set(b.id, getEmissionColor(level));
-      }
-    });
-    return map;
-  }, []);
-
-  const leftPanel = (
-    <div className="space-y-4 p-3">
-      <EconomicZonePanel data={economicZoneData} />
-      <EmissionSourceRing data={emissionSourceData} viewMode={emissionViewMode} setViewMode={setEmissionViewMode} />
-      <RiskWarningPanel data={riskWarnings} />
-      <ComplianceProgressPanel data={complianceProgressData} />
-    </div>
-  );
+  const leftPanels: FloatingPanelSpec[] = [
+    { id: "economic-zone", label: "经济控制分区", priority: "critical", content: <EconomicZonePanel data={economicZoneData} /> },
+    { id: "emission-source", label: "排放源构成", content: <EmissionSourceRing data={emissionSourceData} viewMode={emissionViewMode} setViewMode={setEmissionViewMode} /> },
+    { id: "risk-warning", label: "风险预警", priority: "critical", content: <RiskWarningPanel data={riskWarnings} /> },
+  ];
 
   const centerContent = (
     <div className="relative h-full">
-      <CampusTileBackground map="2_5d" tone="leader" emissionColorMap={emissionColorMap} />
-      {/* 色阶图例 */}
-      <div className="absolute bottom-3 left-3 bg-[#0a1e3d]/90 rounded-lg px-2.5 py-2 border border-cyan-500/20 shadow-lg">
-        <div className="text-[10px] text-gray-300 font-medium mb-1.5">建筑碳排放等级</div>
-        <div className="flex items-center gap-2">
+      <CampusTileBackground map="2_5d" />
+      {/* 图例 */}
+      <div className="map-legend-glass absolute bottom-3 rounded-lg p-2">
+        <div className="text-[10px] text-gray-400 mb-1.5">碳排放强度</div>
+        <div className="flex items-center gap-1.5">
           {[
-            { color: "#ef4444", label: "超标 ≥850" },
-            { color: "#ff7b25", label: "偏高 650-850" },
-            { color: "#3488ff", label: "中等 400-650" },
-            { color: "#36d968", label: "低碳 <400" },
+            { color: "#EF4444", label: ">50" },
+            { color: "#F97316", label: "30-50" },
+            { color: "#EAB308", label: "15-30" },
+            { color: "#06B6D4", label: "<15" },
+            { color: "#10B981", label: "负排放" },
           ].map((l, i) => (
-            <div key={i} className="flex items-center gap-1">
-              <span className="w-3.5 h-2.5 rounded-sm" style={{ backgroundColor: l.color }} />
-              <span className="text-[10px] text-gray-400">{l.label}</span>
+            <div key={i} className="flex items-center gap-0.5">
+              <span className="w-3 h-2 rounded-sm" style={{ backgroundColor: l.color }} />
+              <span className="text-[9px] text-gray-500">{l.label}</span>
             </div>
           ))}
         </div>
@@ -680,23 +611,23 @@ export default function LeaderDashboard() {
 
   const centerBottomPanel = (
     <div className="p-3">
-      <MonthlyTrendChart data2024={monthlyTrendData2024} data2025={monthlyTrendData2025} data2026={monthlyTrendData2026} />
+      <MonthlyTrendChart data={monthlyTrendData} />
     </div>
   );
 
-  const rightPanel = (
-    <div className="space-y-4 p-3">
-      <ResourceAnalysisPanel data={resourceConsumptionData} />
-      <CompositionRings />
-    </div>
-  );
+  const rightPanels: FloatingPanelSpec[] = [
+    { id: "resource-analysis", label: "资源消耗分析", priority: "critical", content: <ResourceAnalysisPanel data={resourceConsumptionData} /> },
+    { id: "composition", label: "分类构成", priority: "secondary", content: <CompositionRings /> },
+    { id: "emission-top", label: "排放 TOP 5", content: <EmissionTop5 data={emissionRankingData} /> },
+  ];
 
   return (
     <ThreeColumnLayout
       level="L1"
-      leftPanel={leftPanel}
-      rightPanel={rightPanel}
+      leftPanels={leftPanels}
+      rightPanels={rightPanels}
       centerBottomPanel={centerBottomPanel}
+      centerBottomLabel="月度累计趋势"
       colorMode="carbon"
     >
       {centerContent}

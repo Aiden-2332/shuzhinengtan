@@ -1,60 +1,72 @@
-"""合规碳排放报告 - FastAPI 后端服务
+"""FastAPI 后端服务 - 合规碳排放报告生成
 
-API 端点：
-- GET  /api/report/health           — 健康检查
+提供 5 个 API 端点：
+- POST /api/report/generate      — 生成 Word/PDF 报告
+- POST /api/report/preview       — HTML 预览
 - GET  /api/report/emission-factors — 查询排放因子
-- POST /api/report/validate         — 数据校验
-- POST /api/report/preview          — HTML 预览
-- POST /api/report/generate         — 生成报告（Word）
+- POST /api/report/validate      — 数据校验
+- GET  /api/report/health        — 健康检查
 """
+
+from __future__ import annotations
 
 import io
 import json
+import logging
+import os
+import sys
+import traceback
+import uuid
+from pathlib import Path
 from typing import Optional
-from urllib.parse import quote
 
-from fastapi import FastAPI, HTTPException, Query
+# 添加当前目录到 sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 
+from report_engine import (
+    calculate_emissions,
+    build_emission_summary,
+    generate_report,
+    generate_html_preview,
+    get_emission_factors,
+    validate_report_data,
+)
 from schemas import (
+    EmissionFactor,
+    EmissionFactorQuery,
     EnterpriseInfo,
     ActivityData,
-    EmissionSource,
-    EmissionFactor,
-    EmissionCalculation,
-    EmissionSummary,
-    EnergyType,
+    ReportFormat,
     ReportGenerateRequest,
     ReportGenerateResponse,
     ReportPreviewRequest,
     ReportPreviewResponse,
     ValidateRequest,
-    ValidateResponse,
     ValidationResult,
-    EmissionFactorsResponse,
-    HealthResponse,
-)
-from report_engine import (
-    calculate_emissions,
-    build_emission_summary,
-    generate_html_preview,
-    generate_report,
-    get_emission_factors,
-    validate_report_data,
 )
 
+# ============================================================
+# 配置
+# ============================================================
 
-# ============================================================
-# FastAPI 应用
-# ============================================================
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger("report-api")
+
+REPORT_PORT = int(os.environ.get("REPORT_PORT", "8001"))
+REPORT_DIR = Path(__file__).resolve().parent / "generated"
+REPORT_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(
     title="合规碳排放报告生成服务",
     description="遵循 DB11/T 1785-2020《二氧化碳排放核算和报告要求 服务业》附录C",
-    version="2.0.0",
+    version="1.0.0",
 )
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -68,148 +80,152 @@ app.add_middleware(
 # 辅助函数
 # ============================================================
 
-def _build_factor_dict(factors: list[EmissionFactor]) -> dict[str, float]:
-    """将排放因子列表转换为 {energy_type_value: factor_value} 字典"""
-    return {f.energy_type.value: f.factor_value for f in factors}
+def _load_mock_data() -> dict:
+    """加载测试数据"""
+    mock_path = Path(__file__).resolve().parent / "mock_report_data.json"
+    if not mock_path.exists():
+        raise FileNotFoundError(f"测试数据文件不存在: {mock_path}")
+    with open(mock_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
-def _activity_to_emission_sources(
-    activity_data: list[ActivityData],
-    calcs: list[EmissionCalculation],
-) -> list[EmissionSource]:
-    """从活动水平数据和计算结果生成排放源列表"""
-    return [
-        EmissionSource(
-            source_id=a.source_id,
-            source_name=a.source_name,
-            energy_type=a.energy_type,
-            scope="scope2" if a.energy_type == EnergyType.ELECTRICITY else "scope1",
-            unit=a.unit,
-        )
-        for a, c in zip(activity_data, calcs)
-    ]
+def _dict_to_enterprise(data: dict) -> EnterpriseInfo:
+    """将 dict 转换为 EnterpriseInfo"""
+    return EnterpriseInfo(**data)
 
 
-def _make_emission_summary(raw: dict) -> EmissionSummary:
-    """将 report_engine 返回的 dict 转为 EmissionSummary"""
-    return EmissionSummary(
-        total_emission=raw.get("total", 0),
-        scope1_emission=raw.get("scope1", 0),
-        scope2_emission=raw.get("scope2", 0),
-    )
+def _dict_to_activity_data(data: list[dict]) -> list[ActivityData]:
+    """将 dict 列表转换为 ActivityData 列表"""
+    return [ActivityData(**item) for item in data]
+
+
+def _dict_to_emission_factors(data: list[dict]) -> list[EmissionFactor]:
+    """将 dict 列表转换为 EmissionFactor 列表"""
+    return [EmissionFactor(**item) for item in data]
 
 
 # ============================================================
 # API 端点
 # ============================================================
 
-@app.get("/api/report/health", response_model=HealthResponse)
+@app.get("/api/report/health")
 async def health_check():
-    return HealthResponse(
-        status="ok",
-        service="合规碳排放报告生成服务",
-        version="2.0.0",
-    )
+    """健康检查"""
+    return {"status": "ok", "service": "合规碳排放报告生成服务", "version": "1.0.0"}
 
 
-@app.get("/api/report/emission-factors", response_model=EmissionFactorsResponse)
-async def get_factors():
-    factors = get_emission_factors()
-    return EmissionFactorsResponse(
-        factors=factors,
-        last_updated="2024-12-31",
-        authority="北京市生态环境局",
-    )
-
-
-@app.post("/api/report/validate", response_model=ValidateResponse)
-async def validate(request: ValidateRequest):
+@app.get("/api/report/emission-factors", response_model=EmissionFactorQuery)
+async def query_emission_factors():
+    """查询默认排放因子"""
     try:
-        data = request.model_dump()
-        result = validate_report_data(data)
-        return ValidateResponse(
-            is_valid=result.get("is_valid", True),
-            errors=[],
-            warnings=result.get("warnings", []),
-            suggestions=result.get("suggestions", []),
-        )
+        return get_emission_factors()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"数据校验失败: {str(e)}")
+        logger.error(f"查询排放因子失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/report/validate", response_model=ValidationResult)
+async def validate_data(request: ValidateRequest):
+    """数据校验"""
+    try:
+        return validate_report_data(request.enterprise, request.activity_data)
+    except Exception as e:
+        logger.error(f"数据校验失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/report/preview", response_model=ReportPreviewResponse)
-async def preview(request: ReportPreviewRequest):
+async def preview_report(request: ReportPreviewRequest):
+    """HTML 预览"""
     try:
-        # 转换数据
-        enterprise = EnterpriseInfo(**request.enterprise.model_dump())
-        activity = [ActivityData(**a.model_dump()) for a in request.activity_data]
-        sources = request.emission_sources or _activity_to_emission_sources(activity, [])
-        factor_dict = _build_factor_dict(request.emission_factors) if request.emission_factors else None
-
-        # 计算排放
-        calcs = calculate_emissions(activity, factor_dict)
-        summary_raw = build_emission_summary(calcs)
-
-        # 若用户未传 emission_sources，根据计算结果补充
-        if not request.emission_sources:
-            sources = _activity_to_emission_sources(activity, calcs)
-
-        # 生成 HTML
+        calculations = calculate_emissions(request.activity_data, request.emission_factors)
+        summary = build_emission_summary(request.enterprise, calculations)
         html = generate_html_preview(
-            enterprise, activity, sources, calcs, summary_raw,
-            request.report_number,
+            request.enterprise, calculations, summary,
+            request.activity_data, request.emission_factors,
         )
-
-        return ReportPreviewResponse(
-            success=True,
-            html=html,
-            summary=_make_emission_summary(summary_raw),
-            calculations=[c.model_dump() for c in calcs],
-        )
+        return ReportPreviewResponse(success=True, html=html, summary=summary, message="预览生成成功")
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"预览生成失败: {str(e)}")
+        logger.error(f"预览生成失败: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/report/generate")
-async def generate(
-    request: ReportGenerateRequest,
-    format: str = Query("word", description="输出格式: word"),
-):
+@app.post("/api/report/generate", response_model=ReportGenerateResponse)
+async def generate_report_endpoint(request: ReportGenerateRequest):
+    """生成 Word/PDF 报告"""
     try:
-        # 转换数据
-        enterprise = EnterpriseInfo(**request.enterprise.model_dump())
-        activity = [ActivityData(**a.model_dump()) for a in request.activity_data]
-        sources = request.emission_sources or _activity_to_emission_sources(activity, [])
-        factor_dict = _build_factor_dict(request.emission_factors) if request.emission_factors else None
-
-        # 计算排放
-        calcs = calculate_emissions(activity, factor_dict)
-        summary_raw = build_emission_summary(calcs)
-
-        if not request.emission_sources:
-            sources = _activity_to_emission_sources(activity, calcs)
-
-        # 生成报告
-        report_bytes = generate_report(
-            enterprise, activity, sources, calcs, summary_raw,
-            request.report_number,
+        report_id = f"RPT-{uuid.uuid4().hex[:8].upper()}"
+        file_bytes, html_preview, summary = generate_report(
+            request.enterprise,
+            request.activity_data,
+            request.emission_factors,
+            request.report_format,
+            request.include_html_preview,
         )
 
-        filename = f"碳排放报告_{enterprise.name}_{enterprise.reporting_year}.docx"
-        encoded_filename = quote(filename)
-        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        # 保存文件
+        ext = "docx" if request.report_format == ReportFormat.WORD else "pdf"
+        filename = f"{report_id}.{ext}"
+        filepath = REPORT_DIR / filename
+        with open(filepath, "wb") as f:
+            f.write(file_bytes)
 
-        return StreamingResponse(
-            io.BytesIO(report_bytes.getvalue() if hasattr(report_bytes, 'getvalue') else report_bytes),
-            media_type=media_type,
-            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"},
+        logger.info(f"报告生成成功: {filename} ({len(file_bytes):,} bytes)")
+
+        return ReportGenerateResponse(
+            success=True,
+            report_id=report_id,
+            format=request.report_format,
+            file_size_bytes=len(file_bytes),
+            download_url=f"/api/report/download/{filename}",
+            html_preview=html_preview,
+            summary=summary,
+            message="报告生成成功",
         )
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"报告生成失败: {str(e)}")
+        logger.error(f"报告生成失败: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/report/download/{filename}")
+async def download_report(filename: str):
+    """下载生成的报告文件"""
+    filepath = REPORT_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="文件不存在或已过期")
+
+    media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    if filename.endswith(".pdf"):
+        media_type = "application/pdf"
+
+    return FileResponse(
+        path=str(filepath),
+        filename=filename,
+        media_type=media_type,
+    )
+
+
+@app.post("/api/report/test")
+async def test_with_mock_data():
+    """使用测试数据快速生成报告"""
+    try:
+        data = _load_mock_data()
+        enterprise = _dict_to_enterprise(data["enterprise"])
+        activity_data = _dict_to_activity_data(data["activity_data"])
+        emission_factors = _dict_to_emission_factors(data["emission_factors"])
+
+        request = ReportGenerateRequest(
+            enterprise=enterprise,
+            activity_data=activity_data,
+            emission_factors=emission_factors,
+            report_format=ReportFormat.WORD,
+            include_html_preview=True,
+        )
+
+        return await generate_report_endpoint(request)
+    except Exception as e:
+        logger.error(f"测试报告生成失败: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================
@@ -218,7 +234,5 @@ async def generate(
 
 if __name__ == "__main__":
     import uvicorn
-    import logging
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-    logging.getLogger("report_engine").info("启动合规碳排放报告生成服务，端口: 8001")
-    uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")
+    logger.info(f"启动合规碳排放报告生成服务，端口: {REPORT_PORT}")
+    uvicorn.run(app, host="0.0.0.0", port=REPORT_PORT, log_level="info")

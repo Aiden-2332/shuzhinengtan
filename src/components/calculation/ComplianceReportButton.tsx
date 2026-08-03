@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { FileText, Download, Loader2, CheckCircle, AlertCircle, FileDown, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,108 +14,43 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 // ============================================================
-// API 请求类型（匹配后端 schemas.py）
+// Types
 // ============================================================
 
-interface EnterpriseData {
-  name: string;
-  unified_code: string;
-  address: string;
-  legal_representative: string;
-  contact_person: string;
-  contact_phone: string;
-  industry_category: string;
-  reporting_year: number;
-  reporting_period?: string;
-  campus_area?: number;
-  student_count?: number;
-  staff_count?: number;
-}
-
-interface ActivityItem {
-  source_id: string;
-  source_name: string;
-  energy_type: string;
-  activity_value: number;
-  unit: string;
-  data_source: string;
-  meter_id?: string | null;
-}
-
-interface EmissionSourceItem {
-  source_id: string;
-  source_name: string;
-  energy_type: string;
+interface ReportConfig {
+  reportName: string;
+  period: string;
+  format: "pdf" | "word";
+  chapters: string[];
+  standard: string;
   scope: string;
-  unit: string;
 }
 
-interface EmissionFactorItem {
-  source_id: string;
-  energy_type: string;
-  factor_name: string;
-  factor_value: number;
-  factor_unit: string;
-  factor_source: string;
-  oxidation_rate?: number;
-}
-
-interface ReportPreviewResponse {
+interface GenerateResponse {
   success: boolean;
-  html: string;
-  summary?: {
-    total_emission: number;
-    scope1_emission: number;
-    scope2_emission: number;
-  };
+  file_id?: string;
+  file_name?: string;
+  download_url?: string;
   message?: string;
 }
 
-// ============================================================
-// Mock 数据（与后端 mock_report_data.json 一致）
-// ============================================================
+interface PreviewResponse {
+  success: boolean;
+  html?: string;
+  message?: string;
+}
 
-const MOCK_ENTERPRISE: EnterpriseData = {
-  name: "北京科技大学",
-  unified_code: "91110108400012345X",
-  address: "北京市海淀区学院路30号",
-  legal_representative: "杨仁树",
-  contact_person: "张能源",
-  contact_phone: "010-62331234",
-  industry_category: "高等教育（服务业）",
-  reporting_year: 2026,
-  reporting_period: "1月1日-12月31日",
-  campus_area: 80.5,
-  student_count: 28000,
-  staff_count: 3500,
-};
-
-const MOCK_ACTIVITY_DATA: ActivityItem[] = [
-  { source_id: "C-01", source_name: "外购电力", energy_type: "electricity", activity_value: 26450, unit: "MWh", data_source: "电力公司结算单", meter_id: "EM-001~EM-035" },
-  { source_id: "C-02", source_name: "天然气（锅炉）", energy_type: "natural_gas", activity_value: 180.5, unit: "万Nm³", data_source: "燃气公司结算单", meter_id: "GM-001~GM-003" },
-  { source_id: "C-03", source_name: "外购热力", energy_type: "heat", activity_value: 85000, unit: "GJ", data_source: "热力公司结算单", meter_id: "HM-001~HM-002" },
-  { source_id: "C-04", source_name: "公务车汽油", energy_type: "gasoline", activity_value: 15.2, unit: "t", data_source: "加油记录台账", meter_id: null },
-  { source_id: "C-05", source_name: "公务车柴油", energy_type: "diesel", activity_value: 3.8, unit: "t", data_source: "加油记录台账", meter_id: null },
-];
-
-const MOCK_EMISSION_SOURCES: EmissionSourceItem[] = [
-  { source_id: "C-01", source_name: "外购电力", energy_type: "electricity", scope: "scope2", unit: "MWh" },
-  { source_id: "C-02", source_name: "天然气（锅炉）", energy_type: "natural_gas", scope: "scope1", unit: "万Nm³" },
-  { source_id: "C-03", source_name: "外购热力", energy_type: "heat", scope: "scope2", unit: "GJ" },
-  { source_id: "C-04", source_name: "公务车汽油", energy_type: "gasoline", scope: "scope1", unit: "t" },
-  { source_id: "C-05", source_name: "公务车柴油", energy_type: "diesel", scope: "scope1", unit: "t" },
-];
-
-const MOCK_EMISSION_FACTORS: EmissionFactorItem[] = [
-  { source_id: "C-01", energy_type: "electricity", factor_name: "电力排放因子", factor_value: 0.604, factor_unit: "tCO₂/MWh", factor_source: "北京市生态环境局 2024年度", oxidation_rate: 1.0 },
-  { source_id: "C-02", energy_type: "natural_gas", factor_name: "天然气排放因子", factor_value: 2.1622, factor_unit: "tCO₂/万Nm³", factor_source: "DB11/T 1785-2020 附录B", oxidation_rate: 0.99 },
-  { source_id: "C-03", energy_type: "heat", factor_name: "热力排放因子", factor_value: 0.11, factor_unit: "tCO₂/GJ", factor_source: "DB11/T 1785-2020 附录B", oxidation_rate: 1.0 },
-  { source_id: "C-04", energy_type: "gasoline", factor_name: "汽油排放因子", factor_value: 2.9251, factor_unit: "tCO₂/t", factor_source: "DB11/T 1785-2020 附录B", oxidation_rate: 0.98 },
-  { source_id: "C-05", energy_type: "diesel", factor_name: "柴油排放因子", factor_value: 3.0959, factor_unit: "tCO₂/t", factor_source: "DB11/T 1785-2020 附录B", oxidation_rate: 0.98 },
-];
+interface EmissionFactor {
+  code: string;
+  name: string;
+  value: number;
+  unit: string;
+  source: string;
+}
 
 // ============================================================
 // Constants
@@ -123,26 +58,49 @@ const MOCK_EMISSION_FACTORS: EmissionFactorItem[] = [
 
 const API_BASE = "/api/report";
 
+const REPORT_CHAPTERS = [
+  { id: "basic", label: "第一章 企业基本情况", default: true },
+  { id: "emission", label: "第二章 二氧化碳排放", default: true },
+  { id: "activity", label: "第三章 活动水平数据", default: true },
+  { id: "factor", label: "第四章 排放因子数据", default: true },
+  { id: "declaration", label: "真实性声明", default: true },
+];
+
+const REPORT_TABLES = [
+  "表C.1 企业基本信息",
+  "表C.2 排放源识别",
+  "表C.3 化石燃料燃烧排放量",
+  "表C.4 电力消耗排放量",
+  "表C.5 热力消耗排放量",
+  "表C.6 排放量汇总",
+  "表C.7 化石燃料活动水平",
+  "表C.8 电力活动水平",
+  "表C.9 热力活动水平",
+  "表C.10 化石燃料排放因子",
+  "表C.11 电力排放因子",
+  "表C.12 热力排放因子",
+  "表C.13 不确定性分析",
+  "表C.14 数据质量控制",
+  "表C.15 真实性声明",
+];
+
 // ============================================================
 // Sub-components
 // ============================================================
 
-function StepIndicator({ step, current, errorStep }: { step: number; current: number; errorStep: boolean }) {
-  const isCompleted = step < current;
-  const isActive = step === current;
-  const isError = errorStep && isActive;
-
+function StepIndicator({ step, current }: { step: number; current: number }) {
   return (
     <div
       className={cn(
         "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors",
-        isCompleted && "bg-emerald-500 text-white",
-        isError && "bg-red-500 text-white",
-        isActive && !isError && "bg-blue-500 text-white",
-        !isCompleted && !isActive && "bg-white/5 text-slate-500 border border-white/10"
+        step < current
+          ? "bg-emerald-500 text-white"
+          : step === current
+            ? "bg-blue-500 text-white"
+            : "bg-white/5 text-slate-500 border border-white/10"
       )}
     >
-      {isCompleted ? <CheckCircle className="w-4 h-4" /> : step}
+      {step < current ? <CheckCircle className="w-4 h-4" /> : step}
     </div>
   );
 }
@@ -155,206 +113,218 @@ export function ComplianceReportButton() {
   // Dialog state
   const [open, setOpen] = useState(false);
 
-  // Step tracking: 1=config, 2=generating, 3=complete
-  const [step, setStep] = useState(1);
+  // Step tracking: 0=config, 1=generating, 2=complete, 3=error
+  const [step, setStep] = useState(0);
 
   // Config
-  const [reportNumber, setReportNumber] = useState("BJUST-2026-001");
-  const [outputFormat, setOutputFormat] = useState<"word" | "pdf">("word");
+  const [config, setConfig] = useState<ReportConfig>({
+    reportName: "碳排放核查报告",
+    period: "2026",
+    format: "pdf",
+    chapters: ["basic", "emission", "activity", "factor", "declaration"],
+    standard: "DB11/T 1785-2020",
+    scope: "主校区",
+  });
 
   // Generation state
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-
-  // ============================================================
-  // Build request body
-  // ============================================================
-
-  const requestBody = useMemo(() => ({
-    enterprise: MOCK_ENTERPRISE,
-    activity_data: MOCK_ACTIVITY_DATA,
-    emission_sources: MOCK_EMISSION_SOURCES,
-    emission_factors: MOCK_EMISSION_FACTORS,
-    report_number: reportNumber,
-    report_format: outputFormat,
-  }), [reportNumber, outputFormat]);
+  const [emissionFactors, setEmissionFactors] = useState<EmissionFactor[]>([]);
+  const [showFactors, setShowFactors] = useState(false);
 
   // ============================================================
   // API Calls
   // ============================================================
 
   const generateReport = useCallback(async () => {
-    setStep(2);
+    setStep(1);
     setGenerating(true);
     setProgress(0);
     setError(null);
-    setDownloadUrl(null);
+    setResult(null);
 
     // Simulate progress
     const progressTimer = setInterval(() => {
-      setProgress((p) => Math.min(p + Math.random() * 12, 85));
-    }, 400);
+      setProgress((p) => Math.min(p + Math.random() * 15, 90));
+    }, 500);
 
     try {
-      const response = await fetch(`${API_BASE}/generate?format=${outputFormat}`, {
+      const response = await fetch(`${API_BASE}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          report_name: config.reportName,
+          period: config.period,
+          format: config.format,
+          standard: config.standard,
+          scope: config.scope,
+          chapters: config.chapters,
+        }),
       });
 
       clearInterval(progressTimer);
 
       if (!response.ok) {
-        let errMsg = `服务器错误 (HTTP ${response.status})`;
-        try {
-          const errData = await response.json();
-          errMsg = typeof errData.detail === "string"
-            ? errData.detail
-            : JSON.stringify(errData.detail || errData.message || errData);
-        } catch { /* ignore parse errors */ }
-        throw new Error(errMsg);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || errData.message || `HTTP ${response.status}`);
       }
 
-      // For file download, get as blob
-      const contentType = response.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        const data = await response.json();
-        if (data.success && data.download_url) {
-          setDownloadUrl(data.download_url);
-        }
-      } else {
-        // Direct file download
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        setDownloadUrl(url);
-        const ext = outputFormat === "pdf" ? "pdf" : "docx";
+      const data: GenerateResponse = await response.json();
+      setProgress(100);
+      setResult(data);
+      setStep(2);
+
+      // Auto-download if URL provided
+      if (data.download_url) {
         const link = document.createElement("a");
-        link.href = url;
-        link.download = `碳排放报告_${MOCK_ENTERPRISE.name}_${MOCK_ENTERPRISE.reporting_year}.${ext}`;
+        link.href = data.download_url;
+        link.download = data.file_name || `碳排放核查报告.${config.format === "pdf" ? "pdf" : "docx"}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       }
-
-      setProgress(100);
-      setStep(3);
     } catch (err) {
       clearInterval(progressTimer);
       const message = err instanceof Error ? err.message : "报告生成失败";
       setError(message);
+      setStep(3);
     } finally {
       setGenerating(false);
     }
-  }, [requestBody, outputFormat]);
+  }, [config]);
 
   const previewReport = useCallback(async () => {
-    setPreviewLoading(true);
-    setError(null);
     try {
       const response = await fetch(`${API_BASE}/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          enterprise: requestBody.enterprise,
-          activity_data: requestBody.activity_data,
-          emission_sources: requestBody.emission_sources,
-          emission_factors: requestBody.emission_factors,
-          report_number: requestBody.report_number,
+          report_name: config.reportName,
+          period: config.period,
+          standard: config.standard,
+          scope: config.scope,
         }),
       });
 
-      if (!response.ok) {
-        let errMsg = `预览失败 (HTTP ${response.status})`;
-        try {
-          const errData = await response.json();
-          errMsg = typeof errData.detail === "string"
-            ? errData.detail
-            : JSON.stringify(errData);
-        } catch { /* ignore */ }
-        throw new Error(errMsg);
-      }
-
-      const data: ReportPreviewResponse = await response.json();
+      if (!response.ok) throw new Error("预览失败");
+      const data: PreviewResponse = await response.json();
       if (data.html) {
         setPreviewHtml(data.html);
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "预览生成失败";
-      setError(message);
-    } finally {
-      setPreviewLoading(false);
+    } catch {
+      setError("预览生成失败");
     }
-  }, [requestBody]);
+  }, [config]);
 
-  const handleReset = useCallback(() => {
-    setStep(1);
-    setProgress(0);
-    setError(null);
-    setPreviewHtml(null);
-    setDownloadUrl(null);
+  const fetchEmissionFactors = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/emission-factors`);
+      if (!response.ok) throw new Error("查询失败");
+      const data = await response.json();
+      setEmissionFactors(data.factors || []);
+      setShowFactors(true);
+    } catch {
+      setError("排放因子查询失败");
+    }
   }, []);
 
   const handleDownload = useCallback(() => {
-    if (downloadUrl) {
-      const ext = outputFormat === "pdf" ? "pdf" : "docx";
+    if (result?.download_url) {
       const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `碳排放报告_${MOCK_ENTERPRISE.name}_${MOCK_ENTERPRISE.reporting_year}.${ext}`;
+      link.href = result.download_url;
+      link.download = result.file_name || `碳排放核查报告.${config.format === "pdf" ? "pdf" : "docx"}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
-  }, [downloadUrl, outputFormat]);
+  }, [result, config.format]);
+
+  const handleReset = useCallback(() => {
+    setStep(0);
+    setProgress(0);
+    setResult(null);
+    setError(null);
+    setPreviewHtml(null);
+  }, []);
 
   // ============================================================
-  // Render: Step 1 - Configuration
+  // Render: Step 0 - Configuration
   // ============================================================
 
   const renderConfig = () => (
-    <div className="space-y-5">
-      {/* Report Number */}
+    <div className="space-y-6">
+      {/* Report Name */}
       <div className="space-y-2">
-        <Label className="text-sm text-slate-300">报告编号</Label>
+        <Label className="text-sm text-slate-300">报告名称</Label>
         <input
           type="text"
-          value={reportNumber}
-          onChange={(e) => setReportNumber(e.target.value)}
+          value={config.reportName}
+          onChange={(e) => setConfig({ ...config, reportName: e.target.value })}
           className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-colors"
-          placeholder="输入报告编号"
+          placeholder="输入报告名称"
         />
+      </div>
+
+      {/* Period & Scope */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-sm text-slate-300">报告年度</Label>
+          <select
+            value={config.period}
+            onChange={(e) => setConfig({ ...config, period: e.target.value })}
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          >
+            <option value="2026">2026 年</option>
+            <option value="2025">2025 年</option>
+            <option value="2024">2024 年</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-sm text-slate-300">核算范围</Label>
+          <select
+            value={config.scope}
+            onChange={(e) => setConfig({ ...config, scope: e.target.value })}
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          >
+            <option value="主校区">主校区</option>
+            <option value="东校区">东校区</option>
+            <option value="全校区">全校区</option>
+          </select>
+        </div>
       </div>
 
       {/* Output Format */}
       <div className="space-y-2">
         <Label className="text-sm text-slate-300">输出格式</Label>
         <RadioGroup
-          value={outputFormat}
-          onValueChange={(v) => setOutputFormat(v as "word" | "pdf")}
+          value={config.format}
+          onValueChange={(v) => setConfig({ ...config, format: v as "pdf" | "word" })}
           className="flex gap-4"
         >
           <label className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border border-white/10 hover:border-blue-500/30 transition-colors has-[:checked]:border-blue-500/50 has-[:checked]:bg-blue-500/5">
-            <RadioGroupItem value="word" id="fmt-word" />
-            <span className="text-sm text-slate-300">Word (.docx)</span>
+            <RadioGroupItem value="pdf" id="format-pdf" />
+            <span className="text-sm text-slate-300">PDF 格式</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border border-white/10 hover:border-blue-500/30 transition-colors has-[:checked]:border-blue-500/50 has-[:checked]:bg-blue-500/5">
-            <RadioGroupItem value="pdf" id="fmt-pdf" />
-            <span className="text-sm text-slate-300">PDF</span>
+            <RadioGroupItem value="word" id="format-word" />
+            <span className="text-sm text-slate-300">Word 格式</span>
           </label>
         </RadioGroup>
       </div>
 
       {/* Standard Info */}
-      <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10 space-y-1">
-        <div className="flex items-center gap-2">
+      <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+        <div className="flex items-center gap-2 mb-2">
           <FileText className="w-4 h-4 text-blue-400" />
           <span className="text-sm font-medium text-blue-300">遵循标准</span>
         </div>
-        <p className="text-xs text-slate-400">DB11/T 1785-2020《二氧化碳排放核算和报告要求 服务业》附录C</p>
-        <p className="text-xs text-slate-500">电力排放因子：0.604 tCO₂/MWh | 数据来源：北京科技大学（Demo）</p>
+        <p className="text-xs text-slate-400">
+          {config.standard}《二氧化碳排放核算和报告要求 服务业》附录C
+        </p>
+        <p className="text-xs text-slate-500 mt-1">电力排放因子：0.604 tCO₂/MWh</p>
       </div>
 
       {/* Action Buttons */}
@@ -363,11 +333,18 @@ export function ComplianceReportButton() {
           variant="outline"
           size="sm"
           onClick={previewReport}
-          disabled={previewLoading}
           className="flex-1 border-white/10 text-slate-300 hover:text-white hover:border-white/20"
         >
-          {previewLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
+          <Eye className="w-4 h-4 mr-2" />
           预览
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchEmissionFactors}
+          className="border-white/10 text-slate-300 hover:text-white hover:border-white/20"
+        >
+          查看排放因子
         </Button>
         <Button
           onClick={generateReport}
@@ -381,16 +358,16 @@ export function ComplianceReportButton() {
   );
 
   // ============================================================
-  // Render: Step 2 - Generating
+  // Render: Step 1 - Generating
   // ============================================================
 
   const renderGenerating = () => (
-    <div className="py-6 space-y-6">
+    <div className="py-8 space-y-6">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
-        <h3 className="text-base font-semibold text-white">正在生成合规报告</h3>
-        <p className="text-xs text-slate-400">
-          遵循 DB11/T 1785-2020 标准，生成{outputFormat === "pdf" ? "PDF" : "Word"}格式报告
+        <Loader2 className="w-12 h-12 text-blue-400 animate-spin" />
+        <h3 className="text-lg font-semibold text-white">正在生成合规报告</h3>
+        <p className="text-sm text-slate-400">
+          遵循 {config.standard} 标准，生成{config.format === "pdf" ? "PDF" : "Word"}格式报告
         </p>
       </div>
 
@@ -401,22 +378,39 @@ export function ComplianceReportButton() {
         </div>
         <Progress value={progress} className="h-2" />
       </div>
+
+      <div className="space-y-1.5">
+        {REPORT_TABLES.slice(0, 5).map((table, i) => (
+          <div key={table} className="flex items-center gap-2 text-xs">
+            {progress > i * 20 ? (
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            ) : progress > (i - 1) * 20 ? (
+              <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin shrink-0" />
+            ) : (
+              <div className="w-3.5 h-3.5 rounded-full border border-white/10 shrink-0" />
+            )}
+            <span className={progress > i * 20 ? "text-emerald-400" : "text-slate-500"}>
+              {table}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
   // ============================================================
-  // Render: Step 3 - Complete
+  // Render: Step 2 - Complete
   // ============================================================
 
   const renderComplete = () => (
     <div className="py-6 space-y-6">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center">
-          <CheckCircle className="w-7 h-7 text-emerald-400" />
+        <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+          <CheckCircle className="w-8 h-8 text-emerald-400" />
         </div>
-        <h3 className="text-base font-semibold text-white">报告生成完成</h3>
-        <p className="text-xs text-slate-400">
-          {`碳排放报告_${MOCK_ENTERPRISE.name}_${MOCK_ENTERPRISE.reporting_year}.${outputFormat === "pdf" ? "pdf" : "docx"}`}
+        <h3 className="text-lg font-semibold text-white">报告生成完成</h3>
+        <p className="text-sm text-slate-400">
+          {result?.file_name || `碳排放核查报告.${config.format === "pdf" ? "pdf" : "docx"}`}
         </p>
       </div>
 
@@ -440,17 +434,17 @@ export function ComplianceReportButton() {
   );
 
   // ============================================================
-  // Render: Error
+  // Render: Step 3 - Error
   // ============================================================
 
   const renderError = () => (
     <div className="py-6 space-y-6">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center">
-          <AlertCircle className="w-7 h-7 text-red-400" />
+        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-red-400" />
         </div>
-        <h3 className="text-base font-semibold text-white">报告生成失败</h3>
-        <p className="text-sm text-red-400 text-center max-w-xs break-words">{error}</p>
+        <h3 className="text-lg font-semibold text-white">报告生成失败</h3>
+        <p className="text-sm text-red-400">{error}</p>
       </div>
 
       <div className="flex gap-3">
@@ -465,8 +459,50 @@ export function ComplianceReportButton() {
           onClick={generateReport}
           className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
         >
+          <Loader2 className="w-4 h-4 mr-2" />
           重试
         </Button>
+      </div>
+    </div>
+  );
+
+  // ============================================================
+  // Render: Emission Factors View
+  // ============================================================
+
+  const renderEmissionFactors = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white">排放因子参考</h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowFactors(false)}
+          className="text-xs text-slate-400 hover:text-white"
+        >
+          返回
+        </Button>
+      </div>
+      <div className="space-y-2 max-h-60 overflow-y-auto">
+        {emissionFactors.length > 0 ? (
+          emissionFactors.map((factor) => (
+            <div
+              key={factor.code}
+              className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/[0.04]"
+            >
+              <div>
+                <span className="text-xs font-medium text-slate-300">{factor.name}</span>
+                <span className="text-[10px] text-slate-500 ml-2">{factor.code}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-mono font-bold text-blue-400">{factor.value}</span>
+                <span className="text-[10px] text-slate-500 ml-1">{factor.unit}</span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-xs text-slate-500 text-center py-4">暂无排放因子数据</p>
+        )}
       </div>
     </div>
   );
@@ -476,7 +512,7 @@ export function ComplianceReportButton() {
   // ============================================================
 
   const renderPreview = () => (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">报告预览</h3>
         <Button
@@ -489,7 +525,7 @@ export function ComplianceReportButton() {
         </Button>
       </div>
       <div
-        className="max-h-[60vh] overflow-y-auto rounded-lg border border-white/10 bg-white p-4"
+        className="max-h-96 overflow-y-auto rounded-lg border border-white/10 bg-white/[0.02] p-4"
         dangerouslySetInnerHTML={{ __html: previewHtml || "<p class='text-slate-400 text-sm'>暂无预览内容</p>" }}
       />
     </div>
@@ -512,38 +548,40 @@ export function ComplianceReportButton() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[500px] bg-[#0B1120] border-white/10 text-white">
+      <DialogContent className="sm:max-w-[520px] bg-[#0B1120] border-white/10 text-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <FileText className="w-5 h-5 text-blue-400" />
             碳排放合规报告生成
           </DialogTitle>
           <DialogDescription className="text-slate-400">
-            遵循 DB11/T 1785-2020 标准，生成符合规范的碳排放核查报告
+            遵循 {config.standard} 标准，生成符合规范的碳排放核查报告
           </DialogDescription>
         </DialogHeader>
 
         {/* Step Indicators */}
         <div className="flex items-center justify-center gap-2 py-2">
-          <StepIndicator step={1} current={step} errorStep={!!error && step === 2} />
+          <StepIndicator step={1} current={step} />
+          <div className={cn("w-8 h-0.5", step > 0 ? "bg-emerald-500" : "bg-white/10")} />
+          <StepIndicator step={2} current={step} />
           <div className={cn("w-8 h-0.5", step > 1 ? "bg-emerald-500" : "bg-white/10")} />
-          <StepIndicator step={2} current={step} errorStep={!!error && step === 2} />
-          <div className={cn("w-8 h-0.5", step > 2 ? "bg-emerald-500" : "bg-white/10")} />
-          <StepIndicator step={3} current={step} errorStep={false} />
+          <StepIndicator step={3} current={step} />
         </div>
         <div className="flex justify-center gap-8 text-[10px] text-slate-500 mb-2">
-          <span className={step >= 1 ? "text-blue-400" : ""}>配置</span>
-          <span className={step >= 2 ? (error ? "text-red-400" : "text-blue-400") : ""}>生成</span>
-          <span className={step === 3 ? "text-emerald-400" : ""}>完成</span>
+          <span className={step >= 0 ? "text-blue-400" : ""}>配置</span>
+          <span className={step >= 1 ? (step === 3 ? "text-red-400" : "text-blue-400") : ""}>生成</span>
+          <span className={step === 2 ? "text-emerald-400" : ""}>完成</span>
         </div>
 
-        {/* Content */}
-        {previewHtml ? renderPreview() : (
+        {/* Content by Step */}
+        {showFactors && renderEmissionFactors()}
+        {previewHtml && !showFactors && renderPreview()}
+        {!showFactors && !previewHtml && (
           <>
-            {error && renderError()}
-            {!error && step === 1 && renderConfig()}
-            {!error && step === 2 && renderGenerating()}
-            {!error && step === 3 && renderComplete()}
+            {step === 0 && renderConfig()}
+            {step === 1 && renderGenerating()}
+            {step === 2 && renderComplete()}
+            {step === 3 && renderError()}
           </>
         )}
       </DialogContent>
