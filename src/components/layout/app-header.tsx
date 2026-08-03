@@ -25,6 +25,8 @@ import {
   Grid3X3,
 } from "lucide-react";
 import { AllDevices, type AlarmRecord } from "@/data/energy-monitor-data";
+import { ThemeSwitcher, type CockpitTheme } from "./theme-switcher";
+import { NavAtmosphere } from "./nav-atmosphere";
 
 // 驾驶舱路由列表
 const COCKPIT_ROUTES = ["/", "/operations"];
@@ -32,9 +34,11 @@ const COCKPIT_ROUTES = ["/", "/operations"];
 interface AppHeaderProps {
   sidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
+  theme: CockpitTheme;
+  onThemeChange: (theme: CockpitTheme) => void;
 }
 
-export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHeaderProps) {
+export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, onThemeChange }: AppHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [year, setYear] = useState("2026");
@@ -166,9 +170,10 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
   ];
 
   return (
-    <header className="h-14 bg-slate-900/95 backdrop-blur-xl border-b border-cyan-500/20 flex items-center justify-between px-4 relative z-50">
+    <header className="app-header relative z-50 flex h-14 items-center justify-between gap-2 px-4">
+      <NavAtmosphere theme={theme} />
       {/* Left Section */}
-      <div className="flex items-center gap-3">
+      <div className="relative z-10 flex shrink-0 items-center gap-3">
         {/* Sidebar Toggle (非驾驶舱时显示) */}
         {!isCockpit && (
           <button
@@ -206,15 +211,17 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
             return (
               <button
                 key={btn.key}
+                aria-label={btn.label}
+                title={btn.label}
                 onClick={() => router.push(btn.href)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all duration-200 text-xs font-medium ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 max-[1500px]:px-2 rounded-lg border transition-all duration-200 text-xs font-medium ${
                   isActive
                     ? "bg-cyan-500/20 border-cyan-500/60 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
                     : "bg-slate-800/40 border-gray-700/50 text-gray-400 hover:bg-slate-700/40 hover:border-gray-600 hover:text-gray-300"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
-                <span>{btn.label}</span>
+                <span className="max-[1500px]:hidden">{btn.label}</span>
               </button>
             );
           })}
@@ -222,11 +229,13 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
           {/* 目录页入口（驾驶舱内显示） */}
           {isCockpit && (
             <button
+              aria-label="功能目录"
+              title="功能目录"
               onClick={() => router.push("/portal")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700/50 bg-slate-800/40 text-gray-400 hover:bg-slate-700/40 hover:text-gray-300 transition-all duration-200 text-xs font-medium"
+              className="flex items-center gap-1.5 px-3 py-1.5 max-[1500px]:px-2 rounded-lg border border-gray-700/50 bg-slate-800/40 text-gray-400 hover:bg-slate-700/40 hover:text-gray-300 transition-all duration-200 text-xs font-medium"
             >
               <Grid3X3 className="w-3.5 h-3.5" />
-              <span>功能目录</span>
+              <span className="max-[1500px]:hidden">功能目录</span>
             </button>
           )}
         </div>
@@ -275,8 +284,17 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar }: AppHead
         )}
       </div>
 
+      {/* The active cockpit map owns this slot through a React portal. Keeping
+          controls here prevents search and layer switches from covering map content. */}
+      <div
+        id="campus-map-header-toolbar"
+        aria-label="地图顶部工具栏"
+        className={isCockpit ? "relative z-10 mx-1 flex min-w-0 flex-1 items-center justify-center" : "hidden"}
+      />
+
       {/* Right Section */}
-      <div className="flex items-center gap-3">
+      <div className="relative z-10 flex shrink-0 items-center gap-3">
+        <ThemeSwitcher value={theme} onChange={onThemeChange} />
         {/* Notifications - Alarm Center */}
         <div className="relative" ref={alarmRef}>
           <button
