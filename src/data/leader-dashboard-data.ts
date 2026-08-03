@@ -92,6 +92,54 @@ export const riskWarnings: RiskWarning[] = [
 ];
 
 // ============================================================
+// 年度履约进度
+// ============================================================
+
+export interface ComplianceProgressData {
+  year: number;
+  overallProgress: number; // 0-100
+  quotaProgress: { used: number; total: number; pct: number };
+  tasks: {
+    completed: number;
+    inProgress: number;
+    atRisk: number;
+    overdue: number;
+    total: number;
+  };
+  monthlyProgress: { month: string; progress: number }[];
+  keyMilestones: { label: string; deadline: string; status: "completed" | "on_track" | "at_risk" | "overdue"; progress: number }[];
+}
+
+export const complianceProgressData: ComplianceProgressData = {
+  year: 2026,
+  overallProgress: 68,
+  quotaProgress: { used: 16850, total: 21500, pct: 78 },
+  tasks: { completed: 2, inProgress: 2, atRisk: 1, overdue: 1, total: 6 },
+  monthlyProgress: [
+    { month: "1月", progress: 95 },
+    { month: "2月", progress: 92 },
+    { month: "3月", progress: 88 },
+    { month: "4月", progress: 85 },
+    { month: "5月", progress: 82 },
+    { month: "6月", progress: 78 },
+    { month: "7月", progress: 72 },
+    { month: "8月", progress: 65 },
+    { month: "9月", progress: 55 },
+    { month: "10月", progress: 40 },
+    { month: "11月", progress: 25 },
+    { month: "12月", progress: 10 },
+  ],
+  keyMilestones: [
+    { label: "年度核查准备", deadline: "06-30", status: "completed", progress: 100 },
+    { label: "碳市场账户年检", deadline: "03-31", status: "completed", progress: 100 },
+    { label: "月度数据上报", deadline: "07-31", status: "at_risk", progress: 80 },
+    { label: "CCER抵销备案", deadline: "09-30", status: "on_track", progress: 40 },
+    { label: "配额清缴报告", deadline: "10-31", status: "on_track", progress: 60 },
+    { label: "碳排放年度报告", deadline: "12-31", status: "on_track", progress: 0 },
+  ],
+};
+
+// ============================================================
 // 月度累计趋势 (折线图)
 // ============================================================
 
@@ -102,19 +150,46 @@ export interface MonthlyTrendPoint {
   forecast: number;
 }
 
-export const monthlyTrendData: MonthlyTrendPoint[] = [
-  { month: "1月", actual: 1420, target: 1550, forecast: 1380 },
-  { month: "2月", actual: 2180, target: 2400, forecast: 2100 },
-  { month: "3月", actual: 3020, target: 3300, forecast: 2950 },
-  { month: "4月", actual: 3980, target: 4300, forecast: 3850 },
-  { month: "5月", actual: 5120, target: 5500, forecast: 4980 },
-  { month: "6月", actual: 6480, target: 6900, forecast: 6250 },
-  { month: "7月", actual: 7850, target: 8300, forecast: 7580 },
-  { month: "8月", actual: 8980, target: 9500, forecast: 8650 },
-  { month: "9月", actual: 10200, target: 10800, forecast: 9850 },
-  { month: "10月", actual: 11350, target: 12000, forecast: 10900 },
-  { month: "11月", actual: 12080, target: 12800, forecast: 11500 },
-  { month: "12月", actual: 12680, target: 14200, forecast: 11800 },
+// 三年月度累计数据：2024/2025 全年，2026 仅到 7 月
+// 逐年递减体现碳减排成效，2024 最高，2026 最低
+export const monthlyTrendData2024: MonthlyTrendPoint[] = [
+  { month: "1月", actual: 1680, target: 1800, forecast: 1650 },
+  { month: "2月", actual: 2600, target: 2800, forecast: 2550 },
+  { month: "3月", actual: 3750, target: 4000, forecast: 3680 },
+  { month: "4月", actual: 5050, target: 5400, forecast: 4950 },
+  { month: "5月", actual: 6550, target: 7000, forecast: 6420 },
+  { month: "6月", actual: 8280, target: 8800, forecast: 8100 },
+  { month: "7月", actual: 10020, target: 10600, forecast: 9780 },
+  { month: "8月", actual: 11550, target: 12200, forecast: 11280 },
+  { month: "9月", actual: 12980, target: 13600, forecast: 12650 },
+  { month: "10月", actual: 14300, target: 15000, forecast: 13900 },
+  { month: "11月", actual: 15450, target: 16200, forecast: 15000 },
+  { month: "12月", actual: 16420, target: 17200, forecast: 15900 },
+];
+
+export const monthlyTrendData2025: MonthlyTrendPoint[] = [
+  { month: "1月", actual: 1480, target: 1600, forecast: 1450 },
+  { month: "2月", actual: 2300, target: 2500, forecast: 2250 },
+  { month: "3月", actual: 3280, target: 3500, forecast: 3200 },
+  { month: "4月", actual: 4420, target: 4700, forecast: 4320 },
+  { month: "5月", actual: 5750, target: 6100, forecast: 5620 },
+  { month: "6月", actual: 7280, target: 7700, forecast: 7100 },
+  { month: "7月", actual: 8850, target: 9300, forecast: 8620 },
+  { month: "8月", actual: 10180, target: 10700, forecast: 9920 },
+  { month: "9月", actual: 11500, target: 12000, forecast: 11200 },
+  { month: "10月", actual: 12650, target: 13200, forecast: 12300 },
+  { month: "11月", actual: 13680, target: 14300, forecast: 13300 },
+  { month: "12月", actual: 14580, target: 15200, forecast: 14100 },
+];
+
+export const monthlyTrendData2026: MonthlyTrendPoint[] = [
+  { month: "1月", actual: 1280, target: 1400, forecast: 1250 },
+  { month: "2月", actual: 2000, target: 2200, forecast: 1950 },
+  { month: "3月", actual: 2820, target: 3050, forecast: 2750 },
+  { month: "4月", actual: 3780, target: 4050, forecast: 3680 },
+  { month: "5月", actual: 4920, target: 5250, forecast: 4800 },
+  { month: "6月", actual: 6280, target: 6650, forecast: 6100 },
+  { month: "7月", actual: 7650, target: 8050, forecast: 7420 },
 ];
 
 // ============================================================

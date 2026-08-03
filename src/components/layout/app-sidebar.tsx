@@ -23,7 +23,6 @@ import {
   ChevronRight,
   Stethoscope,
   ShieldCheck,
-  GitBranch,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -47,16 +46,6 @@ const navigation = [
         bgActive: "bg-emerald-500/15",
         borderActive: "border-emerald-500/30",
         desc: "实时监控",
-      },
-      {
-        name: "能源流向分析",
-        href: "/energy-flow",
-        icon: GitBranch,
-        color: "text-blue-400",
-        bgHover: "hover:bg-blue-500/10",
-        bgActive: "bg-blue-500/15",
-        borderActive: "border-blue-500/30",
-        desc: "流向与平衡",
       },
       {
         name: "能源诊断",
