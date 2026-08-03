@@ -7,68 +7,27 @@ import {
   useMemo,
   useState,
 } from "react";
-import {
-  BedDouble,
-  Building2,
-  Coffee,
-  FlaskConical,
-  GraduationCap,
-  Landmark,
-  Leaf,
-  Search,
-  Tags,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { Building2, Leaf, Search, Tags, X } from "lucide-react";
 
-import {
-  getCampusBuildingLayer,
-  type CampusLayerFilter,
-  type CampusMapBuilding,
-} from "@/data/campus-map-buildings";
-
-export const CAMPUS_MAP_HEADER_SLOT_ID = "campus-map-header-toolbar";
+import type { CampusMapBuilding } from "@/data/campus-map-buildings";
 
 export interface CampusMapOverlayControlsProps {
   buildings: CampusMapBuilding[];
   selectedBuildingId: string | null;
   showLabels: boolean;
-  activeLayer: CampusLayerFilter;
   onShowLabelsChange: (show: boolean) => void;
-  onLayerChange: (layer: CampusLayerFilter) => void;
   onBuildingSelect: (id: string) => void;
 }
 
-interface LayerOption {
-  value: CampusLayerFilter;
-  label: string;
-  icon: LucideIcon;
-}
-
-const LAYER_OPTIONS: LayerOption[] = [
-  { value: "all", label: "全部", icon: Landmark },
-  { value: "teaching", label: "教学", icon: GraduationCap },
-  { value: "dormitory", label: "宿舍", icon: BedDouble },
-  { value: "laboratory", label: "实验", icon: FlaskConical },
-  { value: "services", label: "生活服务", icon: Coffee },
-];
-
 function stopMapInteraction(event: SyntheticEvent): void {
   event.stopPropagation();
-}
-
-function getLayerIcon(building: CampusMapBuilding): LucideIcon {
-  const layer = getCampusBuildingLayer(building);
-  return LAYER_OPTIONS.find((option) => option.value === layer)?.icon ?? Building2;
 }
 
 export function CampusMapOverlayControls({
   buildings,
   selectedBuildingId,
   showLabels,
-  activeLayer,
   onShowLabelsChange,
-  onLayerChange,
   onBuildingSelect,
 }: CampusMapOverlayControlsProps) {
   const resultsId = useId();
@@ -83,29 +42,19 @@ export function CampusMapOverlayControls({
       .filter((building) => {
         const name = building.name.toLocaleLowerCase("zh-CN");
         const category = building.category.toLocaleLowerCase("zh-CN");
-        return name.includes(normalizedQuery) || category.includes(normalizedQuery);
+        return (
+          name.includes(normalizedQuery) ||
+          category.includes(normalizedQuery)
+        );
       })
       .slice(0, 12);
   }, [buildings, normalizedQuery]);
 
   const selectedBuilding = useMemo(
-    () => buildings.find((building) => building.id === selectedBuildingId) ?? null,
+    () =>
+      buildings.find((building) => building.id === selectedBuildingId) ?? null,
     [buildings, selectedBuildingId],
   );
-
-  const layerCounts = useMemo(() => {
-    const counts: Record<CampusLayerFilter, number> = {
-      all: buildings.length,
-      teaching: 0,
-      dormitory: 0,
-      laboratory: 0,
-      services: 0,
-    };
-    buildings.forEach((building) => {
-      counts[getCampusBuildingLayer(building)] += 1;
-    });
-    return counts;
-  }, [buildings]);
 
   const selectBuilding = (building: CampusMapBuilding): void => {
     setQuery(building.name);
@@ -133,181 +82,146 @@ export function CampusMapOverlayControls({
 
   return (
     <section
-      aria-label="建筑搜索与标签图层"
+      aria-label="建筑搜索与标签开关"
       onPointerDown={stopMapInteraction}
       onClick={stopMapInteraction}
       onDoubleClick={stopMapInteraction}
       onWheel={stopMapInteraction}
-      className="flex h-10 w-full min-w-0 items-center gap-1.5 rounded-[11px] border border-white/10 bg-white/[0.045] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_8px_24px_rgba(2,12,24,.24)] backdrop-blur-xl"
+      className="w-[min(360px,calc(100vw-88px))] rounded-lg border border-cyan-300/20 bg-[rgba(7,21,47,.9)] p-2.5 shadow-[0_12px_32px_rgba(0,0,0,.28)] backdrop-blur-md"
     >
-      <div className="relative min-w-[180px] max-w-[260px] flex-[1_1_230px]">
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-primary)] drop-shadow-[0_0_7px_rgba(var(--theme-primary-rgb),.72)]"
-        />
-        <input
-          type="search"
-          value={query}
-          placeholder="搜索建筑或类型"
-          aria-label="搜索建筑名称并查看碳数据"
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={showResults}
-          aria-controls={showResults ? resultsId : undefined}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setIsResultsOpen(true);
-          }}
-          onFocus={() => {
-            if (normalizedQuery) setIsResultsOpen(true);
-          }}
-          onKeyDown={handleSearchKeyDown}
-          className="h-8 w-full appearance-none rounded-lg border border-white/10 bg-slate-950/45 pl-8 pr-8 text-xs font-medium text-white outline-none transition-[border-color,box-shadow,background-color] placeholder:text-white/32 hover:bg-slate-950/60 focus:border-[rgba(var(--theme-primary-rgb),.58)] focus:bg-slate-950/75 focus:shadow-[0_0_0_3px_rgba(var(--theme-primary-rgb),.12),0_0_14px_rgba(var(--theme-primary-rgb),.15)] [&::-webkit-search-cancel-button]:hidden"
-        />
-        {query ? (
-          <button
-            type="button"
-            aria-label="清除建筑搜索"
-            onClick={() => {
-              setQuery("");
-              setIsResultsOpen(false);
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cyan-100/50"
+          />
+          <input
+            type="search"
+            value={query}
+            placeholder="搜索建筑名称并查看碳数据"
+            aria-label="搜索建筑名称并查看碳数据"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={showResults}
+            aria-controls={showResults ? resultsId : undefined}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setIsResultsOpen(true);
             }}
-            className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]"
-          >
-            <X aria-hidden="true" className="h-3 w-3" />
-          </button>
-        ) : null}
+            onFocus={() => {
+              if (normalizedQuery) setIsResultsOpen(true);
+            }}
+            onKeyDown={handleSearchKeyDown}
+            className="h-9 w-full appearance-none rounded-md border border-white/15 bg-white/[0.06] pl-9 pr-8 text-xs text-white outline-none transition-colors placeholder:text-white/35 focus:border-cyan-300/50 focus:ring-1 focus:ring-cyan-300/30 [&::-webkit-search-cancel-button]:hidden"
+          />
+          {query ? (
+            <button
+              type="button"
+              aria-label="清除建筑搜索"
+              onClick={() => {
+                setQuery("");
+                setIsResultsOpen(false);
+              }}
+              className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-white/45 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80"
+            >
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
 
-        {showResults ? (
-          <div
-            id={resultsId}
-            role="listbox"
-            aria-label="建筑搜索结果"
-            className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-72 overflow-y-auto rounded-xl border border-[rgba(var(--theme-primary-rgb),.25)] bg-[color-mix(in_srgb,var(--theme-surface-strong)_96%,black)] py-1.5 shadow-[0_18px_45px_rgba(0,0,0,.45),0_0_24px_rgba(var(--theme-primary-rgb),.10)] backdrop-blur-xl"
-          >
-            {filteredBuildings.length > 0 ? (
-              filteredBuildings.map((building) => {
-                const ResultIcon = getLayerIcon(building);
-                return (
+          {showResults ? (
+            <div
+              id={resultsId}
+              role="listbox"
+              aria-label="建筑搜索结果"
+              className="absolute left-0 right-0 top-[42px] z-50 max-h-60 overflow-y-auto rounded-md border border-cyan-300/20 bg-[#07152f]/98 py-1 shadow-xl backdrop-blur-md"
+            >
+              {filteredBuildings.length > 0 ? (
+                filteredBuildings.map((building) => (
                   <button
                     key={building.id}
                     type="button"
                     role="option"
                     aria-selected={building.id === selectedBuildingId}
                     onClick={() => selectBuilding(building)}
-                    className="group flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[rgba(var(--theme-primary-rgb),.13)] focus:bg-[rgba(var(--theme-primary-rgb),.13)] focus:outline-none"
+                    className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-[#3366ff]/25 focus:bg-[#3366ff]/25 focus:outline-none"
                   >
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[rgba(var(--theme-primary-rgb),.20)] bg-[rgba(var(--theme-primary-rgb),.10)] text-[var(--theme-primary)] transition-shadow group-hover:shadow-[0_0_14px_rgba(var(--theme-primary-rgb),.28)]">
-                        <ResultIcon aria-hidden="true" className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="truncate text-xs font-semibold text-white/90">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Building2
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5 shrink-0 text-cyan-200/55"
+                      />
+                      <span className="truncate text-xs text-white/90">
                         {building.name}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[10px] text-white/38">
+                    <span className="shrink-0 text-[11px] text-cyan-100/45">
                       {building.category}
                     </span>
                   </button>
-                );
-              })
-            ) : (
-              <p className="px-3 py-5 text-center text-xs text-white/40">
-                未找到匹配建筑
-              </p>
-            )}
-          </div>
-        ) : null}
-      </div>
+                ))
+              ) : (
+                <p className="px-3 py-3 text-center text-xs text-white/40">
+                  未找到匹配建筑
+                </p>
+              )}
+            </div>
+          ) : null}
+        </div>
 
-      <div
-        role="radiogroup"
-        aria-label="建筑分类图层"
-        className="flex min-w-0 flex-[2_1_auto] items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {LAYER_OPTIONS.map((option) => {
-          const Icon = option.icon;
-          const isActive = activeLayer === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={isActive}
-              title={`${option.label}（${layerCounts[option.value]}）`}
-              onClick={() => onLayerChange(option.value)}
-              className={`group relative flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-200 active:scale-[.97] focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
-                isActive
-                  ? "border-[rgba(var(--theme-primary-rgb),.58)] bg-[rgba(var(--theme-primary-rgb),.18)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_0_16px_rgba(var(--theme-primary-rgb),.22)]"
-                  : "border-transparent bg-transparent text-white/48 hover:border-white/10 hover:bg-white/[0.07] hover:text-white/85"
-              }`}
-            >
-              <span
-                aria-hidden="true"
-                className={`h-1.5 w-1.5 rounded-full transition-[background-color,box-shadow] ${
-                  isActive
-                    ? "bg-[var(--theme-primary)] shadow-[0_0_9px_2px_rgba(var(--theme-primary-rgb),.65)]"
-                    : "bg-white/25 group-hover:bg-white/55"
-                }`}
-              />
-              <Icon
-                aria-hidden="true"
-                className={`h-3.5 w-3.5 ${
-                  isActive
-                    ? "text-[var(--theme-primary)] drop-shadow-[0_0_6px_rgba(var(--theme-primary-rgb),.72)]"
-                    : "text-white/40 group-hover:text-white/75"
-                }`}
-              />
-              <span>{option.label}</span>
-            </button>
-          );
-        })}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showLabels}
+          aria-label="显示建筑标签"
+          title={showLabels ? "隐藏建筑标签" : "显示建筑标签"}
+          onClick={() => onShowLabelsChange(!showLabels)}
+          className={`flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 ${
+            showLabels
+              ? "border-[#5d83ff] bg-[#3366ff] text-white"
+              : "border-white/15 bg-white/[0.06] text-white/55"
+          }`}
+        >
+          <Tags aria-hidden="true" className="h-3.5 w-3.5" />
+          <span>标签</span>
+        </button>
       </div>
 
       {selectedBuilding ? (
-        <div
-          title={
-            selectedBuilding.carbon
-              ? `${selectedBuilding.name} · ${selectedBuilding.carbon.annualEmission} tCO₂/年`
-              : `${selectedBuilding.name} · 暂无碳数据`
-          }
-          className="hidden max-w-[170px] shrink-0 items-center gap-1.5 border-l border-white/10 pl-2 2xl:flex"
-        >
-          <Leaf className="h-3.5 w-3.5 shrink-0 text-emerald-300 drop-shadow-[0_0_6px_rgba(110,231,183,.55)]" />
-          <span className="truncate text-[11px] font-semibold text-white/80">
-            {selectedBuilding.name}
-          </span>
-          {selectedBuilding.carbon ? (
-            <span className="shrink-0 font-mono text-[10px] text-emerald-200/75">
-              {selectedBuilding.carbon.annualEmission}t
-            </span>
-          ) : null}
+        <div className="mt-2 flex items-center gap-2 rounded-md border border-emerald-300/15 bg-emerald-300/[0.06] px-2.5 py-2">
+          <Leaf
+            aria-hidden="true"
+            className="h-4 w-4 shrink-0 text-emerald-300"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="truncate text-xs font-medium text-white">
+                {selectedBuilding.name}
+              </span>
+              <span className="shrink-0 text-[10px] text-white/35">
+                {selectedBuilding.carbon?.sourceLabel ?? "未接入"}
+              </span>
+            </div>
+            {selectedBuilding.carbon ? (
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-white/60">
+                <span>
+                  年碳排放{" "}
+                  <strong className="font-semibold text-emerald-200">
+                    {selectedBuilding.carbon.annualEmission} tCO₂
+                  </strong>
+                </span>
+                <span>
+                  单位面积能耗{" "}
+                  <strong className="font-semibold text-cyan-100">
+                    {selectedBuilding.carbon.energyIntensity} kWh/m²·月
+                  </strong>
+                </span>
+              </div>
+            ) : (
+              <p className="mt-0.5 text-[11px] text-white/45">暂无碳数据</p>
+            )}
+          </div>
         </div>
       ) : null}
-
-      <button
-        type="button"
-        role="switch"
-        aria-checked={showLabels}
-        aria-label="显示建筑标签"
-        title={showLabels ? "隐藏建筑标签" : "显示建筑标签"}
-        onClick={() => onShowLabelsChange(!showLabels)}
-        className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-semibold outline-none transition-[color,background-color,border-color,box-shadow,transform] active:scale-[.97] focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
-          showLabels
-            ? "border-[rgba(var(--theme-primary-rgb),.52)] bg-[rgba(var(--theme-primary-rgb),.16)] text-white shadow-[0_0_14px_rgba(var(--theme-primary-rgb),.18)]"
-            : "border-white/10 bg-white/[0.04] text-white/45"
-        }`}
-      >
-        <Tags
-          aria-hidden="true"
-          className={`h-3.5 w-3.5 ${
-            showLabels
-              ? "text-[var(--theme-primary)] drop-shadow-[0_0_6px_rgba(var(--theme-primary-rgb),.7)]"
-              : ""
-          }`}
-        />
-        <span>标签</span>
-      </button>
     </section>
   );
 }
