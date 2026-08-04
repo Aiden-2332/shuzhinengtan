@@ -15,6 +15,8 @@ import {
   getEnergyOverview, getLoadCurveSeries, getEnergyAlerts,
   getDeviceStatusPanel, conversionFactors,
 } from '@/data/energy-three-pages-data';
+import { useRealtimeNow } from '@/hooks/use-realtime-now';
+import { formatCampusDateTime, formatCampusTime } from '@/lib/campus-realtime';
 import type { EnergyOverview, LoadCurveSeries, EnergyAlert, DeviceStatusPanel, DeviceItem } from '@/types/energy';
 
 // ============================================================
@@ -136,7 +138,7 @@ function LoadCurveChart({ series }: { series: LoadCurveSeries[] }) {
   };
 
   const filtered = series.filter(s => visibleSeries.has(s.buildingId));
-  const timeLabels = series[0]?.data.map(p => p.timestamp.slice(11, 16)) ?? [];
+  const timeLabels = series[0]?.data.map(p => formatCampusTime(new Date(p.timestamp))) ?? [];
 
   const chartData = timeLabels.map((time, i) => {
     const point: Record<string, number | string> = { time };
@@ -251,7 +253,7 @@ function DevicePanel({ panel }: { panel: DeviceStatusPanel }) {
               </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                 <span className="flex items-center gap-1"><MapPin size={10} />{d.buildingName}</span>
-                <span className="flex items-center gap-1"><Clock size={10} />{d.lastHeartbeat.slice(11, 19)}</span>
+                <span className="flex items-center gap-1"><Clock size={10} />{formatCampusTime(new Date(d.lastHeartbeat), true)}</span>
                 {d.batteryLevel !== undefined && (
                   <span>电量 {d.batteryLevel}%</span>
                 )}
@@ -357,7 +359,7 @@ function AlertCenter({ alerts }: { alerts: EnergyAlert[] }) {
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">{a.description}</p>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><Clock size={10} />{a.alertTime.slice(11, 19)}</span>
+                  <span className="flex items-center gap-1"><Clock size={10} />{formatCampusTime(new Date(a.alertTime), true)}</span>
                   {a.buildingName && <span className="flex items-center gap-1"><MapPin size={10} />{a.buildingName}</span>}
                   {a.assignee && <span className="flex items-center gap-1"><User size={10} />{a.assignee}</span>}
                   {a.workOrderId && <span className="text-primary">工单: {a.workOrderId}</span>}
@@ -385,10 +387,11 @@ function AlertCenter({ alerts }: { alerts: EnergyAlert[] }) {
 // 主页面
 // ============================================================
 export default function EnergyMonitorPage() {
-  const overview = useMemo(() => getEnergyOverview(), []);
-  const loadSeries = useMemo(() => getLoadCurveSeries(), []);
-  const alerts = useMemo(() => getEnergyAlerts(), []);
-  const devicePanel = useMemo(() => getDeviceStatusPanel(), []);
+  const nowMs = useRealtimeNow();
+  const overview = useMemo(() => getEnergyOverview(new Date(nowMs ?? 0)), [nowMs]);
+  const loadSeries = useMemo(() => getLoadCurveSeries(new Date(nowMs ?? 0)), [nowMs]);
+  const alerts = useMemo(() => getEnergyAlerts(new Date(nowMs ?? 0)), [nowMs]);
+  const devicePanel = useMemo(() => getDeviceStatusPanel(new Date(nowMs ?? 0)), [nowMs]);
 
   return (
     <div className="h-full overflow-y-auto">
@@ -396,12 +399,12 @@ export default function EnergyMonitorPage() {
         {/* 页面标题 */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-foreground">能源监控中心</h2>
+            <h2 className="text-lg font-bold text-foreground">能源监测中心</h2>
             <p className="text-xs text-muted-foreground mt-0.5">实时监测全校能源消耗、设备状态与异常告警</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock size={14} />
-            <span>数据更新: {new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            <span>数据更新: {nowMs === null ? '同步中…' : formatCampusDateTime(new Date(nowMs))}</span>
           </div>
         </div>
 

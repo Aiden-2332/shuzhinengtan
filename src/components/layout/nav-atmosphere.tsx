@@ -20,9 +20,10 @@ const THEME_COLORS: Record<CockpitTheme, [string, string, string, string]> = {
 
 interface NavAtmosphereProps {
   theme: CockpitTheme;
+  staticMode?: boolean;
 }
 
-function NavAtmosphereComponent({ theme }: NavAtmosphereProps) {
+function NavAtmosphereComponent({ theme, staticMode = false }: NavAtmosphereProps) {
   const reduceMotion = useReducedMotion();
   const colors = THEME_COLORS[theme];
   const initParticles = useCallback<ParticlesPluginRegistrar>(async (engine) => {
@@ -72,6 +73,10 @@ function NavAtmosphereComponent({ theme }: NavAtmosphereProps) {
       modes: { repulse: { distance: 54, duration: 0.45, speed: 0.4 } },
     },
   }), [colors, reduceMotion]);
+
+  if (staticMode) {
+    return <div className="nav-atmosphere nav-atmosphere--static" aria-hidden="true" />;
+  }
 
   return (
     <div className="nav-atmosphere" aria-hidden="true">

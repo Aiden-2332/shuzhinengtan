@@ -10,10 +10,11 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-// ????? - ?????????
-const COCKPIT_ROUTES = ["/", "/operations"];
+// 登录页独立显示；驾驶舱全屏显示且不使用侧边栏。
+const LOGIN_ROUTE = "/";
+const COCKPIT_ROUTES = ["/leader", "/operations"];
 
-// ?????? - ????
+// 能源管理页面使用浅色主题。
 const ENERGY_ROUTES = ["/energy-monitor", "/energy-flow", "/energy-diagnosis"];
 
 export function AppLayout({ children }: AppLayoutProps) {
@@ -21,6 +22,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [theme, setTheme] = useState<CockpitTheme>("aurora");
   const pathname = usePathname();
 
+  const isLogin = pathname === LOGIN_ROUTE;
   const isCockpit = COCKPIT_ROUTES.includes(pathname);
   const isEnergy = ENERGY_ROUTES.some((route) => pathname === route || pathname.startsWith(route + "/"));
 
@@ -35,6 +37,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     setTheme(nextTheme);
     window.localStorage.setItem("cockpit-theme", nextTheme);
   };
+
+  if (isLogin) {
+    return <div className="min-h-screen bg-[#06141d]">{children}</div>;
+  }
 
   return (
     <div data-theme={theme} className={`theme-root flex h-screen overflow-hidden ${isEnergy ? "bg-slate-100" : "bg-slate-950"}`}>

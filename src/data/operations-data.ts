@@ -5,6 +5,19 @@
  *       重点系统效率、仪表在线率、楼宇能耗分布、实时负荷
  */
 
+import {
+  addHours,
+  formatCampusTime,
+  getCampusLoadKw,
+  startOfCampusHour,
+} from "@/lib/campus-realtime";
+import {
+  getCampusOperationalSnapshot,
+  getSystemAnomalySnapshots,
+  getSystemBuildingRanking,
+  getSystemMonthlyCarbon,
+} from "@/data/campus-system-data";
+
 // ============================================================
 // 类型定义
 // ============================================================
@@ -846,62 +859,76 @@ export interface LoadCurvePoint {
   forecast: number;
 }
 
-export function getOperationsKPIs(): OperationsKPI[] {
+export function getOperationsKPIs(now = new Date()): OperationsKPI[] {
+  const snapshot = getCampusOperationalSnapshot(now);
   return [
-    { type: "electricity", label: "电力", value: "38,520", unit: "kWh", yoy: 3.2, budgetProgress: 68 },
-    { type: "water", label: "水", value: "1,280", unit: "m³", yoy: -2.1, budgetProgress: 55 },
-    { type: "heat", label: "热力", value: "15,600", unit: "MJ", yoy: 5.8, budgetProgress: 72 },
-    { type: "energy", label: "综合能耗", value: "156.8", unit: "tce", yoy: 1.6, budgetProgress: 63 },
+    { type: "electricity", label: "今日用电", value: snapshot.todayElectricity.toLocaleString("zh-CN"), unit: "kWh", yoy: -1.9, budgetProgress: Math.min(100, Math.round(snapshot.todayElectricity / 98_000 * 100)) },
+    { type: "water", label: "今日用水", value: snapshot.todayWater.toLocaleString("zh-CN"), unit: "m³", yoy: 2.6, budgetProgress: Math.min(100, Math.round(snapshot.todayWater / 5_000 * 100)) },
+    { type: "heat", label: "今日热力", value: snapshot.todayHeat.toLocaleString("zh-CN"), unit: "GJ", yoy: -4.1, budgetProgress: snapshot.todayHeat > 0 ? Math.min(100, Math.round(snapshot.todayHeat / 1_350 * 100)) : 0 },
+    { type: "energy", label: "今日综合能耗", value: snapshot.comprehensiveEnergyTce.toFixed(1), unit: "tce", yoy: 1.4, budgetProgress: Math.min(100, Math.round(snapshot.comprehensiveEnergyTce / 13.5 * 100)) },
   ];
 }
 
-export function getCarbonOverview(): CarbonOverview {
+export function getCarbonOverview(now = new Date()): CarbonOverview {
+  const snapshot = getCampusOperationalSnapshot(now);
+  const monthly = getSystemMonthlyCarbon(now);
+  const latestMonth = monthly.at(-1)?.actual ?? 0;
+  const previousMonth = monthly.at(-2)?.actual ?? 0;
+  const scope1 = Math.round(snapshot.annualCarbon * 0.18);
+  const scope2 = Math.round(snapshot.annualCarbon * 0.74);
+  const scope3 = snapshot.annualCarbon - scope1 - scope2;
   return {
-    annual: 12680,
-    monthly: 1120,
-    today: 38.5,
-    yoy: -3.2,
-    scope1: 3200,
-    scope1Pct: 25.2,
-    scope2: 8450,
-    scope2Pct: 66.7,
-    scope3: 1030,
-    scope3Pct: 8.1,
+    annual: snapshot.annualCarbon,
+    monthly: latestMonth - previousMonth,
+    today: snapshot.todayCarbon,
+    yoy: snapshot.yoy,
+    scope1,
+    scope1Pct: 18,
+    scope2,
+    scope2Pct: 74,
+    scope3,
+    scope3Pct: 8,
   };
 }
 
-export function getAlertsData(): AlertItem[] {
-  return [
-    { title: "用电突增", location: "信息学院楼 3层", level: "emergency", time: "09:32", category: "energy" },
-    { title: "用水连续异常", location: "1号宿舍楼", level: "important", time: "09:18", category: "energy" },
-    { title: "天然气消耗偏高", location: "第一食堂", level: "important", time: "08:57", category: "energy" },
-    { title: "温度超限", location: "图书馆 2层", level: "minor", time: "08:30", category: "environment" },
-    { title: "CO₂浓度偏高", location: "主教学楼 1层", level: "minor", time: "08:15", category: "environment" },
-    { title: "仪表离线", location: "B1电力仪表", level: "minor", time: "08:45", category: "data" },
-  ];
+export function getAlertsData(now = new Date()): AlertItem[] {
+  const categoryLabels = { energy: "能耗", device: "设备", environment: "环境", data: "数据" } as const;
+  return getSystemAnomalySnapshots(now)
+    .filter((anomaly) => anomaly.status !== "resolved")
+    .slice(0, 8)
+    .map((anomaly) => ({
+      title: anomaly.title,
+      location: anomaly.buildingName,
+      level: anomaly.severity === "emergency" || anomaly.severity === "critical" ? "emergency" : anomaly.severity === "warning" ? "important" : "minor",
+      time: formatCampusTime(new Date(anomaly.detectedAt)),
+      category: categoryLabels[anomaly.category],
+    }));
 }
 
-export function getDeviceWarnings(): DeviceWarningItem[] {
-  return [
-    { device: "2号冷机组", issue: "压缩机异常停机", level: "emergency", time: "09:28" },
-    { device: "1号锅炉", issue: "燃烧效率低", level: "important", time: "09:21" },
-    { device: "A区循环泵", issue: "振动超标", level: "important", time: "09:12" },
-    { device: "3层空调机组", issue: "送风温度异常", level: "minor", time: "09:03" },
-    { device: "B1电力仪表", issue: "仪表离线", level: "minor", time: "08:45" },
-  ];
+export function getDeviceWarnings(now = new Date()): DeviceWarningItem[] {
+  return getSystemAnomalySnapshots(now)
+    .filter((anomaly) => anomaly.deviceName && anomaly.status !== "resolved")
+    .slice(0, 7)
+    .map((anomaly) => ({
+      device: anomaly.deviceName ?? anomaly.title,
+      issue: anomaly.title,
+      level: anomaly.severity === "emergency" || anomaly.severity === "critical" ? "emergency" : anomaly.severity === "warning" ? "important" : "minor",
+      time: formatCampusTime(new Date(anomaly.detectedAt)),
+    }));
 }
 
 export function getSystemEfficiency(): SystemEfficiencyItem[] {
   return [
-    { name: "空调与冷站", efficiency: 82, runningUnits: 18, totalUnits: 24, lowEfficiencyCount: 3 },
-    { name: "供热与锅炉", efficiency: 78, runningUnits: 8, totalUnits: 12, lowEfficiencyCount: 2 },
-    { name: "照明与动力", efficiency: 91, runningUnits: 52, totalUnits: 56, lowEfficiencyCount: 1 },
+    { name: "空调与冷站", efficiency: 73, runningUnits: 18, totalUnits: 24, lowEfficiencyCount: 4 },
+    { name: "实验与动力", efficiency: 78, runningUnits: 21, totalUnits: 26, lowEfficiencyCount: 3 },
+    { name: "照明系统", efficiency: 86, runningUnits: 48, totalUnits: 56, lowEfficiencyCount: 2 },
+    { name: "给排水系统", efficiency: 69, runningUnits: 13, totalUnits: 16, lowEfficiencyCount: 3 },
   ];
 }
 
 export function getInstrumentStatus(): InstrumentStatus {
   return {
-    onlineRate: 94.2,
+    onlineRate: 94.1,
     onlineCount: 175,
     offlineCount: 11,
     totalCount: 186,
@@ -911,24 +938,20 @@ export function getInstrumentStatus(): InstrumentStatus {
   };
 }
 
-export function getBuildingEnergyRanking(): BuildingEnergyRankItem[] {
-  return [
-    { name: "数据中心", value: 100 },
-    { name: "综合实验中心", value: 98 },
-    { name: "主教学楼", value: 95 },
-    { name: "信息学院楼", value: 88 },
-    { name: "第一食堂", value: 82 },
-    { name: "图书馆", value: 78 },
-    { name: "第二食堂", value: 75 },
-    { name: "机械学院楼", value: 72 },
-    { name: "能源学院楼", value: 68 },
-  ];
+export function getBuildingEnergyRanking(now = new Date()): BuildingEnergyRankItem[] {
+  return getSystemBuildingRanking(now, 9).map((building) => ({ name: building.name, value: building.energyIntensity }));
 }
 
-export function getRealtimeLoadData(): LoadCurvePoint[] {
-  const hours = ["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00"];
-  const realtime = [3.2,2.8,2.5,2.3,2.2,2.4,3.8,5.2,7.1,7.8,7.7,7.5,7.2,6.8,7.0,7.3,7.4,7.0,6.5,6.8,7.2,6.5,5.0,3.8];
-  const yesterday = [3.0,2.6,2.4,2.2,2.1,2.3,3.5,5.0,6.8,7.5,7.4,7.2,7.0,6.5,6.8,7.0,7.2,6.8,6.3,6.5,7.0,6.3,4.8,3.6];
-  const forecast = [3.1,2.7,2.4,2.2,2.1,2.3,3.6,5.1,7.0,7.6,7.6,7.4,7.1,6.7,6.9,7.2,7.3,6.9,6.4,6.7,7.1,6.4,4.9,3.7];
-  return hours.map((time, i) => ({ time, realtime: realtime[i], yesterday: yesterday[i], forecast: forecast[i] }));
+export function getRealtimeLoadData(now = new Date()): LoadCurvePoint[] {
+  const end = startOfCampusHour(now);
+  return Array.from({ length: 24 }, (_, index) => {
+    const pointTime = addHours(end, index - 23);
+    const yesterdayTime = addHours(pointTime, -24);
+    return {
+      time: formatCampusTime(pointTime),
+      realtime: getCampusLoadKw(pointTime, 1),
+      yesterday: getCampusLoadKw(yesterdayTime, 2),
+      forecast: getCampusLoadKw(pointTime, 3),
+    };
+  });
 }

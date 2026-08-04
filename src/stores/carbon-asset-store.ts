@@ -26,6 +26,7 @@ import {
   getAuditChecklist,
   getMissingDocs,
 } from "@/data/carbon-asset-mock";
+import { CAMPUS_CARBON_FORECAST } from "@/data/campus-system-data";
 
 interface GapEngineResult {
   simulator: {
@@ -107,7 +108,7 @@ export const useCarbonAssetStore = create<CarbonAssetStore>((set, get) => ({
 
   gapEngine: null,
   carbonPriceInput: 85,
-  forecastEmissionInput: 21500,
+  forecastEmissionInput: CAMPUS_CARBON_FORECAST,
   activeStrategy: null,
 
   complianceCalendar: null,

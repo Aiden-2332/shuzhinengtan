@@ -109,7 +109,7 @@ export default function CalculationPage() {
                 <RotateCcw className="w-3 h-3" /> 恢复数据
               </button>
               <Link
-                href="/"
+                href="/leader"
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/50 rounded-lg text-sm transition-all"
               >
                 <Building2 className="w-4 h-4" />

@@ -16,6 +16,8 @@ import {
   getAIRootCauseAnalysis, getEnergySavingAdvices,
   getCalendarHeatmapDays, getTypicalDayComparison, getSemesterComparison, getEnergyProfile,
 } from '@/data/energy-three-pages-data';
+import { useRealtimeNow } from '@/hooks/use-realtime-now';
+import { formatCampusDateTime, getCampusDateAt, getCampusDateParts } from '@/lib/campus-realtime';
 import type {
   DiagnosisSummary, BenchmarkComparison, BenchmarkBuildingItem, BenchmarkLine,
   AIRootCauseAnalysis, EnergySavingAdvice,
@@ -242,12 +244,19 @@ function getIntensityColor(level: CalendarHeatmapDay["level"]): string {
   }
 }
 
-function CompactCalendar() {
+function CompactCalendar({ nowMs }: { nowMs: number }) {
+  const now = useMemo(() => new Date(nowMs), [nowMs]);
+  const currentParts = getCampusDateParts(now);
+  const currentMonthIndex = currentParts.month - 1;
   const [expanded, setExpanded] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(6);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthIndex);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  const heatmapDays = useMemo(() => getCalendarHeatmapDays(), []);
+  useEffect(() => {
+    setSelectedMonth(currentMonthIndex);
+  }, [currentMonthIndex]);
+
+  const heatmapDays = useMemo(() => getCalendarHeatmapDays(now), [now]);
 
   const monthDays = useMemo(() => {
     return heatmapDays.filter((d) => {
@@ -259,8 +268,9 @@ function CompactCalendar() {
   const calendarGrid = useMemo(() => {
     const firstDay = monthDays[0];
     if (!firstDay) return [];
-    const firstDate = new Date(firstDay.date);
-    const startDow = (firstDate.getDay() + 6) % 7;
+    const [year, month, day] = firstDay.date.split('-').map(Number);
+    const firstDate = getCampusDateAt(year, month, day, 12);
+    const startDow = (getCampusDateParts(firstDate).weekday + 6) % 7;
     const weeks: (CalendarHeatmapDay | null)[][] = [];
     let currentWeek: (CalendarHeatmapDay | null)[] = Array(startDow).fill(null);
 
@@ -321,8 +331,8 @@ function CompactCalendar() {
           {/* 月份选择器 + 图例 */}
           <div className="flex items-center gap-2">
             <button onClick={() => setSelectedMonth(Math.max(0, selectedMonth - 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">◀</button>
-            <span className="text-sm font-semibold min-w-[60px] text-center">{MONTHS[selectedMonth]}</span>
-            <button onClick={() => setSelectedMonth(Math.min(11, selectedMonth + 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">▶</button>
+            <span className="text-sm font-semibold min-w-[92px] text-center">{currentParts.year}年{MONTHS[selectedMonth]}</span>
+            <button onClick={() => setSelectedMonth(Math.min(currentMonthIndex, selectedMonth + 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">▶</button>
             <div className="flex gap-2 ml-3 text-[10px]">
               {[
                 { color: "bg-red-600", label: "异常偏高" },
@@ -410,9 +420,9 @@ function CompactCalendar() {
 // 主页面
 // ============================================================
 export default function EnergyDiagnosisPage() {
+  const nowMs = useRealtimeNow();
   const [activeBenchmarkIdx, setActiveBenchmarkIdx] = useState(0);
   const [adviceFilter, setAdviceFilter] = useState<string>('all');
-  const [diagnosisUpdatedAt, setDiagnosisUpdatedAt] = useState('2026-07-29 15:42:37');
   const [flowContext, setFlowContext] = useState<{
     node: string;
     nodeName: string;
@@ -427,7 +437,6 @@ export default function EnergyDiagnosisPage() {
   const advices = useMemo(() => getEnergySavingAdvices(), []);
 
   useEffect(() => {
-    setDiagnosisUpdatedAt(new Date().toLocaleString('zh-CN'));
     const params = new URLSearchParams(window.location.search);
     if (params.get('source') !== 'energy-flow') return;
     const context = {
@@ -453,7 +462,7 @@ export default function EnergyDiagnosisPage() {
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="w-3 h-3" />
-          <span>数据更新: {diagnosisUpdatedAt}</span>
+          <span>数据更新: {nowMs === null ? '同步中…' : formatCampusDateTime(new Date(nowMs))}</span>
         </div>
       </div>
 
@@ -497,7 +506,7 @@ export default function EnergyDiagnosisPage() {
       </div>
 
       {/* 第三行：用电日历（紧凑可折叠） */}
-      <CompactCalendar />
+      {nowMs !== null && <CompactCalendar nowMs={nowMs} />}
 
       {/* 第四行：AI根因分析 */}
       <div>

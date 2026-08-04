@@ -5,6 +5,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -45,6 +46,21 @@ interface MapConfig {
   height: number;
   minZoom: number;
   maxZoom: number;
+  initialScale: number;
+  outerBackdrop: {
+    url: string;
+    width: number;
+    height: number;
+    cropOriginX: number;
+    cropOriginY: number;
+    outputDivisor: number;
+    panBounds?: {
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+    };
+  };
 }
 
 interface TileCoordinate {
@@ -71,12 +87,14 @@ interface PinchGesture {
 const TILE_SIZE = 512;
 const TILE_BUFFER = 1;
 const MAX_NATIVE_SCALE = 1;
-// Start a little wider than a hard edge-to-edge fit. This gives both
-// cockpits a calm outer breathing area and room to inspect edge buildings.
-const INITIAL_MAP_SCALE_FACTOR = 0.66;
-const OUTER_PAN_MARGIN_RATIO = 0.18;
+// Keep a generous zoom-out range for inspecting edge buildings, while the
+// entry view itself is configured per cockpit below.
+const MINIMUM_MAP_FIT_FACTOR = 0.72;
+const OUTER_PAN_MARGIN_RATIO = 0.16;
 const BUTTON_ZOOM_FACTOR = 1.5;
 const WHEEL_ZOOM_SPEED = 0.0015;
+const MAX_WHEEL_DELTA = 120;
+const TILE_ZOOM_HYSTERESIS = 0.18;
 const DRAG_CLICK_THRESHOLD = 5;
 
 // These values mirror public/campus-map/metadata.json. z5 is the native
@@ -87,12 +105,33 @@ const MAP_CONFIG: Record<CampusMapKind, MapConfig> = {
     height: 8_759,
     minZoom: 0,
     maxZoom: 5,
+    initialScale: 0.11,
+    outerBackdrop: {
+      url: "/campus-map/outer/2d.webp",
+      width: 22_528,
+      height: 18_432,
+      cropOriginX: 3_824,
+      cropOriginY: 4_600,
+      outputDivisor: 8,
+    },
   },
   "2_5d": {
     width: 14_336,
     height: 7_263,
     minZoom: 0,
     maxZoom: 5,
+    initialScale: 0.13,
+    outerBackdrop: {
+      url: "/campus-map/outer/2_5d-expanded.webp",
+      // map2.png is aligned to the existing 2.5D image at one output pixel
+      // per eight source pixels. Cropping away its website controls still
+      // leaves real map coverage on the upper, left, and right sides.
+      width: 17_600,
+      height: 10_896,
+      cropOriginX: 2_368,
+      cropOriginY: 2_104,
+      outputDivisor: 8,
+    },
   },
 };
 
@@ -100,13 +139,48 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+function getOuterPanBounds(config: MapConfig) {
+  const backdrop = config.outerBackdrop;
+  const bounds = backdrop.panBounds ?? {
+    left: 0,
+    top: 0,
+    right: backdrop.width,
+    bottom: backdrop.height,
+  };
+
+  return {
+    left: bounds.left - backdrop.cropOriginX,
+    top: bounds.top - backdrop.cropOriginY,
+    right: bounds.right - backdrop.cropOriginX,
+    bottom: bounds.bottom - backdrop.cropOriginY,
+  };
+}
+
 function getFitScale(viewport: ViewportSize, config: MapConfig) {
   if (viewport.width === 0 || viewport.height === 0) return 0;
-  return Math.min(
+  const panBounds = getOuterPanBounds(config);
+  const relaxedDetailScale = Math.min(
     viewport.width / config.width,
     viewport.height / config.height,
     MAX_NATIVE_SCALE,
-  ) * INITIAL_MAP_SCALE_FACTOR;
+  ) * MINIMUM_MAP_FIT_FACTOR;
+  const outerCoverScale = Math.max(
+    viewport.width / (panBounds.right - panBounds.left),
+    viewport.height / (panBounds.bottom - panBounds.top),
+  );
+
+  return Math.min(
+    Math.max(relaxedDetailScale, outerCoverScale),
+    MAX_NATIVE_SCALE,
+  );
+}
+
+function getInitialScale(viewport: ViewportSize, config: MapConfig) {
+  return clamp(
+    Math.max(config.initialScale, getFitScale(viewport, config)),
+    getFitScale(viewport, config),
+    MAX_NATIVE_SCALE,
+  );
 }
 
 function constrainView(
@@ -116,29 +190,54 @@ function constrainView(
 ): ViewState {
   const fitScale = getFitScale(viewport, config);
   const scale = clamp(candidate.scale, fitScale, MAX_NATIVE_SCALE);
-  const scaledWidth = config.width * scale;
-  const scaledHeight = config.height * scale;
+  const {
+    left: outerLeft,
+    top: outerTop,
+    right: outerRight,
+    bottom: outerBottom,
+  } = getOuterPanBounds(config);
 
-  const constrainAxis = (scaledSize: number, viewportSize: number, offset: number) => {
+  const constrainAxis = (
+    minimum: number,
+    maximum: number,
+    viewportSize: number,
+    offset: number,
+  ) => {
+    const scaledSize = (maximum - minimum) * scale;
     if (scaledSize > viewportSize) {
-      return clamp(offset, viewportSize - scaledSize, 0);
+      return clamp(
+        offset,
+        viewportSize - maximum * scale,
+        -minimum * scale,
+      );
     }
 
-    // Keep the reduced map visually centered by default, while retaining a
-    // modest amount of panning freedom to make edge buildings inspectable.
-    const centeredOffset = (viewportSize - scaledSize) / 2;
-    const margin = Math.min(viewportSize * OUTER_PAN_MARGIN_RATIO, scaledSize * 0.28);
+    const centeredOffset = (viewportSize - scaledSize) / 2 - minimum * scale;
+    const margin = Math.min(
+      viewportSize * OUTER_PAN_MARGIN_RATIO,
+      scaledSize * 0.28,
+    );
     return clamp(offset, centeredOffset - margin, centeredOffset + margin);
   };
 
-  const offsetX = constrainAxis(scaledWidth, viewport.width, candidate.offsetX);
-  const offsetY = constrainAxis(scaledHeight, viewport.height, candidate.offsetY);
+  const offsetX = constrainAxis(
+    outerLeft,
+    outerRight,
+    viewport.width,
+    candidate.offsetX,
+  );
+  const offsetY = constrainAxis(
+    outerTop,
+    outerBottom,
+    viewport.height,
+    candidate.offsetY,
+  );
 
   return { scale, offsetX, offsetY };
 }
 
 function getFitView(viewport: ViewportSize, config: MapConfig): ViewState {
-  const scale = getFitScale(viewport, config);
+  const scale = getInitialScale(viewport, config);
   return constrainView({
     scale,
     offsetX: (viewport.width - config.width * scale) / 2,
@@ -155,9 +254,43 @@ function getLevelDimensions(config: MapConfig, zoom: number) {
   };
 }
 
-function selectTileZoom(scale: number, config: MapConfig) {
-  const idealZoom = Math.ceil(config.maxZoom + Math.log2(Math.max(scale, 0.000_001)));
-  return clamp(idealZoom, config.minZoom, config.maxZoom);
+function selectTileZoom(
+  scale: number,
+  config: MapConfig,
+  currentZoom?: number,
+) {
+  const idealZoom = config.maxZoom + Math.log2(Math.max(scale, 0.000_001));
+  if (currentZoom === undefined) {
+    return clamp(Math.round(idealZoom), config.minZoom, config.maxZoom);
+  }
+
+  // Keep the current raster level through a small dead zone. Without this,
+  // tiny wheel reversals around a level boundary repeatedly unmount/mount a
+  // complete tile layer and are perceived as a full-page flash.
+  let nextZoom = clamp(currentZoom, config.minZoom, config.maxZoom);
+  while (
+    nextZoom < config.maxZoom &&
+    idealZoom > nextZoom + 0.5 + TILE_ZOOM_HYSTERESIS
+  ) {
+    nextZoom += 1;
+  }
+  while (
+    nextZoom > config.minZoom &&
+    idealZoom < nextZoom - 0.5 - TILE_ZOOM_HYSTERESIS
+  ) {
+    nextZoom -= 1;
+  }
+  return nextZoom;
+}
+
+function normalizeWheelDelta(event: WheelEvent, viewportHeight: number) {
+  const modeMultiplier =
+    event.deltaMode === WheelEvent.DOM_DELTA_LINE
+      ? 16
+      : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+        ? Math.max(viewportHeight, 1)
+        : 1;
+  return clamp(event.deltaY * modeMultiplier, -MAX_WHEEL_DELTA, MAX_WHEEL_DELTA);
 }
 
 function getVisibleTiles(
@@ -249,16 +382,12 @@ function TileLayer({
           alt=""
           draggable={false}
           decoding="async"
-          className="absolute max-w-none select-none opacity-0 transition-opacity duration-150"
+          className="absolute max-w-none select-none"
           style={{
             left: x * TILE_SIZE,
             top: y * TILE_SIZE,
             width: TILE_SIZE + 0.5,
             height: TILE_SIZE + 0.5,
-          }}
-          onLoad={(event) => {
-            event.currentTarget.classList.remove("opacity-0");
-            event.currentTarget.classList.add("opacity-100");
           }}
           onError={(event) => {
             // Keep the low-resolution overview visible if a detail tile fails.
@@ -267,6 +396,179 @@ function TileLayer({
         />
       ))}
     </div>
+  );
+}
+
+function OuterBackdropLayer({
+  config,
+  view,
+  animateTransform,
+}: {
+  config: MapConfig;
+  view: ViewState;
+  animateTransform: boolean;
+}) {
+  const backdrop = config.outerBackdrop;
+  const layerScale = view.scale * backdrop.outputDivisor;
+
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute left-0 top-0 z-0 origin-top-left will-change-transform ${
+        animateTransform ? "transition-transform duration-150 ease-out" : ""
+      }`}
+      style={{
+        transform: `translate3d(${view.offsetX}px, ${view.offsetY}px, 0) scale(${layerScale})`,
+      }}
+    >
+      <img
+        src={backdrop.url}
+        alt=""
+        draggable={false}
+        decoding="async"
+        className="absolute max-w-none select-none"
+        style={{
+          left: -backdrop.cropOriginX / backdrop.outputDivisor,
+          top: -backdrop.cropOriginY / backdrop.outputDivisor,
+          width: backdrop.width / backdrop.outputDivisor,
+          height: backdrop.height / backdrop.outputDivisor,
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * Visible mist tied to the live raster boundary. The overview tile supplies
+ * a cheap color mask, so the effect lands on pale map paper while every
+ * known building polygon is explicitly protected from whitening.
+ */
+function CampusMapEdgeFog({
+  config,
+  view,
+  viewport,
+}: {
+  config: MapConfig;
+  view: ViewState;
+  viewport: ViewportSize;
+}) {
+  const reactId = useId().replace(/:/g, "");
+  const coverageMaskId = `${reactId}-fog-coverage`;
+  const mistCloudGradientId = `${reactId}-mist-cloud`;
+  const radialGradientId = `${reactId}-fog-radial`;
+  const horizontalGradientId = `${reactId}-fog-horizontal`;
+  const verticalGradientId = `${reactId}-fog-vertical`;
+
+  const mapLeft = view.offsetX;
+  const mapTop = view.offsetY;
+  const mapWidth = config.width * view.scale;
+  const mapHeight = config.height * view.scale;
+  const mapRight = mapLeft + mapWidth;
+  const mapBottom = mapTop + mapHeight;
+  const centerX = mapLeft + mapWidth * 0.5;
+  const centerY = mapTop + mapHeight * 0.49;
+  const radiusX = Math.max(mapWidth * 0.56, 1);
+  const radiusY = Math.max(mapHeight * 0.58, 1);
+  const radialScaleY = radiusY / radiusX;
+  const radialTranslateY = centerY * (1 - radialScaleY);
+
+  return (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-[11] h-full w-full"
+      viewBox={`0 0 ${viewport.width} ${viewport.height}`}
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <mask
+          id={coverageMaskId}
+          maskUnits="userSpaceOnUse"
+          x="0"
+          y="0"
+          width={viewport.width}
+          height={viewport.height}
+          style={{ maskType: "luminance" }}
+        >
+          <rect width={viewport.width} height={viewport.height} fill="white" />
+          <g transform={`translate(${view.offsetX} ${view.offsetY}) scale(${view.scale})`}>
+            <rect width={config.width} height={config.height} fill="black" />
+          </g>
+        </mask>
+
+        <radialGradient
+          id={radialGradientId}
+          gradientUnits="userSpaceOnUse"
+          cx={centerX}
+          cy={centerY}
+          r={radiusX}
+          gradientTransform={`translate(0 ${radialTranslateY}) scale(1 ${radialScaleY})`}
+        >
+          <stop offset="0%" stopColor="#f9fbfc" stopOpacity="0" />
+          <stop offset="61%" stopColor="#f9fbfc" stopOpacity="0" />
+          <stop offset="70%" stopColor="#fbfdfe" stopOpacity="0.2" />
+          <stop offset="80%" stopColor="#fbfdfe" stopOpacity="0.72" />
+          <stop offset="90%" stopColor="#f4f8fa" stopOpacity="0.94" />
+          <stop offset="100%" stopColor="#d5e0e6" stopOpacity="1" />
+        </radialGradient>
+        <radialGradient id={mistCloudGradientId} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.92" />
+          <stop offset="38%" stopColor="#fff" stopOpacity="0.68" />
+          <stop offset="72%" stopColor="#f8fbfc" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#f2f7f9" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient
+          id={horizontalGradientId}
+          gradientUnits="userSpaceOnUse"
+          x1={mapLeft}
+          y1="0"
+          x2={mapRight}
+          y2="0"
+        >
+          <stop offset="0%" stopColor="#d5e0e6" stopOpacity="0.8" />
+          <stop offset="14%" stopColor="#f7fafb" stopOpacity="0.08" />
+          <stop offset="28%" stopColor="#f7fafb" stopOpacity="0" />
+          <stop offset="72%" stopColor="#f7fafb" stopOpacity="0" />
+          <stop offset="86%" stopColor="#f7fafb" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#d5e0e6" stopOpacity="0.8" />
+        </linearGradient>
+        <linearGradient
+          id={verticalGradientId}
+          gradientUnits="userSpaceOnUse"
+          x1="0"
+          y1={mapTop}
+          x2="0"
+          y2={mapBottom}
+        >
+          <stop offset="0%" stopColor="#d5e0e6" stopOpacity="0.76" />
+          <stop offset="16%" stopColor="#f9fbfc" stopOpacity="0.06" />
+          <stop offset="32%" stopColor="#f9fbfc" stopOpacity="0" />
+          <stop offset="70%" stopColor="#f9fbfc" stopOpacity="0" />
+          <stop offset="86%" stopColor="#f9fbfc" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#d5e0e6" stopOpacity="0.84" />
+        </linearGradient>
+      </defs>
+
+      <g mask={`url(#${coverageMaskId})`} opacity="0.16">
+        <rect width={viewport.width} height={viewport.height} fill={`url(#${radialGradientId})`} />
+        <rect width={viewport.width} height={viewport.height} fill={`url(#${horizontalGradientId})`} />
+        <rect width={viewport.width} height={viewport.height} fill={`url(#${verticalGradientId})`} />
+        {/* Uneven perimeter lobes make the transition read as mist, not a vignette. */}
+        <g fill={`url(#${mistCloudGradientId})`}>
+          <ellipse cx={mapLeft + mapWidth * 0.16} cy={mapTop + mapHeight * 0.02} rx={mapWidth * 0.18} ry={mapHeight * 0.14} />
+          <ellipse cx={mapLeft + mapWidth * 0.42} cy={mapTop - mapHeight * 0.01} rx={mapWidth * 0.22} ry={mapHeight * 0.13} />
+          <ellipse cx={mapLeft + mapWidth * 0.72} cy={mapTop + mapHeight * 0.01} rx={mapWidth * 0.2} ry={mapHeight * 0.15} />
+          <ellipse cx={mapLeft + mapWidth * 0.91} cy={mapTop + mapHeight * 0.13} rx={mapWidth * 0.14} ry={mapHeight * 0.2} />
+
+          <ellipse cx={mapLeft + mapWidth * 0.08} cy={mapTop + mapHeight * 0.42} rx={mapWidth * 0.13} ry={mapHeight * 0.22} />
+          <ellipse cx={mapRight - mapWidth * 0.04} cy={mapTop + mapHeight * 0.48} rx={mapWidth * 0.14} ry={mapHeight * 0.24} />
+
+          <ellipse cx={mapLeft + mapWidth * 0.14} cy={mapBottom - mapHeight * 0.04} rx={mapWidth * 0.2} ry={mapHeight * 0.15} />
+          <ellipse cx={mapLeft + mapWidth * 0.43} cy={mapBottom + mapHeight * 0.01} rx={mapWidth * 0.23} ry={mapHeight * 0.14} />
+          <ellipse cx={mapLeft + mapWidth * 0.72} cy={mapBottom - mapHeight * 0.01} rx={mapWidth * 0.21} ry={mapHeight * 0.16} />
+          <ellipse cx={mapLeft + mapWidth * 0.94} cy={mapBottom - mapHeight * 0.14} rx={mapWidth * 0.13} ry={mapHeight * 0.21} />
+        </g>
+      </g>
+    </svg>
   );
 }
 
@@ -282,19 +584,25 @@ export function CampusTileBackground({
   className = "",
 }: CampusTileBackgroundProps) {
   const config = MAP_CONFIG[map];
+  const initialTileZoom = selectTileZoom(config.initialScale, config);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<ViewState | null>(null);
   const viewportRef = useRef<ViewportSize>({ width: 0, height: 0 });
   const pendingViewRef = useRef<ViewState | null>(null);
+  const tileZoomRef = useRef(initialTileZoom);
+  const pendingTileZoomRef = useRef(initialTileZoom);
   const animationFrameRef = useRef<number | null>(null);
+  const wheelIdleTimeoutRef = useRef<number | null>(null);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const dragRef = useRef<DragGesture | null>(null);
   const pinchRef = useRef<PinchGesture | null>(null);
 
   const [viewport, setViewport] = useState<ViewportSize>({ width: 0, height: 0 });
   const [view, setView] = useState<ViewState | null>(null);
+  const [tileZoom, setTileZoom] = useState(initialTileZoom);
   const [isInteracting, setIsInteracting] = useState(false);
   const [showBuildingLabels, setShowBuildingLabels] = useState(true);
+  const [showBuildingFrames, setShowBuildingFrames] = useState(false);
   const [activeLayer, setActiveLayer] = useState<CampusLayerFilter>("all");
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [headerToolbarSlot, setHeaderToolbarSlot] = useState<HTMLElement | null>(null);
@@ -316,14 +624,24 @@ export function CampusTileBackground({
 
   const scheduleView = useCallback((candidate: ViewState) => {
     const constrained = constrainView(candidate, viewportRef.current, config);
+    const nextTileZoom = selectTileZoom(
+      constrained.scale,
+      config,
+      tileZoomRef.current,
+    );
     viewRef.current = constrained;
     pendingViewRef.current = constrained;
+    tileZoomRef.current = nextTileZoom;
+    pendingTileZoomRef.current = nextTileZoom;
 
     if (animationFrameRef.current !== null) return;
     animationFrameRef.current = window.requestAnimationFrame(() => {
       animationFrameRef.current = null;
       const pending = pendingViewRef.current;
-      if (pending) setView(pending);
+      if (pending) {
+        setView(pending);
+        setTileZoom(pendingTileZoomRef.current);
+      }
     });
   }, [config]);
 
@@ -425,12 +743,12 @@ export function CampusTileBackground({
 
       let nextView = getFitView(nextViewport, config);
       if (current && previousViewport.width > 0 && previousViewport.height > 0) {
-        const oldFitScale = getFitScale(previousViewport, config);
         const newFitScale = getFitScale(nextViewport, config);
-        const relativeZoom = oldFitScale > 0 ? current.scale / oldFitScale : 1;
         const centerX = (previousViewport.width / 2 - current.offsetX) / current.scale;
         const centerY = (previousViewport.height / 2 - current.offsetY) / current.scale;
-        const scale = clamp(newFitScale * relativeZoom, newFitScale, MAX_NATIVE_SCALE);
+        // Scale is an explicit native-image percentage. Preserve it across
+        // layout changes instead of making 13%/11% drift with the viewport.
+        const scale = clamp(current.scale, newFitScale, MAX_NATIVE_SCALE);
         nextView = constrainView({
           scale,
           offsetX: nextViewport.width / 2 - centerX * scale,
@@ -440,8 +758,12 @@ export function CampusTileBackground({
 
       viewportRef.current = nextViewport;
       viewRef.current = nextView;
+      const nextTileZoom = selectTileZoom(nextView.scale, config);
+      tileZoomRef.current = nextTileZoom;
+      pendingTileZoomRef.current = nextTileZoom;
       setViewport(nextViewport);
       setView(nextView);
+      setTileZoom(nextTileZoom);
     };
 
     updateSize();
@@ -458,13 +780,22 @@ export function CampusTileBackground({
       event.preventDefault();
       const current = viewRef.current;
       if (!current) return;
+      setIsInteracting(true);
+      if (wheelIdleTimeoutRef.current !== null) {
+        window.clearTimeout(wheelIdleTimeoutRef.current);
+      }
       const rect = container.getBoundingClientRect();
-      const factor = Math.exp(-event.deltaY * WHEEL_ZOOM_SPEED);
+      const delta = normalizeWheelDelta(event, viewportRef.current.height);
+      const factor = Math.exp(-delta * WHEEL_ZOOM_SPEED);
       zoomAt(
         current.scale * factor,
         event.clientX - rect.left,
         event.clientY - rect.top,
       );
+      wheelIdleTimeoutRef.current = window.setTimeout(() => {
+        wheelIdleTimeoutRef.current = null;
+        setIsInteracting(false);
+      }, 140);
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
@@ -474,6 +805,9 @@ export function CampusTileBackground({
   useEffect(() => () => {
     if (animationFrameRef.current !== null) {
       window.cancelAnimationFrame(animationFrameRef.current);
+    }
+    if (wheelIdleTimeoutRef.current !== null) {
+      window.clearTimeout(wheelIdleTimeoutRef.current);
     }
   }, []);
 
@@ -610,17 +944,43 @@ export function CampusTileBackground({
 
   const plan = useMemo(() => {
     if (!view || viewport.width === 0 || viewport.height === 0) return null;
-    const zoom = selectTileZoom(view.scale, config);
     return {
-      zoom,
-      tiles: getVisibleTiles(view, viewport, config, zoom),
+      zoom: tileZoom,
+      tiles: getVisibleTiles(view, viewport, config, tileZoom),
       overviewTiles: getVisibleTiles(view, viewport, config, config.minZoom),
     };
-  }, [config, view, viewport]);
+  }, [config, tileZoom, view, viewport]);
 
   const fitScale = getFitScale(viewport, config);
   const canZoomOut = Boolean(view && view.scale > fitScale + 0.000_001);
   const canZoomIn = Boolean(view && view.scale < MAX_NATIVE_SCALE - 0.000_001);
+
+  const headerToolbar = useMemo(() => {
+    if (!headerToolbarSlot) return null;
+    return createPortal(
+      <CampusMapOverlayControls
+        buildings={mappedBuildings}
+        selectedBuildingId={selectedBuildingId}
+        showLabels={showBuildingLabels}
+        showBuildingFrames={showBuildingFrames}
+        activeLayer={activeLayer}
+        onShowLabelsChange={setShowBuildingLabels}
+        onShowBuildingFramesChange={setShowBuildingFrames}
+        onLayerChange={changeLayer}
+        onBuildingSelect={selectFromSearch}
+      />,
+      headerToolbarSlot,
+    );
+  }, [
+    activeLayer,
+    changeLayer,
+    headerToolbarSlot,
+    mappedBuildings,
+    selectFromSearch,
+    selectedBuildingId,
+    showBuildingFrames,
+    showBuildingLabels,
+  ]);
 
   return (
     <div
@@ -633,6 +993,9 @@ export function CampusTileBackground({
       data-campus-map={map}
       data-campus-map-zoom={plan?.zoom ?? "loading"}
       data-campus-map-max-zoom={config.maxZoom}
+      data-campus-map-initial-scale={config.initialScale.toFixed(2)}
+      data-campus-map-outer-width={config.outerBackdrop.width}
+      data-campus-map-outer-height={config.outerBackdrop.height}
       data-campus-map-tile-count={plan?.tiles.length ?? 0}
       data-campus-map-scale={view?.scale.toFixed(4) ?? "loading"}
       onPointerDown={handlePointerDown}
@@ -643,12 +1006,17 @@ export function CampusTileBackground({
     >
       {plan && view ? (
         <>
+          <OuterBackdropLayer
+            config={config}
+            view={view}
+            animateTransform={!isInteracting}
+          />
           <TileLayer
             map={map}
             zoom={config.minZoom}
             view={view}
             tiles={plan.overviewTiles}
-            className="z-0"
+            className="z-[1]"
             animateTransform={!isInteracting}
           />
           {plan.zoom !== config.minZoom ? (
@@ -657,11 +1025,19 @@ export function CampusTileBackground({
               zoom={plan.zoom}
               view={view}
               tiles={plan.tiles}
-              className="z-[1]"
+              className="z-[2]"
               animateTransform={!isInteracting}
             />
           ) : null}
         </>
+      ) : null}
+
+      {map === "2d" && view && viewport.width > 0 && viewport.height > 0 ? (
+        <CampusMapEdgeFog
+          config={config}
+          view={view}
+          viewport={viewport}
+        />
       ) : null}
 
       {view ? (
@@ -672,6 +1048,7 @@ export function CampusTileBackground({
           view={view}
           viewport={viewport}
           showLabels={showBuildingLabels}
+          showBuildingFrames={showBuildingFrames}
           fitScale={fitScale}
           selectedBuildingId={selectedBuildingId}
           animateTransform={!isInteracting}
@@ -679,20 +1056,7 @@ export function CampusTileBackground({
         />
       ) : null}
 
-      {headerToolbarSlot
-        ? createPortal(
-            <CampusMapOverlayControls
-              buildings={mappedBuildings}
-              selectedBuildingId={selectedBuildingId}
-              showLabels={showBuildingLabels}
-              activeLayer={activeLayer}
-              onShowLabelsChange={setShowBuildingLabels}
-              onLayerChange={changeLayer}
-              onBuildingSelect={selectFromSearch}
-            />,
-            headerToolbarSlot,
-          )
-        : null}
+      {headerToolbar}
 
       <div
         className="absolute top-3 z-20 flex flex-col items-end gap-2"
@@ -700,7 +1064,7 @@ export function CampusTileBackground({
         onPointerDown={(event) => event.stopPropagation()}
         onDoubleClick={(event) => event.stopPropagation()}
       >
-        <div className="overflow-hidden rounded-lg border border-cyan-400/20 bg-[#07152f]/85 shadow-lg backdrop-blur-sm">
+        <div className="overflow-hidden rounded-lg border border-cyan-400/20 bg-[#07152f] shadow-lg">
           <button
             type="button"
             aria-label="放大地图"
@@ -733,7 +1097,7 @@ export function CampusTileBackground({
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="flex items-center gap-1.5 rounded-md border border-cyan-400/15 bg-[#07152f]/80 px-2 py-1 text-[10px] text-cyan-50/80 backdrop-blur-sm">
+        <div className="flex items-center gap-1.5 rounded-md border border-cyan-400/15 bg-[#07152f] px-2 py-1 text-[10px] text-cyan-50/80">
           <Move className="h-3 w-3" />
           <span>Z{plan?.zoom ?? 0}/{config.maxZoom}</span>
           <span className="text-cyan-100/35">·</span>

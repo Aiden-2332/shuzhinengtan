@@ -5,6 +5,7 @@
  */
 
 import type { FeatureCollection, Polygon, Feature, FeatureCollection as GeoFC } from "geojson";
+import { SYSTEM_BUILDINGS_BY_NAME } from "@/data/campus-system-data";
 
 export interface BuildingProperties {
   id: string;
@@ -26,7 +27,7 @@ export type CampusGeoJSON = FeatureCollection<Polygon, BuildingProperties>;
  * 每个建筑为 [longitude, latitude] 坐标环
  * 基于北京科技大学校园真实布局近似生成
  */
-export const campusBuildings: CampusGeoJSON = {
+const rawCampusBuildings: CampusGeoJSON = {
   type: "FeatureCollection",
   features: [
     // ===== 主教学楼群 =====
@@ -446,6 +447,70 @@ export const campusBuildings: CampusGeoJSON = {
       },
     },
   ],
+};
+
+const GEO_CANONICAL_NAMES: Record<string, string> = {
+  "机电信息楼": "机电信息楼",
+  "材料科学楼": "材料测试楼",
+  "冶金生态楼": "冶金生态楼",
+  "图书馆": "图书馆",
+  "行政办公楼": "办公楼",
+  "学生宿舍1号楼": "1斋",
+  "学生宿舍2号楼": "2斋",
+  "学生宿舍3号楼": "3斋",
+  "鸿博园食堂": "学生活动中心",
+  "体育馆": "体育馆",
+  "计算机学院楼": "鼎新楼",
+  "自动化学院楼": "化生楼",
+  "土木与资源楼": "土木环境楼",
+  "研究生宿舍楼": "研究生院楼",
+  "屋顶光伏电站": "逸夫楼",
+};
+
+const GEO_FALLBACK_IDS: Record<string, string> = {
+  "2斋": "10650",
+};
+
+export const campusBuildings: CampusGeoJSON = {
+  ...rawCampusBuildings,
+  features: rawCampusBuildings.features.map((feature) => {
+    const canonicalName = GEO_CANONICAL_NAMES[feature.properties.name] ?? feature.properties.name;
+    const building = SYSTEM_BUILDINGS_BY_NAME.get(canonicalName);
+    if (!building) {
+      return {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          id: GEO_FALLBACK_IDS[canonicalName] ?? feature.properties.id,
+          name: canonicalName,
+        },
+      };
+    }
+
+    const overTargetRate = building.annualEmissionForecast / building.annualEmissionTarget;
+    const status: BuildingProperties["status"] = overTargetRate > 1.15 ? "超标" : overTargetRate > 1 ? "预警" : "正常";
+    const energyLevel: BuildingProperties["energyLevel"] = building.energyIntensity > 115
+      ? "D"
+      : building.energyIntensity > 95
+        ? "C"
+        : building.energyIntensity > 72
+          ? "B"
+          : "A";
+    return {
+      ...feature,
+      properties: {
+        ...feature.properties,
+        id: building.id,
+        name: building.name,
+        floors: building.floorCount,
+        area: building.area,
+        energyConsumption: Math.round(building.annualEmissionForecast / 0.5672 * 1_000),
+        carbonEmission: building.annualEmissionForecast,
+        status,
+        energyLevel,
+      },
+    };
+  }),
 };
 
 /**

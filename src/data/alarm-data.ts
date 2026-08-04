@@ -48,6 +48,47 @@ export const STATUS_META: Record<AlarmStatus, { label: string; color: string; bg
   closed: { label: "已关闭", color: "text-gray-400", bgColor: "bg-gray-500/15" },
 };
 
+export function getAllAlarms(now = new Date()): AlarmDetail[] {
+  const dateKey = formatCampusDateKey(now).replaceAll("-", "");
+  return getSystemAnomalySnapshots(now).map((anomaly, index) => {
+    const category: AlarmCategory = anomaly.category === "device" ? "equipment" : anomaly.category;
+    const status: AlarmStatus = anomaly.status === "acknowledged" ? "processing" : anomaly.status;
+    const severity: AlarmSeverity = anomaly.severity === "emergency" || anomaly.severity === "critical"
+      ? "danger"
+      : anomaly.severity;
+    return {
+      id: anomaly.id,
+      title: anomaly.title,
+      severity,
+      category,
+      categoryLabel: CATEGORY_META[category].label,
+      description: anomaly.description,
+      location: `主校区 ${anomaly.buildingName}`,
+      buildingId: anomaly.buildingId,
+      buildingName: anomaly.buildingName,
+      deviceId: anomaly.deviceId,
+      deviceName: anomaly.deviceName,
+      time: anomaly.detectedAt,
+      duration: anomaly.duration,
+      status,
+      assignee: anomaly.assignee,
+      assigneeGroup: category === "data" ? "数据运维组" : category === "environment" ? "环境保障组" : "能源管理组",
+      rootCause: anomaly.rootCause,
+      suggestion: anomaly.suggestions.map((item, suggestionIndex) => `${suggestionIndex + 1}. ${item}`).join("\n"),
+      impact: anomaly.extraEmission > 0
+        ? `预计额外碳排放 ${anomaly.extraEmission.toFixed(2)} tCO₂e，增加运行成本约 ¥${anomaly.extraCost.toLocaleString("zh-CN")}`
+        : "主要影响数据完整性与核算可信度，当前未直接计入额外排放。",
+      relatedMetrics: [
+        { label: anomaly.metric, value: `${anomaly.metricValue} ${anomaly.unit}`.trim(), isAbnormal: true },
+        { label: "控制阈值", value: `${anomaly.threshold} ${anomaly.unit}`.trim(), isAbnormal: false },
+        { label: "AI置信度", value: `${Math.round(82 + (index % 5) * 3)}%`, isAbnormal: false },
+      ],
+      escalationLevel: anomaly.severity === "emergency" ? 2 : anomaly.severity === "critical" ? 1 : 0,
+      workOrderId: status === "processing" ? `WO-${dateKey}-${String(index + 1).padStart(3, "0")}` : undefined,
+    };
+  });
+}
+
 export const AllAlarms: AlarmDetail[] = [
   // 能源异常
   {
@@ -467,3 +508,5 @@ export const AllAlarms: AlarmDetail[] = [
     escalationLevel: 0,
   },
 ];
+import { getSystemAnomalySnapshots } from "@/data/campus-system-data";
+import { formatCampusDateKey } from "@/lib/campus-realtime";

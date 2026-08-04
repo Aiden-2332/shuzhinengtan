@@ -1565,7 +1565,7 @@ export default function CompliancePage() {
       {/* 页面标题 + 称号切换 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">合规凭证</h1>
+          <h1 className="text-xl font-bold text-white">合规凭证看板</h1>
           <p className="text-xs text-white/40 mt-0.5">称号申报材料上传 · 指标溯源 · 自评打分 · 档案管理 · 缺失预警</p>
         </div>
         <div className="flex items-center gap-2">

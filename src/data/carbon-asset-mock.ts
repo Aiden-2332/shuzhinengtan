@@ -3,6 +3,14 @@
  * 年度 2026，基于北京科技大学虚拟数据
  */
 
+import {
+  CAMPUS_CARBON_QUOTA,
+  getCampusOperationalSnapshot,
+  getSystemBuildingRanking,
+  getSystemMonthlyCarbon,
+} from "@/data/campus-system-data";
+import { getCampusDateParts } from "@/lib/campus-realtime";
+
 export interface QuotaLedger {
   year: number;
   campus: string;
@@ -149,28 +157,45 @@ export interface MissingDoc {
 /* ========== 生成 Mock 数据 ========== */
 
 const SEASONAL_FACTORS = [1.3, 1.25, 1.0, 0.9, 0.8, 0.75, 0.8, 0.85, 1.0, 1.1, 1.2, 1.3];
-const BASE_MONTHLY_QUOTA = 1792; // 21500/12
 
-export function getQuotaLedger(): QuotaLedger {
+export function getQuotaLedger(now = new Date()): QuotaLedger {
+  const parts = getCampusDateParts(now);
+  const carbonSeries = getSystemMonthlyCarbon(now);
+  const cumulativeByMonth = new Map(carbonSeries.map((item) => [item.monthKey, item.actual]));
+  const factorTotal = SEASONAL_FACTORS.reduce((sum, factor) => sum + factor, 0);
+  const monthlyQuotas = SEASONAL_FACTORS.map((factor) => Math.round(CAMPUS_CARBON_QUOTA * factor / factorTotal));
+  monthlyQuotas[monthlyQuotas.length - 1] += CAMPUS_CARBON_QUOTA - monthlyQuotas.reduce((sum, quota) => sum + quota, 0);
   const monthlyConsumption: MonthlyEmission[] = SEASONAL_FACTORS.map((factor, i) => {
-    const quota = Math.round(BASE_MONTHLY_QUOTA * factor);
-    const deviation = ((i * 7 + 3) % 11 - 5) * 0.01;
-    const actual = Math.round(quota * (1 + deviation));
+    const quota = monthlyQuotas[i];
+    const monthKey = `${parts.year}-${String(i + 1).padStart(2, "0")}`;
+    const cumulative = cumulativeByMonth.get(monthKey);
+    const previousKey = `${parts.year}-${String(i).padStart(2, "0")}`;
+    const previousCumulative = i === 0 ? 0 : (cumulativeByMonth.get(previousKey) ?? 0);
+    const actual = cumulative === undefined ? 0 : Math.max(0, cumulative - previousCumulative);
     return {
-      month: `2026-${String(i + 1).padStart(2, "0")}`,
+      month: monthKey,
       quota,
       actualEmission: actual,
       diff: quota - actual,
     };
   });
 
+  const snapshot = getCampusOperationalSnapshot(now);
+  const topBuildings = getSystemBuildingRanking(now, 5).map((building) => ({
+    buildingId: building.id,
+    buildingName: building.name,
+    consumption: building.currentYearEmission,
+    percentage: Math.round(building.currentYearEmission / snapshot.annualCarbon * 1000) / 10,
+    trend: building.overTargetPct > 10 ? "up" as const : building.overTargetPct > 0 ? "stable" as const : "down" as const,
+  }));
+
   return {
-    year: 2026,
-    campus: "主校区+东校区",
-    totalQuota: 21500,
-    consumedQuota: 16850,
-    remainingQuota: -350,
-    quotaStatus: "deficit",
+    year: parts.year,
+    campus: "全校",
+    totalQuota: CAMPUS_CARBON_QUOTA,
+    consumedQuota: snapshot.annualCarbon,
+    remainingQuota: snapshot.remainingQuota,
+    quotaStatus: snapshot.remainingQuota < 0 ? "deficit" : snapshot.quotaUseRate > 85 ? "balanced" : "surplus",
     monthlyConsumption,
     quotaSources: [
       { type: "free_allocation", label: "免费分配", amount: 19350, percentage: 90 },
@@ -178,21 +203,14 @@ export function getQuotaLedger(): QuotaLedger {
       { type: "ccer_offset", label: "CCER抵销", amount: 645, percentage: 3 },
       { type: "transfer_in", label: "转入", amount: 430, percentage: 2 },
     ],
-    topBuildings: [
-      { buildingId: "b4", buildingName: "图书馆", consumption: 3200, percentage: 14.9, trend: "up" },
-      { buildingId: "b3", buildingName: "冶金生态楼", consumption: 2850, percentage: 13.3, trend: "down" },
-      { buildingId: "b2", buildingName: "材料科学楼", consumption: 2100, percentage: 9.8, trend: "up" },
-      { buildingId: "b6", buildingName: "学生宿舍群", consumption: 1800, percentage: 8.4, trend: "stable" },
-      { buildingId: "b5", buildingName: "行政办公楼", consumption: 1200, percentage: 5.6, trend: "up" },
-    ],
+    topBuildings,
   };
 }
 
 export function simulateGap(carbonPrice: number, forecastEmission: number) {
-  const remaining = 21500 - 16850; // = 4650
-  const gap = forecastEmission - remaining;
+  const gap = forecastEmission - CAMPUS_CARBON_QUOTA;
   const fundingExposure = Math.max(0, gap) * carbonPrice;
-  const ccerLimit = Math.round(21500 * 0.05);
+  const ccerLimit = Math.round(CAMPUS_CARBON_QUOTA * 0.05);
   const ccerPrice = 60;
 
   const strategies: StrategyCard[] = [
@@ -397,12 +415,14 @@ export function getSelfCheckList(): SelfCheckItem[] {
   ];
 }
 
-export function getMRVChain(): MRVNode {
+export function getMRVChain(now = new Date()): MRVNode {
+  const snapshot = getCampusOperationalSnapshot(now);
+  const { year, month } = getCampusDateParts(now);
   return {
     id: "mrv1",
     level: "emission",
     title: "全校年度排放",
-    data: "21,500 tCO₂",
+    data: `${snapshot.annualCarbon.toLocaleString()} tCO₂e（截至${month}月）`,
     source: "碳核算引擎",
     verified: true,
     children: [
@@ -410,15 +430,15 @@ export function getMRVChain(): MRVNode {
         id: "mrv2",
         level: "activity_data",
         title: "活动数据：用电量",
-        data: "27,388,000 kWh",
+        data: `${Math.round(snapshot.annualCarbon / 0.5672 * 1_000).toLocaleString()} kWh 等价活动数据`,
         source: "能源监测系统",
         verified: true,
         children: [
           {
             id: "mrv3",
             level: "meter",
-            title: "计量器具：智能电表",
-            data: "#E-001 ~ #E-156",
+            title: "重点计量与运行设备",
+            data: "35台（在线30、离线2、故障1、维护2）",
             source: "设备台账",
             verified: true,
             children: [
@@ -426,7 +446,7 @@ export function getMRVChain(): MRVNode {
                 id: "mrv4",
                 level: "source_doc",
                 title: "原始凭证：电费账单",
-                data: "2026-01~12",
+                data: `${year}-01~${String(month).padStart(2, "0")}`,
                 source: "财务系统",
                 verified: true,
                 children: [],
@@ -442,7 +462,7 @@ export function getMRVChain(): MRVNode {
 export function getAuditChecklist(): AuditCheckItem[] {
   return [
     { id: "ac1", category: "排放源", checkContent: "排放源清单完整", status: "pass", evidence: "已覆盖全部建筑" },
-    { id: "ac2", category: "活动数据", checkContent: "活动数据齐全", status: "pass", evidence: "156块电表数据完整" },
+    { id: "ac2", category: "活动数据", checkContent: "重点设备数据齐全", status: "fail", evidence: "35台设备中2台离线、1台故障，已标记估算数据" },
     { id: "ac3", category: "排放因子", checkContent: "排放因子正确", status: "pass", evidence: "已更新至2026年国标" },
     { id: "ac4", category: "原始凭证", checkContent: "3栋楼缺失原始凭证", status: "fail" },
   ];
@@ -450,9 +470,9 @@ export function getAuditChecklist(): AuditCheckItem[] {
 
 export function getMissingDocs(): MissingDoc[] {
   return [
-    { id: "md1", docName: "实验楼A天然气抄表记录", requiredBy: "核查要求提供月度抄表记录", relatedBuilding: "实验楼A", severity: "critical" },
+    { id: "md1", docName: "材料测试楼实验气体抄表记录", requiredBy: "核查要求提供月度抄表记录", relatedBuilding: "材料测试楼", severity: "critical" },
     { id: "md2", docName: "体育馆柴油发票", requiredBy: "备用发电机燃油消耗凭证", relatedBuilding: "体育馆", severity: "major" },
-    { id: "md3", docName: "学生宿舍热力结算单", requiredBy: "集中供热费用分摊凭证", relatedBuilding: "学生宿舍", severity: "minor" },
+    { id: "md3", docName: "1斋热力结算单", requiredBy: "集中供热费用分摊凭证", relatedBuilding: "1斋", severity: "minor" },
   ];
 }
 

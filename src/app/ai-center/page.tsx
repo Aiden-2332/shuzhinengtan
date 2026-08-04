@@ -18,8 +18,10 @@ import PolicyPanel from '@/components/ai-center/PolicyPanel';
 import PolicyRight from '@/components/ai-center/PolicyRight';
 import BottomBar from '@/components/ai-center/BottomBar';
 import AISuggestionPage from '@/app/ai-suggestion/page';
+import { useRealtimeNow } from '@/hooks/use-realtime-now';
 
 export default function AICenterPage() {
+  const nowMs = useRealtimeNow();
   const activeModule = useAICenterStore((s) => s.activeModule);
   const setPredictionCurve = useAICenterStore((s) => s.setPredictionCurve);
   const setHolidayPlans = useAICenterStore((s) => s.setHolidayPlans);
@@ -37,11 +39,6 @@ export default function AICenterPage() {
 
   // 初始化加载所有模块数据
   useEffect(() => {
-    setPredictionCurve(getMockPredictionCurve(predictionPeriod));
-    setHolidayPlans(getMockHolidayPlans());
-    setRiskCalendar(getMockRiskCalendar());
-    setAnomalies(getMockAnomalies());
-    setNotifications(getMockNotifications());
     setReductionBubbles(getMockReductionBubbles());
     setReductionPath(getMockOptimizationPath(optimizationConstraints.budget));
     setCostScenarios(getMockCostScenarios());
@@ -49,6 +46,16 @@ export default function AICenterPage() {
     setPolicyChanges(getMockPolicyChanges());
     setChatMessages([getMockWelcomeMessage()]);
   }, []);
+
+  useEffect(() => {
+    if (nowMs === null) return;
+    const now = new Date(nowMs);
+    setPredictionCurve(getMockPredictionCurve(predictionPeriod, now));
+    setHolidayPlans(getMockHolidayPlans(now));
+    setRiskCalendar(getMockRiskCalendar(now));
+    setAnomalies(getMockAnomalies(now));
+    setNotifications(getMockNotifications(now));
+  }, [nowMs, predictionPeriod, setPredictionCurve, setHolidayPlans, setRiskCalendar, setAnomalies, setNotifications]);
 
   // 实时数据流模拟
   useEffect(() => {
@@ -61,8 +68,8 @@ export default function AICenterPage() {
 
   // 预测周期变化时更新
   useEffect(() => {
-    setPredictionCurve(getMockPredictionCurve(predictionPeriod));
-  }, [predictionPeriod]);
+    setPredictionCurve(getMockPredictionCurve(predictionPeriod, nowMs === null ? new Date() : new Date(nowMs)));
+  }, [predictionPeriod, nowMs, setPredictionCurve]);
 
   const leftPanel = () => {
     switch (activeModule) {

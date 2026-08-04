@@ -1,4 +1,5 @@
 import { CAMPUS_DATA } from "./campus-data";
+import { SYSTEM_BUILDINGS_BY_NAME } from "./campus-system-data";
 import rawOverlayData from "./ustb-building-overlays.json";
 
 export type CampusMapKind = "2d" | "2_5d";
@@ -53,6 +54,17 @@ interface ExtractedOverlayData {
 
 const overlayData = rawOverlayData as unknown as ExtractedOverlayData;
 
+// Both cockpits must expose the same building roster. A building that is not
+// present in either source map is excluded from both the labels and polygons.
+const twoAndHalfDBuildingNames = new Set(
+  overlayData.maps["2_5d"].buildings.map((building) => building.name),
+);
+const sharedBuildingNames = new Set(
+  overlayData.maps["2d"].buildings
+    .filter((building) => twoAndHalfDBuildingNames.has(building.name))
+    .map((building) => building.name),
+);
+
 const CARBON_NAME_ALIASES: Record<string, string> = {
   主楼: "主教学楼",
   教学楼: "第一教学楼",
@@ -78,6 +90,17 @@ function findCarbonBuilding(name: string) {
 }
 
 function getCarbonData(name: string): CampusBuildingCarbonData | null {
+  const systemBuilding = SYSTEM_BUILDINGS_BY_NAME.get(name);
+  if (systemBuilding) {
+    return {
+      annualEmission: systemBuilding.annualEmissionForecast,
+      targetEmission: systemBuilding.annualEmissionTarget,
+      energyIntensity: systemBuilding.energyIntensity,
+      department: systemBuilding.department,
+      sourceLabel: "校园统一监测场景",
+    };
+  }
+
   const building = findCarbonBuilding(name);
   if (!building) return null;
 
@@ -91,10 +114,12 @@ function getCarbonData(name: string): CampusBuildingCarbonData | null {
 }
 
 function hydrateBuildings(map: CampusMapKind): CampusMapBuilding[] {
-  return overlayData.maps[map].buildings.map((building) => ({
-    ...building,
-    carbon: getCarbonData(building.name),
-  }));
+  return overlayData.maps[map].buildings
+    .filter((building) => sharedBuildingNames.has(building.name))
+    .map((building) => ({
+      ...building,
+      carbon: getCarbonData(building.name),
+    }));
 }
 
 export const campusMapBuildingsByMap: Record<

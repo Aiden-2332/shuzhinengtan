@@ -1,47 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -Eeuo pipefail
 
-
-PORT=5000
-COZE_WORKSPACE_PATH="${COZE_WORKSPACE_PATH:-$(pwd)}"
-DEPLOY_RUN_PORT="${DEPLOY_RUN_PORT:-${PORT}}"
-
-
-cd "${COZE_WORKSPACE_PATH}"
-
-kill_port_if_listening() {
-    local pids
-    pids=$(ss -H -lntp 2>/dev/null | awk -v port="${DEPLOY_RUN_PORT}" '$4 ~ ":"port"$"' | grep -o 'pid=[0-9]*' | cut -d= -f2 | paste -sd' ' - || true)
-    if [[ -z "${pids}" ]]; then
-      echo "Port ${DEPLOY_RUN_PORT} is free."
-      return
-    fi
-    echo "Port ${DEPLOY_RUN_PORT} in use by PIDs: ${pids} (SIGKILL)"
-    echo "${pids}" | xargs -I {} kill -9 {}
-    sleep 1
-    pids=$(ss -H -lntp 2>/dev/null | awk -v port="${DEPLOY_RUN_PORT}" '$4 ~ ":"port"$"' | grep -o 'pid=[0-9]*' | cut -d= -f2 | paste -sd' ' - || true)
-    if [[ -n "${pids}" ]]; then
-      echo "Warning: port ${DEPLOY_RUN_PORT} still busy after SIGKILL, PIDs: ${pids}"
-    else
-      echo "Port ${DEPLOY_RUN_PORT} cleared."
-    fi
-}
-
-echo "Clearing port ${DEPLOY_RUN_PORT} before start."
-kill_port_if_listening
-
-# Start report backend (Python FastAPI microservice)
-REPORT_PORT=8001
-echo "Starting report backend on port ${REPORT_PORT}..."
-bash "${COZE_WORKSPACE_PATH}/scripts/start-report-backend.sh" 2>&1 | while IFS= read -r line; do echo "[report-backend] $line"; done &
-REPORT_PID=$!
-sleep 2
-if ! ss -H -lntp 2>/dev/null | awk -v port="${REPORT_PORT}" '$4 ~ ":"port"$"' | grep -q LISTEN; then
-  echo "Warning: report backend may not have started on port ${REPORT_PORT}"
-else
-  echo "Report backend started on port ${REPORT_PORT} (PID: ${REPORT_PID})"
-fi
-
-echo "Starting HTTP service on port ${DEPLOY_RUN_PORT} for dev..."
-
-PORT=${DEPLOY_RUN_PORT} pnpm tsx watch src/server.ts
+# Compatibility wrapper for environments that still invoke this file directly.
+# The actual launcher is Node-based so `pnpm dev` behaves the same on Windows,
+# macOS, Linux, VS Code tasks, and hosted workspaces.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec node "${SCRIPT_DIR}/dev.mjs"

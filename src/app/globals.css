@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./cockpit-redesign.css";
 
 @theme {
   --color-background: 222 47% 6%;
@@ -117,9 +118,21 @@ body {
   background: var(--theme-header);
   border-bottom: 1px solid var(--theme-border);
   box-shadow: 0 7px 24px rgba(2, 8, 15, .22);
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+.app-header[data-cockpit="true"] {
+  isolation: isolate;
+  contain: layout;
+  background: color-mix(in srgb, var(--theme-bg) 94%, var(--theme-primary));
 }
 
 .nav-atmosphere { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.nav-atmosphere--static {
+  background:
+    radial-gradient(circle at 38% 25%, rgba(var(--theme-primary-rgb), .16), transparent 32%),
+    linear-gradient(104deg, transparent 12%, rgba(var(--theme-primary-rgb), .09) 49%, transparent 72%);
+}
 .nav-atmosphere__gradient { position: absolute !important; inset: -55% -6% !important; width: 112% !important; height: 210% !important; opacity: .72; }
 .nav-atmosphere__particles,
 .nav-atmosphere__particles canvas { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
@@ -140,8 +153,8 @@ body {
 }
 
 .campus-tile-map {
-  /* Neutral canvas only; no overlay, filter or blend is applied to map tiles. */
-  background: #e3eaed;
+  background:
+    radial-gradient(ellipse at 50% 47%, #e7eef2 0%, #dae4e9 54%, #ccd9e0 100%);
 }
 
 .cockpit-panel-rail {
@@ -153,42 +166,54 @@ body {
   display: flex;
   flex-direction: column;
   gap: clamp(8px, .72vh, 13px);
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   pointer-events: none;
   scrollbar-width: none;
   overscroll-behavior: contain;
+  isolation: isolate;
+  contain: layout paint;
 }
 .cockpit-panel-rail::-webkit-scrollbar { display: none; }
 .cockpit-panel-rail--left { left: var(--cockpit-edge); }
 .cockpit-panel-rail--right { right: var(--cockpit-edge); }
 
 .floating-glass-panel {
-  --glass-pointer-x: 50%;
-  --glass-pointer-y: 50%;
   position: relative;
-  flex: 0 0 auto;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
   min-width: 0;
-  border: 1px solid var(--theme-border);
+  border: 1px solid color-mix(in srgb, var(--theme-border) 86%, white 14%);
   border-radius: clamp(14px, .85vw, 19px);
   overflow: hidden;
   isolation: isolate;
   pointer-events: auto;
-  background: linear-gradient(145deg, color-mix(in srgb, var(--theme-surface) 90%, white 10%), var(--theme-surface-strong));
-  box-shadow: 0 18px 46px rgba(0, 9, 17, .25), inset 0 1px 0 rgba(255,255,255,.17), inset 0 -1px 0 rgba(255,255,255,.035);
-  backdrop-filter: blur(17px) saturate(132%);
-  -webkit-backdrop-filter: blur(17px) saturate(132%);
+  background-color: rgba(5, 18, 28, .82);
+  background:
+    radial-gradient(circle at 18% -8%, rgba(var(--theme-primary-rgb), .16), transparent 38%),
+    linear-gradient(145deg, color-mix(in srgb, var(--theme-bg) 86%, transparent), color-mix(in srgb, var(--theme-bg) 79%, transparent));
+  box-shadow:
+    0 16px 40px rgba(0, 9, 17, .24),
+    inset 0 1px 0 rgba(255,255,255,.15),
+    inset 0 -1px 0 rgba(255,255,255,.035);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   contain: layout paint;
-  will-change: transform;
+  will-change: auto;
 }
+.floating-glass-panel[data-panel-priority="critical"] { flex-grow: 1.08; }
+.floating-glass-panel[data-panel-priority="secondary"] { flex-grow: .96; }
 .floating-glass-panel::after {
   content: "";
   position: absolute;
   z-index: -1;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(180px circle at var(--glass-pointer-x) var(--glass-pointer-y), rgba(255,255,255,.13), transparent 66%);
-  opacity: .7;
+  background:
+    radial-gradient(180px circle at 20% 0%, rgba(255,255,255,.09), transparent 68%),
+    repeating-linear-gradient(115deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px);
+  opacity: .66;
 }
 .floating-glass-panel__refraction {
   position: absolute;
@@ -208,7 +233,22 @@ body {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.76), transparent);
   opacity: .52;
 }
-.floating-glass-panel__content { position: relative; z-index: 1; padding: clamp(9px, .62vw, 13px); }
+.floating-glass-panel__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: clamp(9px, .62vw, 13px);
+  scrollbar-color: rgba(var(--theme-primary-rgb), .34) transparent;
+  scrollbar-width: thin;
+}
+.floating-glass-panel__content::-webkit-scrollbar { width: 4px; }
+.floating-glass-panel__content::-webkit-scrollbar-track { background: transparent; }
+.floating-glass-panel__content::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(var(--theme-primary-rgb), .34); }
 .floating-glass-panel__toggle {
   position: absolute;
   z-index: 4;
@@ -230,7 +270,7 @@ body {
 .floating-glass-panel__grip { width: 11px; height: 11px; display: none; }
 .floating-glass-panel__chevron { width: 13px; height: 13px; transition: transform .28s cubic-bezier(.22,1,.36,1); }
 .floating-glass-panel__collapsed-label { display: none; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 650; letter-spacing: .03em; }
-.floating-glass-panel[data-collapsed="true"] { align-self: flex-start; min-width: min(100%, 148px); }
+.floating-glass-panel[data-collapsed="true"] { align-self: flex-start; flex: 0 0 34px; min-height: 34px; min-width: min(100%, 148px); }
 .floating-glass-panel[data-collapsed="true"] .floating-glass-panel__toggle { position: relative; inset: auto; width: 100%; height: 34px; padding: 0 10px; justify-content: flex-start; }
 .floating-glass-panel[data-collapsed="true"] .floating-glass-panel__collapsed-label,
 .floating-glass-panel[data-collapsed="true"] .floating-glass-panel__grip { display: block; }
@@ -252,7 +292,6 @@ body {
   background: var(--theme-surface-strong);
   box-shadow: 0 9px 28px rgba(1,10,18,.25), inset 0 1px 0 rgba(255,255,255,.13);
   font-size: clamp(10px, .63vw, 12px);
-  backdrop-filter: blur(15px) saturate(125%);
 }
 .cockpit-trend-trigger svg[data-open="true"] { transform: rotate(180deg); }
 .cockpit-trend-drawer {
@@ -267,7 +306,6 @@ body {
   border-radius: 18px;
   background: var(--theme-surface-strong);
   box-shadow: 0 22px 60px rgba(1,10,18,.34), inset 0 1px 0 rgba(255,255,255,.13);
-  backdrop-filter: blur(18px) saturate(130%);
 }
 .cockpit-bottom-strip { position: absolute; z-index: 19; left: 50%; bottom: var(--cockpit-edge); transform: translateX(-50%); }
 .cockpit-demo-note { position: absolute; z-index: 18; right: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 2); bottom: var(--cockpit-edge); color: rgba(31,45,50,.72); font-size: clamp(9px, .52vw, 11px); }
@@ -278,7 +316,6 @@ body {
   color: var(--theme-text);
   background: var(--theme-surface-strong);
   box-shadow: 0 9px 26px rgba(1,10,18,.20), inset 0 1px 0 rgba(255,255,255,.13);
-  backdrop-filter: blur(14px) saturate(125%);
 }
 
 .auto-scroll-list { position: relative; min-height: 36px; overflow: hidden; cursor: pointer; outline: none; mask-image: linear-gradient(to bottom, transparent, #000 5%, #000 95%, transparent); }
@@ -317,6 +354,10 @@ body {
 @keyframes nav-gradient-flow { from { background-position: 160% 0; } to { background-position: -80% 0; } }
 @keyframes auto-scroll-loop { to { transform: translate3d(0, calc(-1 * var(--auto-scroll-distance)), 0); } }
 @keyframes auto-scroll-highlight { 0% { background: rgba(var(--theme-primary-rgb), .35); box-shadow: 0 0 0 1px rgba(var(--theme-primary-rgb), .58), 0 0 22px rgba(var(--theme-primary-rgb), .28); } 100% { background: transparent; box-shadow: none; } }
+.campus-building-frame-halo {
+  pointer-events: none;
+  opacity: .94;
+}
 
 /* 21:9: spend additional width on the map, not on typography. */
 @media (min-aspect-ratio: 2/1) {
@@ -324,14 +365,9 @@ body {
   .cockpit-panel-rail { gap: clamp(8px, .92vh, 14px); }
 }
 
-/* 4:3: rails stay useful but secondary modules collapse before the map shrinks. */
+/* 4:3: keep all rail modules readable while preserving the center map width. */
 @media (max-aspect-ratio: 4/3) {
   .cockpit-shell { --cockpit-panel-width: clamp(215px, 21vw, 270px); --cockpit-edge: clamp(7px, .62vw, 11px); }
-  .floating-glass-panel[data-panel-priority="secondary"] .floating-glass-panel__content { display: none; }
-  .floating-glass-panel[data-panel-priority="secondary"] .floating-glass-panel__toggle { position: relative; inset: auto; width: 100%; height: 34px; padding: 0 10px; justify-content: flex-start; }
-  .floating-glass-panel[data-panel-priority="secondary"] .floating-glass-panel__collapsed-label,
-  .floating-glass-panel[data-panel-priority="secondary"] .floating-glass-panel__grip { display: block; }
-  .floating-glass-panel[data-panel-priority="secondary"] .floating-glass-panel__chevron { margin-left: auto; transform: rotate(-90deg); }
   .cockpit-trend-drawer { left: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 1.5); right: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 1.5); }
 }
 

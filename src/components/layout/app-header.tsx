@@ -16,20 +16,20 @@ import {
   Info,
   CheckCircle2,
   Clock,
-  LogIn,
-  Key,
-  Mail,
   Shield,
   LayoutDashboard,
   Factory,
   Grid3X3,
 } from "lucide-react";
-import { AllDevices, type AlarmRecord } from "@/data/energy-monitor-data";
+import type { AlarmRecord } from "@/data/energy-monitor-data";
+import { getSystemAnomalySnapshots } from "@/data/campus-system-data";
+import { useRealtimeNow } from "@/hooks/use-realtime-now";
+import { formatCampusDateTime, getCampusDateParts } from "@/lib/campus-realtime";
 import { ThemeSwitcher, type CockpitTheme } from "./theme-switcher";
 import { NavAtmosphere } from "./nav-atmosphere";
 
 // 驾驶舱路由列表
-const COCKPIT_ROUTES = ["/", "/operations"];
+const COCKPIT_ROUTES = ["/leader", "/operations"];
 
 interface AppHeaderProps {
   sidebarCollapsed?: boolean;
@@ -41,12 +41,23 @@ interface AppHeaderProps {
 export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, onThemeChange }: AppHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [year, setYear] = useState("2026");
+  const nowMs = useRealtimeNow();
+  const currentYear = nowMs === null ? 2026 : getCampusDateParts(new Date(nowMs)).year;
+  const [year, setYear] = useState(() => String(getCampusDateParts(new Date()).year));
   const [campus, setCampus] = useState("all");
   const [dataStatus, setDataStatus] = useState("realtime");
 
   // 判断是否在驾驶舱页面
   const isCockpit = COCKPIT_ROUTES.includes(pathname);
+  const currentUser = useMemo(() => {
+    if (pathname === "/leader") {
+      return { name: "校领导", role: "领导舱演示" };
+    }
+    if (pathname === "/operations") {
+      return { name: "后勤用户", role: "后勤舱演示" };
+    }
+    return { name: "演示用户", role: "PC 端演示" };
+  }, [pathname]);
 
   // Alarm dropdown state
   const [showAlarms, setShowAlarms] = useState(false);
@@ -55,24 +66,19 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
   // User login panel state
   const [showLogin, setShowLogin] = useState(false);
   const loginRef = useRef<HTMLDivElement>(null);
-  const [loginAccount, setLoginAccount] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState({ name: "校领导", role: "管理员" });
 
   // Collect all alarm records from devices
-  const allAlarms = useMemo(() => {
-    const alarms: (AlarmRecord & { deviceName: string; deviceId: string })[] = [];
-    AllDevices.forEach((d) => {
-      d.alarmHistory.forEach((a) => {
-        alarms.push({ ...a, deviceName: d.name, deviceId: d.id });
-      });
-    });
-    // Sort by time descending
-    alarms.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-    return alarms;
-  }, []);
+  const allAlarms = useMemo<(AlarmRecord & { deviceName: string; deviceId: string })[]>(() => {
+    if (nowMs === null) return [];
+    return getSystemAnomalySnapshots(new Date(nowMs)).map((anomaly) => ({
+      type: anomaly.severity === "emergency" || anomaly.severity === "critical" ? "danger" : anomaly.severity === "warning" ? "warning" : "info",
+      description: `${anomaly.buildingName}：${anomaly.description}`,
+      time: anomaly.detectedAt,
+      status: anomaly.status === "resolved" ? "closed" : anomaly.status === "processing" || anomaly.status === "acknowledged" ? "processing" : "pending",
+      deviceName: anomaly.deviceName ?? anomaly.buildingName,
+      deviceId: anomaly.deviceId ?? anomaly.id,
+    }));
+  }, [nowMs]);
 
   const unreadCount = allAlarms.filter((a) => a.status === "pending").length;
 
@@ -89,46 +95,6 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleLogin = () => {
-    if (!loginAccount.trim()) {
-      setLoginError("请输入账号");
-      return;
-    }
-    if (!loginPassword.trim()) {
-      setLoginError("请输入密码");
-      return;
-    }
-    if (loginAccount === "admin" && loginPassword === "admin123") {
-      setIsLoggedIn(true);
-      setCurrentUser({ name: "校领导", role: "管理员" });
-      setShowLogin(false);
-      setLoginError("");
-      setLoginAccount("");
-      setLoginPassword("");
-    } else if (loginAccount === "energy" && loginPassword === "energy123") {
-      setIsLoggedIn(true);
-      setCurrentUser({ name: "赵能源", role: "后勤能源管理员" });
-      setShowLogin(false);
-      setLoginError("");
-      setLoginAccount("");
-      setLoginPassword("");
-    } else if (loginAccount === "carbon" && loginPassword === "carbon123") {
-      setIsLoggedIn(true);
-      setCurrentUser({ name: "钱碳管", role: "碳管理员" });
-      setShowLogin(false);
-      setLoginError("");
-      setLoginAccount("");
-      setLoginPassword("");
-    } else {
-      setLoginError("账号或密码错误");
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentUser({ name: "校领导", role: "管理员" });
-  };
 
   const alarmTypeIcon = (type: AlarmRecord["type"]) => {
     switch (type) {
@@ -165,13 +131,16 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
 
   // 驾驶舱按钮配置
   const cockpitButtons = [
-    { key: "L1", label: "领导组驾驶舱", icon: LayoutDashboard, href: "/", color: "from-cyan-500 to-blue-600" },
+    { key: "L1", label: "领导组驾驶舱", icon: LayoutDashboard, href: "/leader", color: "from-cyan-500 to-blue-600" },
     { key: "L3", label: "后勤组驾驶舱", icon: Factory, href: "/operations", color: "from-orange-500 to-amber-600" },
   ];
 
   return (
-    <header className="app-header relative z-50 flex h-14 items-center justify-between gap-2 px-4">
-      <NavAtmosphere theme={theme} />
+    <header
+      className="app-header relative z-50 flex h-14 items-center justify-between gap-2 px-4"
+      data-cockpit={isCockpit ? "true" : "false"}
+    >
+      <NavAtmosphere theme={theme} staticMode={isCockpit} />
       {/* Left Section */}
       <div className="relative z-10 flex shrink-0 items-center gap-3">
         {/* Sidebar Toggle (非驾驶舱时显示) */}
@@ -251,9 +220,9 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
                 onChange={(e) => setYear(e.target.value)}
                 className="bg-transparent text-xs text-gray-300 outline-none cursor-pointer"
               >
-                <option value="2026">2026 年度</option>
-                <option value="2025">2025 年度</option>
-                <option value="2024">2024 年度</option>
+                {[currentYear, currentYear - 1, currentYear - 2].map((optionYear) => (
+                  <option key={optionYear} value={String(optionYear)}>{optionYear} 年度</option>
+                ))}
               </select>
             </div>
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/50 border border-cyan-500/20">
@@ -367,7 +336,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1 text-xs text-gray-500">
                               <Clock className="w-3 h-3" />
-                              {alarm.time}
+                              {formatCampusDateTime(new Date(alarm.time))}
                             </div>
                             <span
                               className={`text-[10px] px-1.5 py-0.5 rounded ${alarmStatusLabel(alarm.status).color}`}
@@ -403,7 +372,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
           )}
         </div>
 
-        {/* User Profile / Login */}
+        {/* Demo profile */}
         <div className="relative" ref={loginRef}>
           <button
             onClick={() => {
@@ -422,108 +391,39 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
             <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showLogin ? "rotate-180" : ""}`} />
           </button>
 
-          {/* Login Panel */}
+          {/* Demo profile panel */}
           {showLogin && (
             <div className="absolute right-0 top-full mt-2 w-[320px] bg-slate-900 border border-cyan-500/20 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
-              {isLoggedIn ? (
-                <>
-                  <div className="px-5 py-4 border-b border-gray-800">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-white">{currentUser.name}</div>
-                        <div className="text-xs text-gray-400">{currentUser.role}</div>
-                      </div>
-                    </div>
+              <div className="px-5 py-4 border-b border-gray-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                    <User className="w-5 h-5 text-white" />
                   </div>
-                  <div className="px-5 py-3 border-b border-gray-800">
-                    <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
-                      <Shield className="w-3.5 h-3.5" />
-                      <span>权限范围：全校碳排放数据</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>上次登录：2026-07-21 08:30</span>
-                    </div>
+                  <div>
+                    <div className="text-sm font-semibold text-white">{currentUser.name}</div>
+                    <div className="text-xs text-gray-400">{currentUser.role}</div>
                   </div>
-                  <div className="px-5 py-2">
-                    <button
-                      onClick={handleLogout}
-                      className="w-full py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
-                    >
-                      退出登录
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="px-5 py-4 border-b border-gray-800">
-                    <div className="flex items-center gap-2 mb-1">
-                      <LogIn className="w-4 h-4 text-cyan-400" />
-                      <span className="text-sm font-semibold text-white">账号登录</span>
-                    </div>
-                    <p className="text-xs text-gray-500">请使用您的账号登录系统</p>
-                  </div>
-
-                  <div className="px-5 py-4 space-y-3">
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1.5">账号</label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                        <input
-                          type="text"
-                          value={loginAccount}
-                          onChange={(e) => {
-                            setLoginAccount(e.target.value);
-                            setLoginError("");
-                          }}
-                          placeholder="请输入账号"
-                          className="w-full pl-9 pr-3 py-2 bg-slate-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500/50 transition-colors"
-                          onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1.5">密码</label>
-                      <div className="relative">
-                        <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                        <input
-                          type="password"
-                          value={loginPassword}
-                          onChange={(e) => {
-                            setLoginPassword(e.target.value);
-                            setLoginError("");
-                          }}
-                          placeholder="请输入密码"
-                          className="w-full pl-9 pr-3 py-2 bg-slate-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 outline-none focus:border-cyan-500/50 transition-colors"
-                          onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                        />
-                      </div>
-                    </div>
-
-                    {loginError && (
-                      <div className="flex items-center gap-1.5 text-xs text-red-400">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        {loginError}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={handleLogin}
-                      className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-cyan-400 hover:to-blue-500 transition-all"
-                    >
-                      登 录
-                    </button>
-
-                    <div className="text-xs text-gray-500 text-center">
-                      演示账号：admin / admin123
-                    </div>
-                  </div>
-                </>
-              )}
+                </div>
+              </div>
+              <div className="px-5 py-3 border-b border-gray-800">
+                <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>当前为系统演示访问</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>正式账号体系暂未接入</span>
+                </div>
+              </div>
+              <div className="px-5 py-2">
+                <button
+                  type="button"
+                  onClick={() => router.push("/")}
+                  className="w-full py-2 text-sm text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                >
+                  退出演示
+                </button>
+              </div>
             </div>
           )}
         </div>
