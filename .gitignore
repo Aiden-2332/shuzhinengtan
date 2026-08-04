@@ -86,6 +86,7 @@ logs/
 *.pptx
 *.xlsx
 *.csv
+!public/templates/DB11-1785-2020-service-report.docx
 
 # Preview files
 .preview

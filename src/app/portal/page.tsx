@@ -25,6 +25,7 @@ import {
   MonitorSmartphone,
   Stethoscope,
   ShieldCheck,
+  GitBranch,
 } from "lucide-react";
 
 interface PortalCategory {
@@ -72,6 +73,14 @@ const categories: PortalCategory[] = [
         icon: Stethoscope,
         color: "text-rose-400",
       },
+      {
+        title: "能源流向分析",
+        description: "校园能源输入、转换、输配与终端流向全景",
+        href: "/energy-flow",
+        icon: GitBranch,
+        color: "text-blue-400",
+        badge: "新增",
+      },
     ],
   },
   {
@@ -97,6 +106,13 @@ const categories: PortalCategory[] = [
         href: "/evaluation",
         icon: Leaf,
         color: "text-green-400",
+      },
+      {
+        title: "AI减排建议",
+        description: "证据汇总、措施匹配、效益试算",
+        href: "/ai-suggestion",
+        icon: TrendingDown,
+        color: "text-orange-400",
       },
       {
         title: "碳资产管理",

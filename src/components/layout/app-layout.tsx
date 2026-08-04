@@ -14,8 +14,8 @@ interface AppLayoutProps {
 const LOGIN_ROUTE = "/";
 const COCKPIT_ROUTES = ["/leader", "/operations"];
 
-// 能源管理页面 - 白色背景
-const ENERGY_ROUTES = ["/energy-monitor", "/energy-diagnosis"];
+// 能源管理页面使用浅色主题。
+const ENERGY_ROUTES = ["/energy-monitor", "/energy-flow", "/energy-diagnosis"];
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -58,7 +58,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         />
       )}
 
-      {/* Sidebar - 仅非驾驶舱页面显示 */}
+      {/* Sidebar - ????????? */}
       {!isCockpit && <AppSidebar collapsed={sidebarCollapsed} />}
 
       {/* Main Content */}
