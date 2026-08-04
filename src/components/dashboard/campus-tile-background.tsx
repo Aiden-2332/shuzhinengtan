@@ -1059,7 +1059,7 @@ export function CampusTileBackground({
       {headerToolbar}
 
       <div
-        className="absolute top-3 z-20 flex flex-col items-end gap-2"
+        className="absolute top-[calc(var(--cockpit-edge)+72px)] z-20 flex flex-col items-end gap-2"
         style={{ right: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
         onPointerDown={(event) => event.stopPropagation()}
         onDoubleClick={(event) => event.stopPropagation()}

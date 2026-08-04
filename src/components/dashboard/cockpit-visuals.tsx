@@ -126,7 +126,6 @@ export function GaugeDial({ data, variant = "arc" }: { data: GaugeDatum; variant
 
   if (variant === "ring") {
     const radius = 36;
-    const circumference = Math.PI * 2 * radius;
     return (
       <div className="cockpit-ring-gauge" role="img" aria-label={`${data.label} ${formatMeasure(data.value)}${data.unit ?? ""}`}>
         <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -438,14 +437,20 @@ export function AdaptiveTrendChart({
             formatter={(value) => [`${formatMeasure(Number(value))}${unit ? ` ${unit}` : ""}`]}
           />
           <Legend
-            iconType="plainline"
-            iconSize={16}
-            payload={validSeries.map((item) => ({
-              id: item.key,
-              value: item.label,
-              type: "plainline" as const,
-              color: item.color,
-            }))}
+            content={() => (
+              <div className="cockpit-trend__legend" aria-label="趋势图例">
+                {validSeries.map((item) => (
+                  <span key={item.key}>
+                    <i
+                      aria-hidden="true"
+                      data-dashed={item.dashed ? "true" : "false"}
+                      style={{ color: item.color }}
+                    />
+                    {item.label}
+                  </span>
+                ))}
+              </div>
+            )}
             wrapperStyle={{ color: "var(--theme-muted)", fontSize: 10, paddingTop: 4 }}
           />
           {areaSeries ? (

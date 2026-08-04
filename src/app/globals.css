@@ -172,6 +172,8 @@ body {
   overscroll-behavior: contain;
   isolation: isolate;
   contain: layout paint;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 .cockpit-panel-rail::-webkit-scrollbar { display: none; }
 .cockpit-panel-rail--left { left: var(--cockpit-edge); }
@@ -200,7 +202,11 @@ body {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   contain: layout paint;
-  will-change: auto;
+  backface-visibility: hidden;
+  transition:
+    flex-grow .24s cubic-bezier(.22, 1, .36, 1),
+    flex-basis .24s cubic-bezier(.22, 1, .36, 1),
+    min-height .24s cubic-bezier(.22, 1, .36, 1);
 }
 .floating-glass-panel[data-panel-priority="critical"] { flex-grow: 1.08; }
 .floating-glass-panel[data-panel-priority="secondary"] { flex-grow: .96; }
@@ -294,6 +300,7 @@ body {
   font-size: clamp(10px, .63vw, 12px);
 }
 .cockpit-trend-trigger svg[data-open="true"] { transform: rotate(180deg); }
+.cockpit-trend-trigger svg { transition: transform .2s cubic-bezier(.22, 1, .36, 1); }
 .cockpit-trend-drawer {
   position: absolute;
   z-index: 23;
