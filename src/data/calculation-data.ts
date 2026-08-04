@@ -14,8 +14,10 @@ import type {
   DataQualityMetrics,
   MRVAuditRecord,
 } from '@/types';
+import { getPreviousCampusMonthKey } from '@/data/campus-system-data';
+import { getCampusDateParts } from '@/lib/campus-realtime';
 
-const STORAGE_KEY = 'calculation-data-v2';
+const STORAGE_KEY = 'calculation-data-v3';
 
 // ========== 核算标准元数据 ==========
 export const STANDARD_META: Record<CalculationStandard, { label: string; description: string; scopeNote: string }> = {
@@ -70,7 +72,7 @@ export const dataSourceDefinitions: DataSourceDefinition[] = [
 
 // ========== 默认数据源记录（20+条）==========
 function createDefaultRecords(): DataSourceRecord[] {
-  return [
+  const records: DataSourceRecord[] = [
     // 边界基础类
     { id: 'ds-001', sourceCode: 'S-A01', sourceName: '主校区空间台账', category: 'boundary', emissionScope: 'scope1', dataClassification: '组织边界', campus: '主校区', period: '2026-06', value: 1, unit: '项', source: 'manual', status: 'locked', auditStatus: 'approved', evidenceStatus: 'complete', emissionFactor: 0, emissionFactorSource: '-', emissionFactorVersion: '-', calculationFormula: '-', reviewer: '张三', reviewedAt: '2026-07-05', batchId: 'batch-2026-06', attachmentCount: 2, relatedEvidences: ['空间台账-主校区.pdf'], modifyRecords: [], auditRecords: [{ time: '2026-07-05 14:00', operator: '张三', action: '审核通过', remark: '数据完整' }], updatedAt: '2026-07-01', updatedBy: '王五' },
     { id: 'ds-002', sourceCode: 'S-A02', sourceName: '教学楼面积统计', category: 'boundary', emissionScope: 'scope1', dataClassification: '组织边界', campus: '主校区', period: '2026-06', value: 45000, unit: 'm²', source: 'manual', status: 'locked', auditStatus: 'approved', evidenceStatus: 'complete', emissionFactor: 0, emissionFactorSource: '-', emissionFactorVersion: '-', calculationFormula: '-', reviewer: '张三', reviewedAt: '2026-07-05', batchId: 'batch-2026-06', attachmentCount: 1, relatedEvidences: ['面积台账.xlsx'], modifyRecords: [], auditRecords: [{ time: '2026-07-05 14:10', operator: '张三', action: '审核通过', remark: '与房产系统一致' }], updatedAt: '2026-07-01', updatedBy: '王五' },
@@ -103,15 +105,63 @@ function createDefaultRecords(): DataSourceRecord[] {
     { id: 'ds-024', sourceCode: 'S-A06', sourceName: '东校区天然气', category: 'energy', emissionScope: 'scope1', dataClassification: '天然气', campus: '东校区', period: '2026-06', value: 12000, unit: 'm³', emissionValue: 25.9, source: 'bill', status: 'pending_review', auditStatus: 'pending', evidenceStatus: 'complete', emissionFactor: 2.162, emissionFactorSource: 'JS/T 303-2026', emissionFactorVersion: '2026v1', calculationFormula: '12000 m³ × 2.162 tCO₂/万m³ / 10000 = 25.9 tCO₂', attachmentCount: 1, relatedEvidences: ['燃气账单-东校区-202606.pdf'], modifyRecords: [], auditRecords: [], updatedAt: '2026-07-03', updatedBy: '财务部' },
     { id: 'ds-025', sourceCode: 'S-A08', sourceName: '实验用液化气', category: 'energy', emissionScope: 'scope1', dataClassification: '其他燃料', campus: '主校区', department: '材料学院', period: '2026-06', value: 500, unit: 'kg', emissionValue: 1.5, source: 'manual', status: 'normal', auditStatus: 'approved', evidenceStatus: 'complete', emissionFactor: 3.014, emissionFactorSource: 'JS/T 303-2026', emissionFactorVersion: '2026v1', calculationFormula: '500 kg × 3.014 tCO₂/t / 1000 = 1.5 tCO₂', reviewer: '李四', reviewedAt: '2026-07-06', attachmentCount: 1, relatedEvidences: ['液化气采购单-202606.pdf'], modifyRecords: [], auditRecords: [{ time: '2026-07-06 11:30', operator: '李四', action: '审核通过', remark: '采购单核实' }], updatedAt: '2026-07-04', updatedBy: '材料学院' },
   ];
+
+  const now = new Date();
+  const latestPeriod = getPreviousCampusMonthKey(now);
+  const latestCompact = latestPeriod.replace('-', '');
+  const { year, month, day } = getCampusDateParts(now);
+  const currentDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const buildingOverrides: Record<string, Partial<DataSourceRecord>> = {
+    'ds-004': { buildingId: '10621', buildingName: '主楼', sourceName: '主楼用电', department: '教务处' },
+    'ds-005': { buildingId: '10736', buildingName: '材料测试楼', sourceName: '材料测试楼用电', department: '材料科学与工程学院' },
+    'ds-006': { buildingId: '10651', buildingName: '1斋', sourceName: '1斋用电', department: '学生公寓管理中心' },
+    'ds-007': { buildingId: '10638', buildingName: '图书馆', sourceName: '图书馆用电', department: '图书馆' },
+    'ds-008': { buildingId: '10642', buildingName: '办公楼', sourceName: '办公楼用电', department: '学校办公室' },
+  };
+
+  return records.map((record) => {
+    const isLatestRecord = record.period === '2026-06';
+    const override = buildingOverrides[record.id] ?? {};
+    return {
+      ...record,
+      ...override,
+      period: isLatestRecord ? latestPeriod : record.period,
+      batchId: record.batchId === 'batch-2026-06' ? `batch-${latestPeriod}` : record.batchId,
+      reviewedAt: isLatestRecord && record.reviewedAt ? currentDate : record.reviewedAt,
+      updatedAt: isLatestRecord ? currentDate : record.updatedAt,
+      relatedEvidences: (record.relatedEvidences ?? []).map((fileName) => fileName
+        .replaceAll('202606', latestCompact)
+        .replaceAll('教学楼A', '主楼')
+        .replaceAll('实验楼A', '材料测试楼')
+        .replaceAll('宿舍1', '1斋')
+        .replaceAll('行政楼', '办公楼')),
+      modifyRecords: (record.modifyRecords ?? []).map((item) => isLatestRecord
+        ? { ...item, time: `${currentDate} ${item.time.slice(11)}` }
+        : item),
+      auditRecords: (record.auditRecords ?? []).map((item) => isLatestRecord
+        ? { ...item, time: `${currentDate} ${item.time.slice(11)}` }
+        : item),
+    };
+  });
 }
 
 // ========== 核算批次 ==========
 function createDefaultBatches(): CalculationBatch[] {
+  const now = new Date();
+  const latestPeriod = getPreviousCampusMonthKey(now);
+  const [yearText, monthText] = latestPeriod.split('-');
+  const latestYear = Number(yearText);
+  const latestMonth = Number(monthText);
+  const previousDate = new Date(Date.UTC(latestYear, latestMonth - 2, 15, 4));
+  const previousPeriod = getPreviousCampusMonthKey(previousDate);
+  const previousMonth = Number(previousPeriod.slice(5));
+  const { year, month, day } = getCampusDateParts(now);
+  const currentDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   return [
-    { id: 'batch-2026-06', name: '2026年6月核算', standard: 'JST303', year: 2026, period: '2026-06', status: 'reviewed', createdAt: '2026-07-01', createdBy: '碳管理员', totalEmission: 2850, scope1Emission: 980, scope2Emission: 1870, dataCompleteness: 92, qualityScore: 88 },
-    { id: 'batch-2026-06-b', name: '2026年6月能源统计', standard: 'EnergyStat', year: 2026, period: '2026-06', status: 'reviewed', createdAt: '2026-07-01', createdBy: '碳管理员', dataCompleteness: 95, qualityScore: 91 },
-    { id: 'batch-2026-05', name: '2026年5月核算', standard: 'JST303', year: 2026, period: '2026-05', status: 'locked', createdAt: '2026-06-01', createdBy: '碳管理员', lockedAt: '2026-06-15', lockedBy: '主管', totalEmission: 2680, scope1Emission: 920, scope2Emission: 1760, dataCompleteness: 98, qualityScore: 94 },
-    { id: 'batch-2026-annual', name: '2026年度碳盘查', standard: 'JST303', year: 2026, status: 'trial', createdAt: '2026-07-10', createdBy: '碳管理员', totalEmission: 15800, scope1Emission: 5400, scope2Emission: 10400, dataCompleteness: 78, qualityScore: 82 },
+    { id: `batch-${latestPeriod}`, name: `${latestYear}年${latestMonth}月核算`, standard: 'JST303', year: latestYear, period: latestPeriod, status: 'reviewed', createdAt: currentDate, createdBy: '碳管理员', totalEmission: 2850, scope1Emission: 980, scope2Emission: 1870, dataCompleteness: 92, qualityScore: 88 },
+    { id: `batch-${latestPeriod}-b`, name: `${latestYear}年${latestMonth}月能源统计`, standard: 'EnergyStat', year: latestYear, period: latestPeriod, status: 'reviewed', createdAt: currentDate, createdBy: '碳管理员', dataCompleteness: 95, qualityScore: 91 },
+    { id: `batch-${previousPeriod}`, name: `${previousPeriod.slice(0, 4)}年${previousMonth}月核算`, standard: 'JST303', year: Number(previousPeriod.slice(0, 4)), period: previousPeriod, status: 'locked', createdAt: currentDate, createdBy: '碳管理员', lockedAt: currentDate, lockedBy: '主管', totalEmission: 2680, scope1Emission: 920, scope2Emission: 1760, dataCompleteness: 98, qualityScore: 94 },
+    { id: `batch-${year}-annual`, name: `${year}年度碳盘查`, standard: 'JST303', year, status: 'trial', createdAt: currentDate, createdBy: '碳管理员', totalEmission: 15800, scope1Emission: 5400, scope2Emission: 10400, dataCompleteness: 78, qualityScore: 82 },
   ];
 }
 
@@ -240,8 +290,8 @@ export function calculateEmissions(standard: CalculationStandard, period: string
       other: otherFuelRecords.reduce((s, r) => s + (r.emissionValue ?? 0), 0) + wasteRecords.reduce((s, r) => s + (r.emissionValue ?? 0), 0),
     },
     buildingEmissions: [
-      { buildingId: 'b11', buildingName: '实验楼A', totalEmission: 70.9, scope1: 25.5, scope2: 45.4 },
-      { buildingId: 'b1', buildingName: '教学楼A', totalEmission: 48.2, scope1: 0, scope2: 48.2 },
+      { buildingId: '10736', buildingName: '材料测试楼', totalEmission: 70.9, scope1: 25.5, scope2: 45.4 },
+      { buildingId: '10621', buildingName: '主楼', totalEmission: 48.2, scope1: 0, scope2: 48.2 },
     ],
     intensityPerArea: 0.032,
     intensityPerCapita: 0.10,
@@ -268,9 +318,9 @@ export function getOverviewDashboardData(period: string): DashboardOverview {
       support: 85,
     },
     riskBuildings: [
-      { name: '实验楼A', riskLevel: 'high', issueCount: 5 },
-      { name: '食堂A', riskLevel: 'medium', issueCount: 3 },
-      { name: '宿舍5号楼', riskLevel: 'low', issueCount: 1 },
+      { name: '材料测试楼', riskLevel: 'high', issueCount: 5 },
+      { name: '学生活动中心', riskLevel: 'medium', issueCount: 3 },
+      { name: '1斋', riskLevel: 'low', issueCount: 2 },
     ],
     monthlyTrend: [
       { month: '1月', rate: 91 },
@@ -299,11 +349,11 @@ export function getEnergyStructureData(year: number = 2026): EnergyStructureData
     scope1Emission: 5400,
     scope2Emission: 10400,
     buildingRanking: [
-      { buildingId: 'b11', buildingName: '实验楼A', emission: 285, intensity: 4.2, trend: 'up' },
-      { buildingId: 'b1', buildingName: '教学楼A', emission: 185, intensity: 2.1, trend: 'down' },
-      { buildingId: 'b8', buildingName: '食堂A', emission: 165, intensity: 3.5, trend: 'up' },
-      { buildingId: 'b5', buildingName: '宿舍1号楼', emission: 125, intensity: 1.2, trend: 'stable' },
-      { buildingId: 'b12', buildingName: '实验楼B', emission: 115, intensity: 2.8, trend: 'down' },
+      { buildingId: '10736', buildingName: '材料测试楼', emission: 285, intensity: 4.2, trend: 'up' },
+      { buildingId: '10621', buildingName: '主楼', emission: 185, intensity: 2.1, trend: 'down' },
+      { buildingId: '10742', buildingName: '学生活动中心', emission: 165, intensity: 3.5, trend: 'up' },
+      { buildingId: '10651', buildingName: '1斋', emission: 125, intensity: 1.2, trend: 'stable' },
+      { buildingId: '10636', buildingName: '实验楼', emission: 115, intensity: 2.8, trend: 'down' },
     ],
     solarReduction: 159.5,
     yoyComparison: {

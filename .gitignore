@@ -163,3 +163,8 @@ Desktop.ini
 *.tsbuildinfo
 # Misc
 .coze-logs
+
+# Local UI review and browser automation artifacts
+.impeccable/
+.playwright-cli/
+output/

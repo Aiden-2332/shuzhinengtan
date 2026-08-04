@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "maps": {
+    "2d": {
+      "id": "2d",
+      "url": "/campus-map/outer/2d.webp",
+      "outerWidth": 22528,
+      "outerHeight": 18432,
+      "cropWidth": 13139,
+      "cropHeight": 8759,
+      "cropOrigin": [
+        3824,
+        4600
+      ],
+      "sampleMeanAbsoluteError": 20.845833333333335,
+      "outputWidth": 2816,
+      "outputHeight": 2304,
+      "outputDivisor": 8
+    },
+    "2_5d": {
+      "id": "2_5d",
+      "url": "/campus-map/outer/2_5d.webp",
+      "outerWidth": 14336,
+      "outerHeight": 14336,
+      "cropWidth": 14336,
+      "cropHeight": 7263,
+      "cropOrigin": [
+        0,
+        0
+      ],
+      "sampleMeanAbsoluteError": 10.93125,
+      "outputWidth": 1792,
+      "outputHeight": 1792,
+      "outputDivisor": 8
+    }
+  }
+}

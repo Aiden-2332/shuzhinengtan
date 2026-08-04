@@ -19,6 +19,7 @@ import {
   calculateEmissions,
   clearPersistedData,
 } from '@/data/calculation-data';
+import { getPreviousCampusMonthKey } from '@/data/campus-system-data';
 
 // 筛选条件类型
 export interface FilterConditions {
@@ -163,7 +164,7 @@ function saveToStorage(records: DataSourceRecord[], batches: CalculationBatch[],
 export const useCalculationStore = create<CalculationStore>((set, get) => ({
   // 初始值
   standard: 'JST303',
-  period: '2026-06',
+  period: getPreviousCampusMonthKey(),
   activeTab: 'overview',
 
   records: getInitialRecords(),
@@ -201,7 +202,7 @@ export const useCalculationStore = create<CalculationStore>((set, get) => ({
 
   reportConfig: {
     name: '碳排放核算报告',
-    period: '2026-06',
+    period: getPreviousCampusMonthKey(),
     standard: 'JST303',
     scope: '全校区',
     chapters: ['基础信息', '排放汇总', '分项明细', '可再生能源', '附件清单'],

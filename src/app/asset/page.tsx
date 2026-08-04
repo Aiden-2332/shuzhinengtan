@@ -56,6 +56,7 @@ import {
   Label,
 } from "recharts";
 import { useCarbonAssetStore } from "@/stores/carbon-asset-store";
+import { useRealtimeNow } from "@/hooks/use-realtime-now";
 
 // ============================================================
 // 常量
@@ -1236,7 +1237,7 @@ function AuditPrepPanel() {
           </div>
           <div className="text-xs text-[#36d968] mt-2 flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3" />
-            已验证 (156/156 电表)
+            已核验 (32/35 重点设备)
           </div>
         </div>
 
@@ -1365,6 +1366,7 @@ export default function AssetPage() {
   } = useCarbonAssetStore();
 
   const [initialized, setInitialized] = useState(false);
+  const nowMs = useRealtimeNow();
 
   useEffect(() => {
     if (!initialized) {
@@ -1378,6 +1380,10 @@ export default function AssetPage() {
       simulateGap(carbonPriceInput, forecastEmissionInput);
     }
   }, [initialized, fetchQuotaLedger, fetchComplianceTasks, fetchAssetValue, fetchTradeRecords, fetchComplianceRadar, fetchAuditPreparation, simulateGap, carbonPriceInput, forecastEmissionInput]);
+
+  useEffect(() => {
+    if (initialized && nowMs !== null) fetchQuotaLedger();
+  }, [initialized, nowMs, fetchQuotaLedger]);
 
   return (
     <div className="h-full flex flex-col bg-[#081028] text-white overflow-hidden">

@@ -23,6 +23,8 @@ import {
   ThermometerSun,
   Activity,
   MonitorSmartphone,
+  Stethoscope,
+  ShieldCheck,
 } from "lucide-react";
 
 interface PortalCategory {
@@ -48,20 +50,27 @@ interface PortalItem {
 const categories: PortalCategory[] = [
   {
     id: "monitor",
-    title: "能源监测",
-    description: "设备实时监控与运行管理",
+    title: "能源管理",
+    description: "实时监测、设备状态与能效诊断",
     icon: MonitorSmartphone,
     gradient: "from-emerald-500/20 to-green-600/10",
     borderColor: "border-emerald-500/30",
     color: "text-emerald-400",
     items: [
       {
-        title: "能源监测",
-        description: "碳排溯源图、35台设备管理面板",
+        title: "能源监测中心",
+        description: "校园负荷、35台设备与13项异常联动",
         href: "/energy-monitor",
         icon: Activity,
         color: "text-emerald-400",
         badge: "核心",
+      },
+      {
+        title: "能源诊断中心",
+        description: "楼宇对标、异常归因与节能措施",
+        href: "/energy-diagnosis",
+        icon: Stethoscope,
+        color: "text-rose-400",
       },
     ],
   },
@@ -83,11 +92,11 @@ const categories: PortalCategory[] = [
         badge: "核心",
       },
       {
-        title: "AI减排建议",
-        description: "证据汇总、措施匹配、效益试算",
-        href: "/ai-suggestion",
-        icon: TrendingDown,
-        color: "text-orange-400",
+        title: "绿色低碳校园评价",
+        description: "指标评分、短板识别与达标路径",
+        href: "/evaluation",
+        icon: Leaf,
+        color: "text-green-400",
       },
       {
         title: "碳资产管理",
@@ -95,6 +104,13 @@ const categories: PortalCategory[] = [
         href: "/asset",
         icon: Wallet,
         color: "text-yellow-500",
+      },
+      {
+        title: "合规凭证看板",
+        description: "MRV证据、审核任务与履约追溯",
+        href: "/compliance",
+        icon: ShieldCheck,
+        color: "text-violet-400",
       },
     ],
   },
@@ -166,7 +182,7 @@ export default function PortalPage() {
             {/* Quick Links to Cockpits */}
             <div className="mt-5 flex gap-4">
               <button
-                onClick={() => router.push("/")}
+                onClick={() => router.push("/leader")}
                 className="group flex-1 flex items-center gap-4 px-5 py-4 rounded-xl bg-gradient-to-r from-cyan-500/15 to-blue-600/10 border border-cyan-500/30 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)]"
               >
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
@@ -259,7 +275,7 @@ export default function PortalPage() {
 
       {/* Watermark */}
       <div className="fixed bottom-4 right-4 text-xs text-gray-600/60 pointer-events-none select-none">
-        Demo模拟数据 仅课题演示
+        校园统一演示场景 · 实时时钟驱动
       </div>
     </div>
   );

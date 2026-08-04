@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "build": "bash ./scripts/build.sh",
-    "dev": "bash ./scripts/dev.sh",
+    "dev": "node ./scripts/dev.mjs",
+    "clean:next": "node ./scripts/clean-next-cache.mjs",
+    "map:leader-backdrop": "node ./scripts/generate-leader-map-outer-backdrop.cjs",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",
     "lint:build": "eslint . --quiet",

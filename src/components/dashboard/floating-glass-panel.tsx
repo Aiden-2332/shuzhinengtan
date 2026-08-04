@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type PointerEvent, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronDown, Grip } from "lucide-react";
 
@@ -26,23 +26,6 @@ export function FloatingGlassPanel({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const reduceMotion = useReducedMotion();
 
-  useEffect(() => {
-    if (priority !== "secondary") return;
-    const compactAspect = window.matchMedia("(max-aspect-ratio: 4/3)");
-    const collapseForCompactAspect = (event: MediaQueryListEvent | MediaQueryList) => {
-      if (event.matches) setCollapsed(true);
-    };
-    collapseForCompactAspect(compactAspect);
-    compactAspect.addEventListener("change", collapseForCompactAspect);
-    return () => compactAspect.removeEventListener("change", collapseForCompactAspect);
-  }, [priority]);
-
-  const handlePointerMove = (event: PointerEvent<HTMLElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty("--glass-pointer-x", `${event.clientX - rect.left}px`);
-    event.currentTarget.style.setProperty("--glass-pointer-y", `${event.clientY - rect.top}px`);
-  };
-
   return (
     <motion.section
       layout={!reduceMotion}
@@ -50,7 +33,6 @@ export function FloatingGlassPanel({
       data-panel-priority={priority}
       data-collapsed={collapsed ? "true" : "false"}
       className={`floating-glass-panel cockpit-glass ${className}`}
-      onPointerMove={handlePointerMove}
       transition={{ layout: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } }}
     >
       <div className="floating-glass-panel__refraction" aria-hidden="true" />

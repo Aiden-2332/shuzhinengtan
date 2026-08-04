@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
@@ -15,6 +15,8 @@ import {
   getAIRootCauseAnalysis, getEnergySavingAdvices,
   getCalendarHeatmapDays, getTypicalDayComparison, getSemesterComparison, getEnergyProfile,
 } from '@/data/energy-three-pages-data';
+import { useRealtimeNow } from '@/hooks/use-realtime-now';
+import { formatCampusDateTime, getCampusDateAt, getCampusDateParts } from '@/lib/campus-realtime';
 import type {
   DiagnosisSummary, BenchmarkComparison, BenchmarkBuildingItem, BenchmarkLine,
   SankeyNode, SankeyLink, AIRootCauseAnalysis, EnergySavingAdvice,
@@ -152,13 +154,13 @@ function SankeyDiagram({ sankey }: { sankey: { period: string; nodes: SankeyNode
     return order.filter(cat => grouped[cat].length > 0).map(cat => grouped[cat]);
   }, [sankey.nodes]);
 
-  const layerX = useMemo(() => {
+  const layerX = (() => {
     const w = width - margin.left - margin.right;
     const step = layers.length > 1 ? w / (layers.length - 1) : w / 2;
     return layers.map((_, i) => margin.left + i * step);
-  }, [layers]);
+  })();
 
-  const nodePositions = useMemo(() => {
+  const nodePositions = (() => {
     const positions: Record<string, { x: number; y: number; w: number; h: number }> = {};
     layers.forEach((layer, li) => {
       const totalVal = layer.reduce((s, n) => s + n.value, 0);
@@ -171,7 +173,7 @@ function SankeyDiagram({ sankey }: { sankey: { period: string; nodes: SankeyNode
       });
     });
     return positions;
-  }, [layers, layerX]);
+  })();
 
   const maxFlow = Math.max(...sankey.links.map(l => l.value), 1);
 
@@ -336,12 +338,19 @@ function getIntensityColor(level: CalendarHeatmapDay["level"]): string {
   }
 }
 
-function CompactCalendar() {
+function CompactCalendar({ nowMs }: { nowMs: number }) {
+  const now = useMemo(() => new Date(nowMs), [nowMs]);
+  const currentParts = getCampusDateParts(now);
+  const currentMonthIndex = currentParts.month - 1;
   const [expanded, setExpanded] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(6);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthIndex);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  const heatmapDays = useMemo(() => getCalendarHeatmapDays(), []);
+  useEffect(() => {
+    setSelectedMonth(currentMonthIndex);
+  }, [currentMonthIndex]);
+
+  const heatmapDays = useMemo(() => getCalendarHeatmapDays(now), [now]);
 
   const monthDays = useMemo(() => {
     return heatmapDays.filter((d) => {
@@ -353,8 +362,9 @@ function CompactCalendar() {
   const calendarGrid = useMemo(() => {
     const firstDay = monthDays[0];
     if (!firstDay) return [];
-    const firstDate = new Date(firstDay.date);
-    const startDow = (firstDate.getDay() + 6) % 7;
+    const [year, month, day] = firstDay.date.split('-').map(Number);
+    const firstDate = getCampusDateAt(year, month, day, 12);
+    const startDow = (getCampusDateParts(firstDate).weekday + 6) % 7;
     const weeks: (CalendarHeatmapDay | null)[][] = [];
     let currentWeek: (CalendarHeatmapDay | null)[] = Array(startDow).fill(null);
 
@@ -415,8 +425,8 @@ function CompactCalendar() {
           {/* 月份选择器 + 图例 */}
           <div className="flex items-center gap-2">
             <button onClick={() => setSelectedMonth(Math.max(0, selectedMonth - 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">◀</button>
-            <span className="text-sm font-semibold min-w-[60px] text-center">{MONTHS[selectedMonth]}</span>
-            <button onClick={() => setSelectedMonth(Math.min(11, selectedMonth + 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">▶</button>
+            <span className="text-sm font-semibold min-w-[92px] text-center">{currentParts.year}年{MONTHS[selectedMonth]}</span>
+            <button onClick={() => setSelectedMonth(Math.min(currentMonthIndex, selectedMonth + 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">▶</button>
             <div className="flex gap-2 ml-3 text-[10px]">
               {[
                 { color: "bg-red-600", label: "异常偏高" },
@@ -504,12 +514,13 @@ function CompactCalendar() {
 // 主页面
 // ============================================================
 export default function EnergyDiagnosisPage() {
+  const nowMs = useRealtimeNow();
   const [activeBenchmarkIdx, setActiveBenchmarkIdx] = useState(0);
   const [adviceFilter, setAdviceFilter] = useState<string>('all');
 
   const diagnosis = useMemo(() => getDiagnosisSummary(), []);
   const benchmarks = useMemo(() => getBenchmarkComparison(), []);
-  const sankey = useMemo(() => getEnergyFlowSankey(), []);
+  const sankey = useMemo(() => getEnergyFlowSankey(new Date(nowMs ?? 0)), [nowMs]);
   const rootCause = useMemo(() => getAIRootCauseAnalysis(), []);
   const advices = useMemo(() => getEnergySavingAdvices(), []);
 
@@ -525,7 +536,7 @@ export default function EnergyDiagnosisPage() {
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="w-3 h-3" />
-          <span>数据更新: {new Date().toLocaleString('zh-CN')}</span>
+          <span>数据更新: {nowMs === null ? '同步中…' : formatCampusDateTime(new Date(nowMs))}</span>
         </div>
       </div>
 
@@ -558,7 +569,7 @@ export default function EnergyDiagnosisPage() {
       <SankeyDiagram sankey={sankey} />
 
       {/* 第四行：用电日历（紧凑可折叠） */}
-      <CompactCalendar />
+      {nowMs !== null && <CompactCalendar nowMs={nowMs} />}
 
       {/* 第五行：AI根因分析 */}
       <div>

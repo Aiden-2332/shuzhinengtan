@@ -31,6 +31,7 @@ export interface CampusBuildingLayerProps {
     height: number;
   };
   showLabels: boolean;
+  showBuildingFrames: boolean;
   fitScale: number;
   selectedBuildingId: string | null;
   animateTransform: boolean;
@@ -59,6 +60,12 @@ interface LabelRect {
   bottom: number;
 }
 
+interface BuildingFramePalette {
+  stroke: string;
+  fill: string;
+  hoverFill: string;
+}
+
 type LabelDetail = "dots" | "important" | "full";
 
 const LABEL_VIEWPORT_MARGIN = 140;
@@ -68,6 +75,65 @@ const LABEL_COLLISION_GAP = 6;
 const IMPORTANT_LABEL_PRIORITY = 58;
 const IMPORTANT_BUILDING_PATTERN =
   /主楼|教学楼|图书馆|体育馆|实验楼|学生活动中心|综合楼|逸夫科技馆/;
+
+const NO_DATA_FRAME_PALETTE: BuildingFramePalette = {
+  stroke: "var(--theme-primary)",
+  fill: "rgba(var(--theme-primary-rgb), 0.32)",
+  hoverFill: "rgba(var(--theme-primary-rgb), 0.44)",
+};
+
+const EMISSION_COLOR_STOPS = [
+  { position: 0, color: [34, 211, 238] },
+  { position: 0.46, color: [250, 204, 21] },
+  { position: 0.73, color: [249, 115, 22] },
+  { position: 1, color: [239, 68, 68] },
+] as const;
+
+function interpolateChannel(start: number, end: number, ratio: number): number {
+  return Math.round(start + (end - start) * ratio);
+}
+
+/**
+ * Maps the current carbon value to a cool-to-red frame color. The function is
+ * deliberately isolated from rendering so real building data can replace the
+ * demo `annualEmission` field without changing the map UI.
+ */
+function getEmissionFramePalette(
+  annualEmission: number | null,
+  minimumEmission: number,
+  maximumEmission: number,
+): BuildingFramePalette {
+  if (annualEmission === null || maximumEmission <= 0) {
+    return NO_DATA_FRAME_PALETTE;
+  }
+
+  const range = maximumEmission - minimumEmission;
+  const normalized = range > 0
+    ? clamp((annualEmission - minimumEmission) / range, 0, 1)
+    : 0.5;
+  const upperStopIndex = EMISSION_COLOR_STOPS.findIndex(
+    (stop) => normalized <= stop.position,
+  );
+  const upperStop = EMISSION_COLOR_STOPS[
+    upperStopIndex < 0 ? EMISSION_COLOR_STOPS.length - 1 : upperStopIndex
+  ];
+  const lowerStop = EMISSION_COLOR_STOPS[
+    Math.max(0, (upperStopIndex < 0 ? EMISSION_COLOR_STOPS.length - 1 : upperStopIndex) - 1)
+  ];
+  const stopRange = upperStop.position - lowerStop.position;
+  const stopRatio = stopRange > 0
+    ? (normalized - lowerStop.position) / stopRange
+    : 0;
+  const [red, green, blue] = lowerStop.color.map((channel, index) =>
+    interpolateChannel(channel, upperStop.color[index], stopRatio),
+  );
+
+  return {
+    stroke: `rgb(${red} ${green} ${blue})`,
+    fill: `rgb(${red} ${green} ${blue} / ${0.28 + normalized * 0.22})`,
+    hoverFill: `rgb(${red} ${green} ${blue} / ${0.4 + normalized * 0.14})`,
+  };
+}
 
 const MARKER_ICONS: Record<
   ReturnType<typeof getCampusBuildingLayer>,
@@ -121,6 +187,7 @@ export function CampusBuildingLayer({
   view,
   viewport,
   showLabels,
+  showBuildingFrames,
   fitScale,
   selectedBuildingId,
   animateTransform,
@@ -164,6 +231,38 @@ export function CampusBuildingLayer({
       ) ?? null,
     [projectedBuildings, selectedBuildingId],
   );
+
+  const framePalettes = useMemo(() => {
+    let minimumEmission = Number.POSITIVE_INFINITY;
+    let maximumEmission = 0;
+
+    buildings.forEach((building) => {
+      const emission = building.carbon?.annualEmission;
+      if (typeof emission !== "number" || !Number.isFinite(emission)) return;
+      minimumEmission = Math.min(minimumEmission, emission);
+      maximumEmission = Math.max(maximumEmission, emission);
+    });
+
+    if (!Number.isFinite(minimumEmission)) minimumEmission = 0;
+
+    return new Map(
+      buildings.map((building) => {
+        const emission = building.carbon?.annualEmission;
+        const annualEmission =
+          typeof emission === "number" && Number.isFinite(emission)
+            ? emission
+            : null;
+        return [
+          building.id,
+          getEmissionFramePalette(
+            annualEmission,
+            minimumEmission,
+            maximumEmission,
+          ),
+        ];
+      }),
+    );
+  }, [buildings]);
 
   const labelDetail = getLabelDetail(view.scale, fitScale);
 
@@ -300,40 +399,71 @@ export function CampusBuildingLayer({
         >
           {projectedBuildings.map(({ building, points }) => {
             const isSelected = building.id === selectedBuildingId;
+            const framePalette =
+              framePalettes.get(building.id) ?? NO_DATA_FRAME_PALETTE;
 
             return (
-              <polygon
-                key={building.id}
-                role="button"
-                aria-label={`选择建筑：${building.name}`}
-                aria-pressed={isSelected}
-                tabIndex={0}
-                points={points}
-                fill={
-                  isSelected
-                    ? "rgba(var(--theme-primary-rgb), 0.2)"
-                    : "transparent"
-                }
-                stroke={isSelected ? "var(--theme-primary)" : "transparent"}
-                strokeWidth={1}
-                vectorEffect="non-scaling-stroke"
-                className="pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-150 hover:fill-[rgba(var(--theme-primary-rgb),.18)] hover:stroke-[var(--theme-primary)] hover:[filter:drop-shadow(0_0_5px_rgba(var(--theme-primary-rgb),.62))] focus-visible:fill-[rgba(var(--theme-primary-rgb),.22)] focus-visible:stroke-white"
-                style={{ pointerEvents: "all" }}
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSelect(building.id);
-                }}
-                onKeyDown={(event) => {
-                  if (!isActivationKey(event.key)) return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onSelect(building.id);
-                }}
-              />
+              <g key={building.id}>
+                {showBuildingFrames ? (
+                  <polygon
+                    aria-hidden="true"
+                    points={points}
+                    fill="none"
+                    stroke="rgba(2, 12, 27, 0.68)"
+                    strokeWidth={6}
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                    className="campus-building-frame-halo"
+                  />
+                ) : null}
+
+                <polygon
+                  role="button"
+                  aria-label={`选择建筑：${building.name}`}
+                  aria-pressed={isSelected}
+                  tabIndex={0}
+                  points={points}
+                  fill={
+                    isSelected
+                      ? "rgba(var(--theme-primary-rgb), 0.46)"
+                      : showBuildingFrames
+                        ? framePalette.fill
+                        : "transparent"
+                  }
+                  stroke={
+                    isSelected
+                      ? "var(--theme-primary)"
+                      : showBuildingFrames
+                        ? framePalette.stroke
+                        : "transparent"
+                  }
+                  strokeWidth={isSelected ? 3 : showBuildingFrames ? 2.8 : 1}
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                  data-building-frame={showBuildingFrames ? "visible" : "hover"}
+                  data-carbon-emission={building.carbon?.annualEmission ?? undefined}
+                  className="pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-150 hover:fill-[var(--building-frame-hover-fill)] hover:stroke-[var(--building-frame-stroke)] hover:[filter:drop-shadow(0_0_5px_rgba(var(--theme-primary-rgb),.62))] focus-visible:fill-[rgba(var(--theme-primary-rgb),.46)] focus-visible:stroke-white"
+                  style={{
+                    pointerEvents: "all",
+                    "--building-frame-stroke": framePalette.stroke,
+                    "--building-frame-hover-fill": framePalette.hoverFill,
+                  } as React.CSSProperties}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(building.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (!isActivationKey(event.key)) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onSelect(building.id);
+                  }}
+                />
+              </g>
             );
           })}
         </svg>
@@ -412,10 +542,10 @@ export function CampusBuildingLayer({
                       type="button"
                       aria-label={`选择建筑：${building.name}`}
                       aria-pressed={isSelected}
-                      className={`pointer-events-auto absolute flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-[11px] font-semibold tracking-[.01em] text-white outline-none backdrop-blur-md transition-[background-color,border-color,box-shadow,transform] duration-200 hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-white ${
+                      className={`pointer-events-auto absolute flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-[11px] font-semibold tracking-[.01em] text-white outline-none transition-[background-color,border-color,box-shadow,transform] duration-200 hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-white ${
                         isSelected
-                          ? "border-[var(--theme-accent)] bg-[color-mix(in_srgb,var(--theme-surface-strong)_90%,var(--theme-accent))] shadow-[inset_0_1px_0_rgba(255,255,255,.14),0_0_18px_var(--theme-accent)]"
-                          : "border-[rgba(var(--theme-primary-rgb),.50)] bg-[color-mix(in_srgb,var(--theme-surface-strong)_92%,transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_7px_18px_rgba(0,0,0,.28),0_0_12px_rgba(var(--theme-primary-rgb),.18)]"
+                          ? "border-[var(--theme-accent)] bg-[color-mix(in_srgb,var(--theme-bg)_72%,var(--theme-accent))] shadow-[inset_0_1px_0_rgba(255,255,255,.14),0_0_18px_var(--theme-accent)]"
+                          : "border-[rgba(var(--theme-primary-rgb),.50)] bg-[color-mix(in_srgb,var(--theme-bg)_92%,var(--theme-primary))] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_7px_18px_rgba(0,0,0,.28),0_0_12px_rgba(var(--theme-primary-rgb),.18)]"
                       }`}
                       style={{
                         left: placement.dx,

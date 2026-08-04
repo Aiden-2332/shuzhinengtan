@@ -5,6 +5,17 @@
  *       月度累计趋势、资源消耗分析、三类组成、排放TOP 5
  */
 
+import {
+  getCampusDateParts,
+} from "@/lib/campus-realtime";
+import {
+  CAMPUS_CARBON_TARGET,
+  getCampusOperationalSnapshot,
+  getSystemAnomalySnapshots,
+  getSystemBuildingRanking,
+  getSystemMonthlyCarbon,
+} from "@/data/campus-system-data";
+
 // ============================================================
 // 顶部 KPI
 // ============================================================
@@ -102,20 +113,9 @@ export interface MonthlyTrendPoint {
   forecast: number;
 }
 
-export const monthlyTrendData: MonthlyTrendPoint[] = [
-  { month: "1月", actual: 1420, target: 1550, forecast: 1380 },
-  { month: "2月", actual: 2180, target: 2400, forecast: 2100 },
-  { month: "3月", actual: 3020, target: 3300, forecast: 2950 },
-  { month: "4月", actual: 3980, target: 4300, forecast: 3850 },
-  { month: "5月", actual: 5120, target: 5500, forecast: 4980 },
-  { month: "6月", actual: 6480, target: 6900, forecast: 6250 },
-  { month: "7月", actual: 7850, target: 8300, forecast: 7580 },
-  { month: "8月", actual: 8980, target: 9500, forecast: 8650 },
-  { month: "9月", actual: 10200, target: 10800, forecast: 9850 },
-  { month: "10月", actual: 11350, target: 12000, forecast: 10900 },
-  { month: "11月", actual: 12080, target: 12800, forecast: 11500 },
-  { month: "12月", actual: 12680, target: 14200, forecast: 11800 },
-];
+export function getMonthlyTrendData(now: Date): MonthlyTrendPoint[] {
+  return getSystemMonthlyCarbon(now).map(({ month, actual, target, forecast }) => ({ month, actual, target, forecast }));
+}
 
 // ============================================================
 // 资源消耗分析
@@ -185,9 +185,91 @@ export interface EmissionRankingItem {
 }
 
 export const emissionRankingData: EmissionRankingItem[] = [
-  { name: "科研楼A", value: 2850, unit: "tCO₂", color: "#EF4444" },
-  { name: "主教学楼", value: 2400, unit: "tCO₂", color: "#F97316" },
-  { name: "机械学院楼", value: 2200, unit: "tCO₂", color: "#F59E0B" },
-  { name: "第一教学楼", value: 1850, unit: "tCO₂", color: "#EAB308" },
-  { name: "信息学院", value: 1650, unit: "tCO₂", color: "#84CC16" },
+  { name: "材料测试楼", value: 1850, unit: "tCO₂", color: "#EF4444" },
+  { name: "机电信息楼", value: 1720, unit: "tCO₂", color: "#F97316" },
+  { name: "图书馆", value: 1580, unit: "tCO₂", color: "#F59E0B" },
+  { name: "实验楼", value: 1540, unit: "tCO₂", color: "#EAB308" },
+  { name: "鼎新楼", value: 1510, unit: "tCO₂", color: "#84CC16" },
 ];
+
+export function getLeaderKPIs(now = new Date()): LeaderKPI[] {
+  const snapshot = getCampusOperationalSnapshot(now);
+  return [
+    { label: "本年累计碳排放", value: snapshot.annualCarbon.toLocaleString("zh-CN"), unit: "tCO₂e", sub: `同比 ${snapshot.yoy}%` },
+    { label: "年度配额使用率", value: snapshot.quotaUseRate.toFixed(1), unit: "%", sub: `已用 ${snapshot.annualCarbon.toLocaleString("zh-CN")} / ${snapshot.annualQuota.toLocaleString("zh-CN")}` },
+    { label: "剩余配额", value: snapshot.remainingQuota.toLocaleString("zh-CN"), unit: "tCO₂e", sub: `年末预测缺口 ${Math.max(0, snapshot.annualForecast - snapshot.annualQuota).toLocaleString("zh-CN")}` },
+    { label: "年末排放预测", value: snapshot.annualForecast.toLocaleString("zh-CN"), unit: "tCO₂e", sub: `较年度目标 +${(snapshot.annualForecast - CAMPUS_CARBON_TARGET).toLocaleString("zh-CN")}` },
+    { label: "数据完整率", value: snapshot.dataCompletenessRate.toFixed(1), unit: "%", sub: "仪表在线 175/186 台" },
+  ];
+}
+
+export function getEconomicZoneData(now = new Date()): EconomicZoneData {
+  const snapshot = getCampusOperationalSnapshot(now);
+  const { month } = getCampusDateParts(now);
+  const forecastGap = snapshot.annualForecast - snapshot.annualQuota;
+  return {
+    totalQuota: snapshot.annualQuota,
+    usedQuota: snapshot.annualCarbon,
+    riskLevel: forecastGap > 0 ? "critical" : snapshot.quotaUseRate > 85 ? "warning" : "normal",
+    riskLabel: forecastGap > 0 ? "预计超配" : "配额可控",
+    quotaCompliance: [
+      { label: "配额使用率", value: snapshot.quotaUseRate, max: 100 },
+      { label: "年度时间进度", value: Math.round(month / 12 * 100), max: 100 },
+      { label: "数据完整率", value: snapshot.dataCompletenessRate, max: 100 },
+    ],
+    costControl: [
+      { label: "碳价波动风险", value: 45, max: 100 },
+      { label: "减排计划完成率", value: 38, max: 100 },
+      { label: "异常闭环率", value: 54, max: 100 },
+    ],
+  };
+}
+
+export function getEmissionSourceData(now = new Date()): EmissionSourceItem[] {
+  const total = getCampusOperationalSnapshot(now).annualCarbon;
+  const shares = [
+    { name: "空调系统", percentage: 39, color: "#3B82F6" },
+    { name: "照明系统", percentage: 18, color: "#F59E0B" },
+    { name: "供热与燃气", percentage: 16, color: "#EF4444" },
+    { name: "实验与动力设备", percentage: 17, color: "#8B5CF6" },
+    { name: "其他", percentage: 10, color: "#6B7280" },
+  ];
+  return shares.map((item) => ({ ...item, value: Math.round(total * item.percentage / 100) }));
+}
+
+export function getRiskWarnings(now = new Date()): RiskWarning[] {
+  const snapshot = getCampusOperationalSnapshot(now);
+  const anomalies = getSystemAnomalySnapshots(now).filter((item) => item.status !== "resolved");
+  const abnormalBuildings = [...new Set(anomalies.map((item) => item.buildingName))];
+  const forecastGap = snapshot.annualForecast - snapshot.annualQuota;
+  return [
+    { label: "年末配额缺口预估", value: `+${forecastGap.toLocaleString("zh-CN")} tCO₂e`, status: "danger", desc: "按当前负荷与季节模型预测，年末将超过年度配额" },
+    { label: "重点异常楼宇", value: `${abnormalBuildings.length} 栋`, status: "danger", desc: abnormalBuildings.slice(0, 4).join("、") },
+    { label: "待闭环异常", value: `${anomalies.length} 项`, status: "warning", desc: "包含能耗、设备、环境与数据质量四类问题" },
+    { label: "数据完整率", value: `${snapshot.dataCompletenessRate}%`, status: "warning", desc: "3斋水表离线导致最新分项数据需要估算补齐" },
+  ];
+}
+
+export function getResourceConsumptionData(now = new Date()): ResourceConsumptionItem[] {
+  const snapshot = getCampusOperationalSnapshot(now);
+  const { month } = getCampusDateParts(now);
+  const calendarProgress = month / 12;
+  const population = 26_800;
+  const electricityMwh = Math.round(28_600 * calendarProgress);
+  const water = Math.round(1_420_000 * calendarProgress);
+  return [
+    { label: "碳排放", totalValue: snapshot.annualCarbon.toLocaleString("zh-CN"), totalUnit: "tCO₂e", perCapitaValue: (snapshot.annualCarbon / population).toFixed(2), perCapitaUnit: "tCO₂e/人", yoy: snapshot.yoy, mom: 3.4, yoyLabel: `同比 ${snapshot.yoy}%`, momLabel: "环比 +3.4%" },
+    { label: "外购电力", totalValue: electricityMwh.toLocaleString("zh-CN"), totalUnit: "MWh", perCapitaValue: (electricityMwh / population).toFixed(2), perCapitaUnit: "MWh/人", yoy: -1.9, mom: 4.8, yoyLabel: "同比 -1.9%", momLabel: "环比 +4.8%" },
+    { label: "水消耗", totalValue: water.toLocaleString("zh-CN"), totalUnit: "m³", perCapitaValue: (water / population).toFixed(1), perCapitaUnit: "m³/人", yoy: 2.6, mom: 5.1, yoyLabel: "同比 +2.6%", momLabel: "环比 +5.1%" },
+  ];
+}
+
+export function getEmissionRankingData(now = new Date()): EmissionRankingItem[] {
+  const colors = ["#EF4444", "#F97316", "#F59E0B", "#EAB308", "#84CC16"];
+  return getSystemBuildingRanking(now, 5).map((building, index) => ({
+    name: building.name,
+    value: building.currentYearEmission,
+    unit: "tCO₂e",
+    color: colors[index],
+  }));
+}

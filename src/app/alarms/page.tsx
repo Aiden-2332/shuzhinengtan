@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  AllAlarms,
+  getAllAlarms,
   CATEGORY_META,
   SEVERITY_META,
   STATUS_META,
@@ -35,6 +35,8 @@ import {
   type AlarmStatus,
   type AlarmCategory,
 } from "@/data/alarm-data";
+import { useRealtimeNow } from "@/hooks/use-realtime-now";
+import { formatCampusDateTime } from "@/lib/campus-realtime";
 
 // Icon helper
 function CategoryIcon({ category, className }: { category: AlarmCategory; className?: string }) {
@@ -63,15 +65,17 @@ function SeverityIcon({ severity, className }: { severity: AlarmSeverity; classN
 }
 
 export default function AlarmsPage() {
+  const nowMs = useRealtimeNow();
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<AlarmSeverity | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState<AlarmCategory | "all">("all");
   const [statusFilter, setStatusFilter] = useState<AlarmStatus | "all">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"time" | "severity">("time");
+  const allAlarms = useMemo(() => nowMs === null ? [] : getAllAlarms(new Date(nowMs)), [nowMs]);
 
   const filteredAlarms = useMemo(() => {
-    let result = AllAlarms.filter((alarm) => {
+    const result = allAlarms.filter((alarm) => {
       if (severityFilter !== "all" && alarm.severity !== severityFilter) return false;
       if (categoryFilter !== "all" && alarm.category !== categoryFilter) return false;
       if (statusFilter !== "all" && alarm.status !== statusFilter) return false;
@@ -96,19 +100,19 @@ export default function AlarmsPage() {
     });
 
     return result;
-  }, [searchQuery, severityFilter, categoryFilter, statusFilter, sortBy]);
+  }, [allAlarms, searchQuery, severityFilter, categoryFilter, statusFilter, sortBy]);
 
   // Stats
   const stats = useMemo(() => {
     return {
-      total: AllAlarms.length,
-      pending: AllAlarms.filter((a) => a.status === "pending").length,
-      processing: AllAlarms.filter((a) => a.status === "processing").length,
-      danger: AllAlarms.filter((a) => a.severity === "danger").length,
-      warning: AllAlarms.filter((a) => a.severity === "warning").length,
-      info: AllAlarms.filter((a) => a.severity === "info").length,
+      total: allAlarms.length,
+      pending: allAlarms.filter((a) => a.status === "pending").length,
+      processing: allAlarms.filter((a) => a.status === "processing").length,
+      danger: allAlarms.filter((a) => a.severity === "danger").length,
+      warning: allAlarms.filter((a) => a.severity === "warning").length,
+      info: allAlarms.filter((a) => a.severity === "info").length,
     };
-  }, []);
+  }, [allAlarms]);
 
   return (
     <div className="min-h-full space-y-6">
@@ -315,7 +319,7 @@ function AlarmCard({
             <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                {alarm.time}
+                {formatCampusDateTime(new Date(alarm.time))}
               </span>
               <span className="flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
