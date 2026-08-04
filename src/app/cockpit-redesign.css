@@ -386,6 +386,10 @@
 .cockpit-trend { width: 100%; min-height: 150px; }
 .cockpit-trend .recharts-default-legend { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 10px; }
 .cockpit-trend .recharts-legend-item { margin-right: 0 !important; }
+.cockpit-trend__legend { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px 14px; padding-top: 3px; color: var(--theme-muted); font-size: 10px; }
+.cockpit-trend__legend > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.cockpit-trend__legend i { display: block; width: 16px; height: 0; border-top: 2px solid currentColor; }
+.cockpit-trend__legend i[data-dashed="true"] { border-top-style: dashed; border-top-width: 1px; }
 
 .cockpit-empty { display: grid; min-height: 76px; place-content: center; gap: 8px; color: var(--theme-subtle); font-size: 10px; text-align: center; }
 .cockpit-empty__line { display: block; width: 42px; height: 1px; margin: auto; background: var(--theme-border); }
@@ -413,6 +417,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .floating-glass-panel,
+  .cockpit-trend-trigger svg,
   .cockpit-progress > span,
   .cockpit-ranking__track > span { transition: none !important; }
 }

@@ -27,13 +27,11 @@ export function FloatingGlassPanel({
   const reduceMotion = useReducedMotion();
 
   return (
-    <motion.section
-      layout={!reduceMotion}
+    <section
       id={`panel-${id}`}
       data-panel-priority={priority}
       data-collapsed={collapsed ? "true" : "false"}
       className={`floating-glass-panel cockpit-glass ${className}`}
-      transition={{ layout: { duration: 0.32, ease: [0.22, 1, 0.36, 1] } }}
     >
       <div className="floating-glass-panel__refraction" aria-hidden="true" />
       <div className="floating-glass-panel__shine" aria-hidden="true" />
@@ -65,6 +63,6 @@ export function FloatingGlassPanel({
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.section>
+    </section>
   );
 }
