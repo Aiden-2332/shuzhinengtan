@@ -28,6 +28,8 @@ import {
 interface CampusTileBackgroundProps {
   map: CampusMapKind;
   className?: string;
+  tone?: "leader" | "operations";
+  cockpit?: boolean;
 }
 
 interface ViewportSize {

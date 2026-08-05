@@ -256,11 +256,11 @@ export function LeaderRight() {
             <span>资源类型</span><span>本年累计</span><span>同比</span><span>环比</span>
           </div>
           {resources.map((item) => (
-            <div key={item.name} style={{ display: 'grid', gridTemplateColumns: '1.15fr 1.35fr .75fr .75fr', alignItems: 'center', minHeight: 25, padding: '0 6px', borderBottom: '1px solid rgba(49,165,211,.18)', fontSize: 9 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, color: 'rgba(221,240,252,.88)' }}><span style={{ color: CYAN }}><ResourceIcon name={item.name} /></span>{item.name}</span>
-              <strong style={{ color: '#f2fbff', font: '700 12px Rajdhani, monospace', whiteSpace: 'nowrap' }}>{item.value} <small style={{ color: 'rgba(165,200,220,.7)', fontSize: 7, fontWeight: 500 }}>{item.unit}</small></strong>
-              <strong style={{ color: GREEN, font: '600 9px Rajdhani, monospace', whiteSpace: 'nowrap' }}>{item.yoy}</strong>
-              <span style={{ color: RED, font: '500 9px Rajdhani, monospace', whiteSpace: 'nowrap' }}>{item.mom}</span>
+            <div key={item.label} style={{ display: 'grid', gridTemplateColumns: '1.15fr 1.35fr .75fr .75fr', alignItems: 'center', minHeight: 25, padding: '0 6px', borderBottom: '1px solid rgba(49,165,211,.18)', fontSize: 9 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, color: 'rgba(221,240,252,.88)' }}><span style={{ color: CYAN }}><ResourceIcon name={item.label} /></span>{item.label}</span>
+              <strong style={{ color: '#f2fbff', font: '700 12px Rajdhani, monospace', whiteSpace: 'nowrap' }}>{item.totalValue} <small style={{ color: 'rgba(165,200,220,.7)', fontSize: 7, fontWeight: 500 }}>{item.totalUnit}</small></strong>
+              <strong style={{ color: GREEN, font: '600 9px Rajdhani, monospace', whiteSpace: 'nowrap' }}>{item.yoyLabel}</strong>
+              <span style={{ color: RED, font: '500 9px Rajdhani, monospace', whiteSpace: 'nowrap' }}>{item.momLabel}</span>
             </div>
           ))}
         </div>
@@ -268,7 +268,7 @@ export function LeaderRight() {
 
       <div className="glass-section" style={{ padding: '9px 8px 7px' }}>
         <div style={{ display: 'flex', gap: 7 }}>
-          {compositions.map((item) => <CompositionDonut key={item.title} title={item.title} items={item.items} />)}
+          {compositions.map((item) => <CompositionDonut key={item.title} title={item.title} items={item.items.map(i => [i.label, i.value] as const)} />)}
         </div>
       </div>
 
