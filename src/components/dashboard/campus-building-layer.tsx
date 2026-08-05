@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Building2, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import type { CampusMapBuilding } from "@/data/campus-map-buildings";
 
@@ -30,6 +30,8 @@ interface ProjectedBuilding {
   points: string;
   screenX: number;
   screenY: number;
+  markerScreenX: number;
+  markerScreenY: number;
   isOnScreen: boolean;
 }
 
@@ -62,7 +64,7 @@ export function CampusBuildingLayer({
 }: CampusBuildingLayerProps) {
   const grade = (value: number | undefined) => {
     if (value == null) return null;
-    if (value > 50) return { label: "高排放", color: "#ff5757" };
+    if (value > 50) return { label: "高排放", color: "#ff4f57" };
     if (value >= 30) return { label: "中高排放", color: "#ff963c" };
     if (value >= 15) return { label: "中等排放", color: "#ffd34e" };
     return { label: "低排放", color: "#72dc91" };
@@ -72,6 +74,20 @@ export function CampusBuildingLayer({
       buildings.map((building) => {
         const screenX = view.offsetX + building.anchor[0] * view.scale;
         const screenY = view.offsetY + building.anchor[1] * view.scale;
+        const ys = building.polygon.map(([, y]) => y);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+        const roofBand = building.polygon.filter(
+          ([, y]) => y <= minY + (maxY - minY) * 0.2,
+        );
+        const markerX =
+          roofBand.reduce((sum, [x]) => sum + x, 0) /
+          Math.max(roofBand.length, 1);
+        const markerY =
+          roofBand.reduce((sum, [, y]) => sum + y, 0) /
+          Math.max(roofBand.length, 1);
+        const markerScreenX = view.offsetX + markerX * view.scale;
+        const markerScreenY = view.offsetY + markerY * view.scale;
 
         return {
           building,
@@ -80,11 +96,13 @@ export function CampusBuildingLayer({
             .join(" "),
           screenX,
           screenY,
+          markerScreenX,
+          markerScreenY,
           isOnScreen:
-            screenX >= -LABEL_VIEWPORT_MARGIN &&
-            screenX <= viewport.width + LABEL_VIEWPORT_MARGIN &&
-            screenY >= -LABEL_VIEWPORT_MARGIN &&
-            screenY <= viewport.height + LABEL_VIEWPORT_MARGIN,
+            markerScreenX >= -LABEL_VIEWPORT_MARGIN &&
+            markerScreenX <= viewport.width + LABEL_VIEWPORT_MARGIN &&
+            markerScreenY >= -LABEL_VIEWPORT_MARGIN &&
+            markerScreenY <= viewport.height + LABEL_VIEWPORT_MARGIN,
         };
       }),
     [
@@ -112,12 +130,12 @@ export function CampusBuildingLayer({
 
     return {
       x: clamp(
-        selectedBuilding.screenX,
+        selectedBuilding.markerScreenX,
         POPUP_EDGE_GAP + 20,
         viewport.width - POPUP_EDGE_GAP - 20,
       ),
       y: clamp(
-        selectedBuilding.screenY - 22,
+        selectedBuilding.markerScreenY - 22,
         POPUP_EDGE_GAP + 32,
         viewport.height - POPUP_EDGE_GAP,
       ),
@@ -149,12 +167,12 @@ export function CampusBuildingLayer({
         >
           {cockpit ? (
             <defs>
-              <pattern id="cockpit-window-lights" width="78" height="54" patternUnits="userSpaceOnUse" patternTransform="skewX(-9)">
-                <rect width="78" height="54" fill="transparent" />
-                <rect x="8" y="9" width="18" height="7" rx="2" fill="#ffd98a" opacity=".72" />
-                <rect x="42" y="9" width="17" height="7" rx="2" fill="#8be9ff" opacity=".42" />
-                <rect x="19" y="31" width="16" height="7" rx="2" fill="#ffc96a" opacity=".55" />
-                <rect x="52" y="32" width="14" height="6" rx="2" fill="#b9f3ff" opacity=".35" />
+              <pattern id="cockpit-window-lights" width="72" height="48" patternUnits="userSpaceOnUse" patternTransform="skewX(-9)">
+                <rect width="72" height="48" fill="transparent" />
+                <rect x="8" y="9" width="15" height="5" rx="1" fill="#ffd98a" opacity=".68" />
+                <rect x="39" y="9" width="14" height="5" rx="1" fill="#8be9ff" opacity=".38" />
+                <rect x="18" y="29" width="14" height="5" rx="1" fill="#ffc96a" opacity=".5" />
+                <rect x="49" y="29" width="12" height="5" rx="1" fill="#b9f3ff" opacity=".32" />
               </pattern>
               <filter id="cockpit-warm-light" x="-80%" y="-80%" width="260%" height="260%">
                 <feGaussianBlur stdDeviation="18" />
@@ -180,9 +198,9 @@ export function CampusBuildingLayer({
                     <polygon
                       points={points}
                       fill="url(#cockpit-window-lights)"
-                      opacity={isSelected ? ".72" : ".48"}
+                      opacity={isSelected ? ".5" : ".28"}
                       stroke="#72e9ff"
-                      strokeOpacity={isSelected ? ".95" : ".56"}
+                      strokeOpacity={isSelected ? ".8" : ".32"}
                       strokeWidth={isSelected ? 2 : .8}
                       vectorEffect="non-scaling-stroke"
                       className="pointer-events-none"
@@ -195,13 +213,30 @@ export function CampusBuildingLayer({
                 aria-label={`选择建筑：${building.name}`}
                 aria-pressed={isSelected}
                 tabIndex={0}
+                data-carbon-grade={level?.label}
+                data-carbon-value={building.carbon?.energyIntensity}
                 points={points}
-                fill={cockpit && level ? `${level.color}${isSelected ? "28" : "16"}` : isSelected ? "rgba(34,211,238,.2)" : "transparent"}
+                fill={
+                  cockpit && level
+                    ? `${level.color}${
+                        building.carbon?.energyIntensity != null &&
+                        building.carbon.energyIntensity > 50
+                          ? isSelected
+                            ? "70"
+                            : "58"
+                          : isSelected
+                            ? "48"
+                            : "36"
+                      }`
+                    : isSelected
+                      ? "rgba(34,211,238,.2)"
+                      : "transparent"
+                }
                 stroke={cockpit && level ? level.color : isSelected ? "#22d3ee" : "transparent"}
                 strokeOpacity={cockpit && level ? isSelected ? .92 : .55 : 1}
                 strokeWidth={isSelected ? 1.8 : cockpit && level ? .7 : 1}
                 vectorEffect="non-scaling-stroke"
-                className={`pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-200 hover:brightness-125 focus-visible:stroke-white ${cockpit && level ? "cockpit-building-grade" : ""}`}
+                className={`pointer-events-auto cursor-pointer outline-none transition-[fill,stroke,filter] duration-200 hover:brightness-125 focus-visible:stroke-white ${cockpit && level ? "cockpit-building-grade" : ""} ${cockpit && building.carbon?.energyIntensity != null && building.carbon.energyIntensity > 50 ? "cockpit-building-grade-high" : ""}`}
                 filter={cockpit && level ? `drop-shadow(0 0 ${isSelected ? 6 : 2}px ${level.color})` : undefined}
                 style={{ pointerEvents: "all" }}
                 onPointerDown={(event) => {
@@ -283,26 +318,24 @@ export function CampusBuildingLayer({
 
       {cockpit
         ? projectedBuildings
-            .filter(({ building, isOnScreen }, index) => building.carbon && isOnScreen && index % 3 === 0)
-            .slice(0, 11)
-            .map(({ building, screenX, screenY }) => (
+            .filter(({ building, isOnScreen }) => building.carbon && isOnScreen)
+            .slice(0, 14)
+            .map(({ building, markerScreenX, markerScreenY }) => (
               <button
                 key={`pin-${building.id}`}
                 type="button"
                 aria-label={`查看${building.name}碳排放信息`}
-                className="cockpit-map-pin pointer-events-auto absolute z-30 flex -translate-x-1/2 -translate-y-full flex-col items-center text-cyan-100 outline-none transition-transform hover:scale-110 focus-visible:scale-110"
-                style={{ left: screenX, top: screenY - 3 }}
+                aria-pressed={building.id === selectedBuildingId}
+                title={`${building.name} · 点击查看碳排数据`}
+                className="cockpit-map-pin pointer-events-auto absolute z-30 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-emerald-100 bg-emerald-400 outline-none shadow-[0_0_6px_rgba(52,211,153,.95),0_0_16px_rgba(16,185,129,.75)] transition-[transform,background-color,box-shadow] hover:scale-125 hover:bg-emerald-200 focus-visible:scale-125 focus-visible:ring-2 focus-visible:ring-emerald-100 data-[selected=true]:scale-125 data-[selected=true]:bg-white data-[selected=true]:shadow-[0_0_8px_rgba(255,255,255,.95),0_0_22px_rgba(16,185,129,.95)]"
+                data-selected={building.id === selectedBuildingId}
+                style={{ left: markerScreenX, top: markerScreenY }}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
                   onSelect(building.id);
                 }}
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-100 bg-[#07324a]/95 shadow-[inset_0_0_8px_rgba(100,235,255,.25),0_0_8px_rgba(34,211,238,.8),0_0_18px_rgba(34,211,238,.38)]">
-                  <Building2 className="h-4 w-4" />
-                </span>
-                <span className="h-4 w-px bg-gradient-to-b from-cyan-200 to-transparent" />
-              </button>
+              />
             ))
         : null}
 

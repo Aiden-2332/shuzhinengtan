@@ -4,13 +4,14 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
+import { PortalReturnButton } from "./portal-return-button";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 // 驾驶舱路由 - 全屏显示，无侧边栏
-const COCKPIT_ROUTES = ["/", "/operations"];
+const COCKPIT_ROUTES = ["/", "/operations", "/portal", "/gateway"];
 
 // 能源管理页面 - 白色背景
 const ENERGY_ROUTES = ["/energy-monitor", "/energy-diagnosis"];
@@ -19,8 +20,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pathname = usePathname();
 
-  const isCockpit = COCKPIT_ROUTES.includes(pathname);
+  const isCockpit = COCKPIT_ROUTES.includes(pathname) || pathname.startsWith("/gateway/");
   const isEnergy = ENERGY_ROUTES.some((route) => pathname === route || pathname.startsWith(route + "/"));
+  const showPortalReturn = pathname !== "/gateway" && !pathname.startsWith("/gateway/");
 
   return (
     <div className={`flex h-screen overflow-hidden ${isEnergy ? "bg-slate-100" : "bg-slate-950"}`}>
@@ -43,14 +45,17 @@ export function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <AppHeader
-          sidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+        {!isCockpit && (
+          <AppHeader
+            sidebarCollapsed={sidebarCollapsed}
+            onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        )}
         <main className={`flex-1 min-h-0 relative ${isCockpit ? "overflow-hidden" : "overflow-y-auto p-6"} ${isEnergy ? "energy-theme" : ""}`}>
           {children}
         </main>
       </div>
+      {showPortalReturn && <PortalReturnButton compact={!isCockpit} />}
     </div>
   );
 }

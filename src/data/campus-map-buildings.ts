@@ -87,7 +87,15 @@ function getCarbonData(name: string): CampusBuildingCarbonData | null {
 function hydrateBuildings(map: CampusMapKind): CampusMapBuilding[] {
   return overlayData.maps[map].buildings.map((building) => ({
     ...building,
-    carbon: getCarbonData(building.name),
+    carbon: building.name === "主楼"
+      ? {
+          annualEmission: 3210,
+          targetEmission: 2450,
+          energyIntensity: 62.4,
+          department: "学校办公室",
+          sourceLabel: "驾驶舱演示数据",
+        }
+      : getCarbonData(building.name),
   }));
 }
 

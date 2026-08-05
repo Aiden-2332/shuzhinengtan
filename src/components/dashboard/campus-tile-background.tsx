@@ -277,7 +277,9 @@ export function CampusTileBackground({
   const [viewport, setViewport] = useState<ViewportSize>({ width: 0, height: 0 });
   const [view, setView] = useState<ViewState | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
-  const [showBuildingLabels, setShowBuildingLabels] = useState(!cockpit);
+  // The cockpit uses compact status points; the standalone map keeps its
+  // searchable building-name labels and can still toggle them from the toolbar.
+  const [showBuildingLabels, setShowBuildingLabels] = useState(() => !cockpit);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
 
   const mappedBuildings = getCampusMapBuildings(map);
@@ -569,9 +571,11 @@ export function CampusTileBackground({
 
   const tint = tone === "leader"
     ? cockpit
-      ? "radial-gradient(circle at 51% 42%, rgba(34,154,205,.16) 0%, rgba(5,34,60,.2) 34%, rgba(1,10,25,.7) 100%), radial-gradient(ellipse at 48% 58%, rgba(255,190,92,.07), transparent 38%), linear-gradient(180deg, rgba(2,20,43,.34), rgba(1,9,24,.62))"
+      ? "radial-gradient(circle at 51% 43%, rgba(104,202,232,.04) 0%, rgba(13,69,97,.03) 48%, rgba(3,27,45,.16) 100%), linear-gradient(180deg, rgba(24,83,112,.04), rgba(3,25,42,.14))"
       : "linear-gradient(180deg, rgba(8,16,40,0.16), rgba(8,16,40,0.38))"
-    : "linear-gradient(180deg, rgba(8,16,40,0.10), rgba(8,16,40,0.30))";
+    : cockpit
+      ? "radial-gradient(circle at 50% 44%, rgba(104,202,232,.035) 0%, rgba(13,69,97,.025) 50%, rgba(3,27,45,.15) 100%), linear-gradient(180deg, rgba(24,83,112,.035), rgba(3,25,42,.13))"
+      : "linear-gradient(180deg, rgba(8,16,40,0.10), rgba(8,16,40,0.30))";
   const fitScale = getFitScale(viewport, config);
   const canZoomOut = Boolean(view && view.scale > fitScale + 0.000_001);
   const canZoomIn = Boolean(view && view.scale < MAX_NATIVE_SCALE - 0.000_001);
@@ -602,7 +606,7 @@ export function CampusTileBackground({
             zoom={config.minZoom}
             view={view}
             tiles={plan.overviewTiles}
-            className={cockpit ? "z-0 brightness-[.62] saturate-[.72] contrast-[1.18] hue-rotate-[10deg]" : "z-0"}
+            className={cockpit ? "z-0 brightness-[.94] saturate-[.94] contrast-[1.06] hue-rotate-[4deg]" : "z-0"}
             animateTransform={!isInteracting}
           />
           {plan.zoom !== config.minZoom ? (
@@ -611,7 +615,7 @@ export function CampusTileBackground({
               zoom={plan.zoom}
               view={view}
               tiles={plan.tiles}
-              className={cockpit ? "z-[1] brightness-[.62] saturate-[.72] contrast-[1.18] hue-rotate-[10deg]" : "z-[1]"}
+              className={cockpit ? "z-[1] brightness-[.94] saturate-[.94] contrast-[1.06] hue-rotate-[4deg]" : "z-[1]"}
               animateTransform={!isInteracting}
             />
           ) : null}
@@ -619,6 +623,13 @@ export function CampusTileBackground({
       ) : null}
 
       <div className="pointer-events-none absolute inset-0 z-10" style={{ background: tint }} />
+      {cockpit ? (
+        <>
+          <div className="campus-night-blueprint pointer-events-none absolute inset-0 z-[9]" />
+          <div className="campus-night-lights pointer-events-none absolute inset-0 z-[11]" />
+          <div className="campus-night-vignette pointer-events-none absolute inset-0 z-[13]" />
+        </>
+      ) : null}
 
       {view ? (
         <CampusBuildingLayer
