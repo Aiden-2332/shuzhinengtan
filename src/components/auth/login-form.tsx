@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LockKeyhole, UserRound } from "lucide-react";
 
 const DEMO_LINKS = [
+  { href: "/gateway", label: "门户" },
   { href: "/leader", label: "领导舱演示" },
   { href: "/operations", label: "后勤舱演示" },
   { href: "/portal", label: "PC端演示" },
