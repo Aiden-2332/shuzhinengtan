@@ -5,10 +5,43 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend,
 } from 'recharts'
 import { Cloud, Droplets, ShieldCheck, TrendingUp, Zap } from 'lucide-react'
-import { compositions, rankings, resources } from '@/data/leader-dashboard-data'
+import {
+  carbonCompositionData,
+  emissionRankingData,
+  energyCompositionData,
+  resourceConsumptionData,
+  waterCompositionData,
+} from '@/data/leader-dashboard-data'
 
 const CYAN = '#21c8f6', GREEN = '#37d6b0', ORANGE = '#ff9b58'
 const RED = '#ff5b6e', YELLOW = '#ffd66b'
+
+const resources = resourceConsumptionData.map((item) => ({
+  name: item.label,
+  value: item.totalValue,
+  unit: item.totalUnit,
+  yoy: item.yoyLabel,
+  mom: item.momLabel,
+}))
+
+const compositions = [
+  {
+    title: '碳排构成',
+    items: carbonCompositionData.map(({ name, value }) => [name, value] as [string, number]),
+  },
+  {
+    title: '能耗构成',
+    items: energyCompositionData.map(({ name, value }) => [name, value] as [string, number]),
+  },
+  {
+    title: '水耗构成',
+    items: waterCompositionData.map(({ name, value }) => [name, value] as [string, number]),
+  },
+]
+
+const rankings = emissionRankingData.map(
+  ({ name, value, color }) => [name, value, color] as [string, number, string],
+)
 
 const TS = {
   contentStyle: { background: 'rgba(2,12,32,.95)', border: '1px solid rgba(0,180,255,.38)', borderRadius: 0, fontSize: 10 },
