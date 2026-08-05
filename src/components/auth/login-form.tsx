@@ -5,9 +5,9 @@ import Link from "next/link";
 import { LockKeyhole, UserRound } from "lucide-react";
 
 const DEMO_LINKS = [
-  { href: "/leader", label: "领导舱演示" },
-  { href: "/operations", label: "后勤舱演示" },
-  { href: "/portal", label: "PC端演示" },
+  { href: "/portal", label: "功能门户" },
+  { href: "/leader", label: "领导驾驶舱" },
+  { href: "/operations", label: "后勤驾驶舱" },
 ] as const;
 
 export function LoginForm() {
