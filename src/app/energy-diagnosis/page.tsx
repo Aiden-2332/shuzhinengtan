@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell,
@@ -9,15 +9,18 @@ import {
   TrendingUp, TrendingDown, Target, Zap, Droplets, Flame, Thermometer,
   Lightbulb, AlertTriangle, CheckCircle2, ArrowRight, Building2,
   ChevronDown, ChevronUp, Clock, Info, ThumbsUp, CalendarDays,
+  Activity,
 } from 'lucide-react';
 import {
-  getDiagnosisSummary, getBenchmarkComparison, getEnergyFlowSankey,
+  getDiagnosisSummary, getBenchmarkComparison,
   getAIRootCauseAnalysis, getEnergySavingAdvices,
   getCalendarHeatmapDays, getTypicalDayComparison, getSemesterComparison, getEnergyProfile,
 } from '@/data/energy-three-pages-data';
+import { useRealtimeNow } from '@/hooks/use-realtime-now';
+import { formatCampusDateTime, getCampusDateAt, getCampusDateParts } from '@/lib/campus-realtime';
 import type {
   DiagnosisSummary, BenchmarkComparison, BenchmarkBuildingItem, BenchmarkLine,
-  SankeyNode, SankeyLink, AIRootCauseAnalysis, EnergySavingAdvice,
+  AIRootCauseAnalysis, EnergySavingAdvice,
   CalendarHeatmapDay, LoadCurvePoint, TypicalDayComparison, SemesterComparison, EnergyProfile,
 } from '@/types/energy';
 
@@ -138,101 +141,6 @@ function BenchmarkChart({ benchmark }: { benchmark: BenchmarkComparison }) {
 }
 
 // ============================================================
-// 桑基图（SVG自绘）
-// ============================================================
-function SankeyDiagram({ sankey }: { sankey: { period: string; nodes: SankeyNode[]; links: SankeyLink[]; totalInput: number; totalLoss: number; overallEfficiency: number } }) {
-  const width = 700;
-  const height = 320;
-  const margin = { left: 10, right: 10, top: 20, bottom: 20 };
-
-  const layers = useMemo(() => {
-    const order = ['source', 'conversion', 'enduse', 'loss'];
-    const grouped: Record<string, SankeyNode[]> = {};
-    order.forEach(cat => { grouped[cat] = sankey.nodes.filter(n => n.category === cat); });
-    return order.filter(cat => grouped[cat].length > 0).map(cat => grouped[cat]);
-  }, [sankey.nodes]);
-
-  const layerX = useMemo(() => {
-    const w = width - margin.left - margin.right;
-    const step = layers.length > 1 ? w / (layers.length - 1) : w / 2;
-    return layers.map((_, i) => margin.left + i * step);
-  }, [layers]);
-
-  const nodePositions = useMemo(() => {
-    const positions: Record<string, { x: number; y: number; w: number; h: number }> = {};
-    layers.forEach((layer, li) => {
-      const totalVal = layer.reduce((s, n) => s + n.value, 0);
-      const availH = height - margin.top - margin.bottom - (layer.length - 1) * 8;
-      let y = margin.top;
-      layer.forEach(node => {
-        const h = Math.max(12, (node.value / totalVal) * availH);
-        positions[node.id] = { x: layerX[li], y, w: 24, h };
-        y += h + 8;
-      });
-    });
-    return positions;
-  }, [layers, layerX]);
-
-  const maxFlow = Math.max(...sankey.links.map(l => l.value), 1);
-
-  const categoryColors: Record<string, string> = {
-    source: '#3B82F6', conversion: '#8B5CF6', enduse: '#F59E0B', loss: '#EF4444',
-  };
-
-  return (
-    <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-foreground">校园能源流向图</h3>
-        <span className="text-xs text-muted-foreground">{sankey.period}</span>
-      </div>
-      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
-        {/* 流向线 */}
-        {sankey.links.map((link, i) => {
-          const src = nodePositions[link.source];
-          const tgt = nodePositions[link.target];
-          if (!src || !tgt) return null;
-          const opacity = 0.3 + (link.value / maxFlow) * 0.5;
-          const srcX = src.x + src.w;
-          const srcY = src.y + src.h / 2;
-          const tgtX = tgt.x;
-          const tgtY = tgt.y + tgt.h / 2;
-          const cpX = (srcX + tgtX) / 2;
-          return (
-            <path key={i}
-              d={`M${srcX},${srcY} C${cpX},${srcY} ${cpX},${tgtY} ${tgtX},${tgtY}`}
-              fill="none" stroke={categoryColors[link.energyType as string] || '#94A3B8'}
-              strokeWidth={Math.max(1, (link.value / maxFlow) * 20)}
-              strokeOpacity={opacity}
-            />
-          );
-        })}
-        {/* 节点 */}
-        {sankey.nodes.map(node => {
-          const pos = nodePositions[node.id];
-          if (!pos) return null;
-          return (
-            <g key={node.id}>
-              <rect x={pos.x} y={pos.y} width={pos.w} height={pos.h} rx={3}
-                fill={categoryColors[node.category] || '#94A3B8'} />
-              <text x={node.category === 'loss' ? pos.x - 6 : pos.x + pos.w + 6}
-                y={pos.y + pos.h / 2 + 4} fontSize={10}
-                fill="var(--foreground)" textAnchor={node.category === 'loss' ? 'end' : 'start'}>
-                {node.name} ({node.value.toFixed(1)})
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-        <span>总输入: {sankey.totalInput} tce</span>
-        <span>总损耗: {sankey.totalLoss} tce</span>
-        <span>综合效率: {sankey.overallEfficiency}%</span>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
 // AI根因分析
 // ============================================================
 function RootCausePanel({ analysis }: { analysis: AIRootCauseAnalysis }) {
@@ -336,12 +244,19 @@ function getIntensityColor(level: CalendarHeatmapDay["level"]): string {
   }
 }
 
-function CompactCalendar() {
+function CompactCalendar({ nowMs }: { nowMs: number }) {
+  const now = useMemo(() => new Date(nowMs), [nowMs]);
+  const currentParts = getCampusDateParts(now);
+  const currentMonthIndex = currentParts.month - 1;
   const [expanded, setExpanded] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(6);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthIndex);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  const heatmapDays = useMemo(() => getCalendarHeatmapDays(), []);
+  useEffect(() => {
+    setSelectedMonth(currentMonthIndex);
+  }, [currentMonthIndex]);
+
+  const heatmapDays = useMemo(() => getCalendarHeatmapDays(now), [now]);
 
   const monthDays = useMemo(() => {
     return heatmapDays.filter((d) => {
@@ -353,8 +268,9 @@ function CompactCalendar() {
   const calendarGrid = useMemo(() => {
     const firstDay = monthDays[0];
     if (!firstDay) return [];
-    const firstDate = new Date(firstDay.date);
-    const startDow = (firstDate.getDay() + 6) % 7;
+    const [year, month, day] = firstDay.date.split('-').map(Number);
+    const firstDate = getCampusDateAt(year, month, day, 12);
+    const startDow = (getCampusDateParts(firstDate).weekday + 6) % 7;
     const weeks: (CalendarHeatmapDay | null)[][] = [];
     let currentWeek: (CalendarHeatmapDay | null)[] = Array(startDow).fill(null);
 
@@ -415,8 +331,8 @@ function CompactCalendar() {
           {/* 月份选择器 + 图例 */}
           <div className="flex items-center gap-2">
             <button onClick={() => setSelectedMonth(Math.max(0, selectedMonth - 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">◀</button>
-            <span className="text-sm font-semibold min-w-[60px] text-center">{MONTHS[selectedMonth]}</span>
-            <button onClick={() => setSelectedMonth(Math.min(11, selectedMonth + 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">▶</button>
+            <span className="text-sm font-semibold min-w-[92px] text-center">{currentParts.year}年{MONTHS[selectedMonth]}</span>
+            <button onClick={() => setSelectedMonth(Math.min(currentMonthIndex, selectedMonth + 1))} className="p-1 rounded hover:bg-muted text-muted-foreground text-xs">▶</button>
             <div className="flex gap-2 ml-3 text-[10px]">
               {[
                 { color: "bg-red-600", label: "异常偏高" },
@@ -504,14 +420,35 @@ function CompactCalendar() {
 // 主页面
 // ============================================================
 export default function EnergyDiagnosisPage() {
+  const nowMs = useRealtimeNow();
   const [activeBenchmarkIdx, setActiveBenchmarkIdx] = useState(0);
   const [adviceFilter, setAdviceFilter] = useState<string>('all');
+  const [flowContext, setFlowContext] = useState<{
+    node: string;
+    nodeName: string;
+    energy: string;
+    time: string;
+    campus: string;
+  } | null>(null);
 
   const diagnosis = useMemo(() => getDiagnosisSummary(), []);
   const benchmarks = useMemo(() => getBenchmarkComparison(), []);
-  const sankey = useMemo(() => getEnergyFlowSankey(), []);
   const rootCause = useMemo(() => getAIRootCauseAnalysis(), []);
   const advices = useMemo(() => getEnergySavingAdvices(), []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('source') !== 'energy-flow') return;
+    const context = {
+      node: params.get('node') ?? 'all',
+      nodeName: params.get('nodeName') ?? '全校',
+      energy: params.get('energy') ?? 'combined',
+      time: params.get('time') ?? 'today',
+      campus: params.get('campus') ?? 'all',
+    };
+    setFlowContext(context);
+    if (context.nodeName.includes('实验')) setActiveBenchmarkIdx(0);
+  }, []);
 
   const filteredAdvices = adviceFilter === 'all' ? advices : advices.filter(a => a.priority === adviceFilter);
 
@@ -525,9 +462,23 @@ export default function EnergyDiagnosisPage() {
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="w-3 h-3" />
-          <span>数据更新: {new Date().toLocaleString('zh-CN')}</span>
+          <span>数据更新: {nowMs === null ? '同步中…' : formatCampusDateTime(new Date(nowMs))}</span>
         </div>
       </div>
+
+      {flowContext && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
+              <Activity className="h-4 w-4" />来自“能源流向分析”的定向诊断
+            </div>
+            <p className="mt-1 text-xs text-blue-700">
+              当前诊断对象：{flowContext.nodeName} · 能源类型：{flowContext.energy} · 时间范围：{flowContext.time} · 校区：{flowContext.campus}
+            </p>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-blue-700 shadow-sm">参数已自动应用</span>
+        </div>
+      )}
 
       {/* 第一行：能效评分 + 超标概况 */}
       <div className="grid grid-cols-2 gap-4">
@@ -554,13 +505,10 @@ export default function EnergyDiagnosisPage() {
         {benchmarks[activeBenchmarkIdx] && <BenchmarkChart benchmark={benchmarks[activeBenchmarkIdx]} />}
       </div>
 
-      {/* 第三行：桑基图 */}
-      <SankeyDiagram sankey={sankey} />
+      {/* 第三行：用电日历（紧凑可折叠） */}
+      {nowMs !== null && <CompactCalendar nowMs={nowMs} />}
 
-      {/* 第四行：用电日历（紧凑可折叠） */}
-      <CompactCalendar />
-
-      {/* 第五行：AI根因分析 */}
+      {/* 第四行：AI根因分析 */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Zap className="w-4 h-4 text-purple-500" />

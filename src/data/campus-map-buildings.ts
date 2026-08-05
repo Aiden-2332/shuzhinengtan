@@ -1,8 +1,15 @@
 import { CAMPUS_DATA } from "./campus-data";
+import { SYSTEM_BUILDINGS_BY_NAME } from "./campus-system-data";
 import rawOverlayData from "./ustb-building-overlays.json";
 
 export type CampusMapKind = "2d" | "2_5d";
 export type ImagePoint = [number, number];
+export type CampusLayerFilter =
+  | "all"
+  | "teaching"
+  | "dormitory"
+  | "laboratory"
+  | "services";
 
 export interface CampusBuildingCarbonData {
   annualEmission: number;
@@ -47,6 +54,17 @@ interface ExtractedOverlayData {
 
 const overlayData = rawOverlayData as unknown as ExtractedOverlayData;
 
+// Both cockpits must expose the same building roster. A building that is not
+// present in either source map is excluded from both the labels and polygons.
+const twoAndHalfDBuildingNames = new Set(
+  overlayData.maps["2_5d"].buildings.map((building) => building.name),
+);
+const sharedBuildingNames = new Set(
+  overlayData.maps["2d"].buildings
+    .filter((building) => twoAndHalfDBuildingNames.has(building.name))
+    .map((building) => building.name),
+);
+
 const CARBON_NAME_ALIASES: Record<string, string> = {
   主楼: "主教学楼",
   教学楼: "第一教学楼",
@@ -72,6 +90,17 @@ function findCarbonBuilding(name: string) {
 }
 
 function getCarbonData(name: string): CampusBuildingCarbonData | null {
+  const systemBuilding = SYSTEM_BUILDINGS_BY_NAME.get(name);
+  if (systemBuilding) {
+    return {
+      annualEmission: systemBuilding.annualEmissionForecast,
+      targetEmission: systemBuilding.annualEmissionTarget,
+      energyIntensity: systemBuilding.energyIntensity,
+      department: systemBuilding.department,
+      sourceLabel: "校园统一监测场景",
+    };
+  }
+
   const building = findCarbonBuilding(name);
   if (!building) return null;
 
@@ -85,18 +114,12 @@ function getCarbonData(name: string): CampusBuildingCarbonData | null {
 }
 
 function hydrateBuildings(map: CampusMapKind): CampusMapBuilding[] {
-  return overlayData.maps[map].buildings.map((building) => ({
-    ...building,
-    carbon: building.name === "主楼"
-      ? {
-          annualEmission: 3210,
-          targetEmission: 2450,
-          energyIntensity: 62.4,
-          department: "学校办公室",
-          sourceLabel: "驾驶舱演示数据",
-        }
-      : getCarbonData(building.name),
-  }));
+  return overlayData.maps[map].buildings
+    .filter((building) => sharedBuildingNames.has(building.name))
+    .map((building) => ({
+      ...building,
+      carbon: getCarbonData(building.name),
+    }));
 }
 
 export const campusMapBuildingsByMap: Record<
@@ -111,4 +134,38 @@ export function getCampusMapBuildings(
   map: CampusMapKind,
 ): CampusMapBuilding[] {
   return campusMapBuildingsByMap[map];
+}
+
+const DORMITORY_PATTERN = /宿舍|公寓|斋/;
+const LABORATORY_PATTERN =
+  /实验|科技|材料|机电|冶金|化生|生态|智能|理化|土木|矿业|工程|研究|腐蚀/;
+
+/**
+ * Normalizes the source map's broad categories into the layer switches used
+ * by the cockpit. Name-based matching keeps laboratories out of the source
+ * data's combined "teaching and research" bucket.
+ */
+export function getCampusBuildingLayer(
+  building: CampusMapBuilding,
+): Exclude<CampusLayerFilter, "all"> {
+  if (
+    building.category.includes("学生宿舍") ||
+    DORMITORY_PATTERN.test(building.name)
+  ) {
+    return "dormitory";
+  }
+
+  if (LABORATORY_PATTERN.test(building.name)) {
+    return "laboratory";
+  }
+
+  if (
+    building.category.includes("教学科研") ||
+    building.name.includes("教学") ||
+    building.name.includes("外语")
+  ) {
+    return "teaching";
+  }
+
+  return "services";
 }

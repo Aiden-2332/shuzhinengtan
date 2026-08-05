@@ -18,18 +18,30 @@ import type {
   RealtimeDataStream,
   QuickQuestion,
 } from '@/stores/ai-center-store';
+import { getCampusOperationalSnapshot, getSystemAnomalySnapshots, SYSTEM_BUILDINGS } from '@/data/campus-system-data';
+import { getCampusDateAt, getCampusDateParts, getCampusLoadKw } from '@/lib/campus-realtime';
+
+function campusDateKey(date: Date): string {
+  const { year, month, day } = getCampusDateParts(date);
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function addCampusDays(date: Date, days: number): Date {
+  const parts = getCampusDateParts(date);
+  return getCampusDateAt(parts.year, parts.month, parts.day + days, 12);
+}
 
 // ===== 模块1：预测性分析 =====
 
-export function getMockPredictionCurve(period: '30d' | '60d' | '90d'): PredictionCurve {
+export function getMockPredictionCurve(period: '30d' | '60d' | '90d', now = new Date()): PredictionCurve {
   const days = period === '30d' ? 30 : period === '60d' ? 60 : 90;
   const historical: { date: string; emission: number }[] = [];
   const forecast: { date: string; predicted: number; upper95: number; lower95: number }[] = [];
 
   const baseEmission = 45;
   for (let i = days; i > 0; i--) {
-    const d = new Date(2026, 5, 30 - i);
-    const dateStr = d.toISOString().slice(0, 10);
+    const d = addCampusDays(now, -i);
+    const dateStr = campusDateKey(d);
     const seasonal = Math.sin((i / days) * Math.PI * 2) * 8;
     const weekday = d.getDay() >= 1 && d.getDay() <= 5 ? 5 : -3;
     const noise = ((i * 7) % 10 - 5) * 0.4;
@@ -37,8 +49,8 @@ export function getMockPredictionCurve(period: '30d' | '60d' | '90d'): Predictio
   }
 
   for (let i = 1; i <= days; i++) {
-    const d = new Date(2026, 5, 30 + i);
-    const dateStr = d.toISOString().slice(0, 10);
+    const d = addCampusDays(now, i);
+    const dateStr = campusDateKey(d);
     const seasonal = Math.sin(((i + days) / (days * 2)) * Math.PI * 2) * 8;
     const weekday = d.getDay() >= 1 && d.getDay() <= 5 ? 5 : -3;
     const trend = i * 0.03;
@@ -56,31 +68,39 @@ export function getMockPredictionCurve(period: '30d' | '60d' | '90d'): Predictio
     historical,
     forecast,
     calendarEvents: [
-      { date: '2026-07-15', event: '暑假开始', impactFactor: -0.6 },
-      { date: '2026-09-01', event: '秋季开学', impactFactor: 0.5 },
-      { date: '2026-10-01', event: '国庆假期', impactFactor: -0.3 },
+      { date: campusDateKey(addCampusDays(now, 7)), event: '设备检修窗口', impactFactor: -0.18 },
+      { date: campusDateKey(addCampusDays(now, 30)), event: '教学负荷切换', impactFactor: 0.35 },
+      { date: campusDateKey(addCampusDays(now, 60)), event: '校历低负荷日', impactFactor: -0.3 },
     ],
   };
 }
 
-export function getMockHolidayPlans(): HolidayPlan[] {
+export function getMockHolidayPlans(now = new Date()): HolidayPlan[] {
+  const current = getCampusDateParts(now);
+  const summerYear = current.month <= 8 ? current.year : current.year + 1;
+  const nationalDayYear = current.month < 10 || (current.month === 10 && current.day <= 7) ? current.year : current.year + 1;
+  const summerStart = getCampusDateAt(summerYear, 7, 15, 0);
+  const summerEnd = getCampusDateAt(summerYear, 8, 31, 23, 59);
+  const nationalDayStart = getCampusDateAt(nationalDayYear, 10, 1, 0);
+  const nationalDayEnd = getCampusDateAt(nationalDayYear, 10, 7, 23, 59);
+  const daysUntil = (date: Date) => Math.max(0, Math.ceil((date.getTime() - now.getTime()) / 86_400_000));
   return [
     {
       id: 'hp-1',
-      holidayName: '2026年暑假',
-      startDate: '2026-07-15',
-      endDate: '2026-08-31',
-      daysBeforeEvent: 20,
+      holidayName: `${summerYear}年暑假`,
+      startDate: campusDateKey(summerStart),
+      endDate: campusDateKey(summerEnd),
+      daysBeforeEvent: daysUntil(summerStart),
       estimatedSaving: { energy: 850, carbon: 485, cost: 680000 },
       actions: ['空调关闭', '照明减半', '实验室最小供电', '宿舍楼集中管理'],
       status: 'auto_generated',
     },
     {
       id: 'hp-2',
-      holidayName: '2026年国庆假期',
-      startDate: '2026-10-01',
-      endDate: '2026-10-07',
-      daysBeforeEvent: 95,
+      holidayName: `${nationalDayYear}年国庆假期`,
+      startDate: campusDateKey(nationalDayStart),
+      endDate: campusDateKey(nationalDayEnd),
+      daysBeforeEvent: daysUntil(nationalDayStart),
       estimatedSaving: { energy: 120, carbon: 68, cost: 96000 },
       actions: ['空调关闭', '照明减半'],
       status: 'auto_generated',
@@ -88,12 +108,11 @@ export function getMockHolidayPlans(): HolidayPlan[] {
   ];
 }
 
-export function getMockRiskCalendar(): RiskCalendarDay[] {
+export function getMockRiskCalendar(now = new Date()): RiskCalendarDay[] {
   const days: RiskCalendarDay[] = [];
-  const now = new Date(2026, 6, 1);
   for (let i = 0; i < 31; i++) {
-    const d = new Date(2026, 6, 1 + i);
-    const dateStr = d.toISOString().slice(0, 10);
+    const d = addCampusDays(now, i);
+    const dateStr = campusDateKey(d);
     const emission = 40 + ((i * 7 + 3) % 15);
     const target = 48;
     let riskLevel: RiskCalendarDay['riskLevel'] = 'safe';
@@ -143,14 +162,14 @@ export function getMockScenarioConfigs(): ScenarioConfig[] {
   ];
 }
 
-export function getMockScenarioResults(configs: ScenarioConfig[]): ScenarioResult[] {
+export function getMockScenarioResults(configs: ScenarioConfig[], now = new Date()): ScenarioResult[] {
   return configs.map((config) => {
     const days = 30;
     const curve: { date: string; emission: number }[] = [];
     const reductionFactor = config.id === 'sc-1' ? 0.08 : config.id === 'sc-2' ? 0.12 : 0.05;
     for (let i = 1; i <= days; i++) {
-      const d = new Date(2026, 6, i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const d = addCampusDays(now, i);
+      const dateStr = campusDateKey(d);
       const base = 45 + Math.sin((i / days) * Math.PI * 2) * 8;
       curve.push({ date: dateStr, emission: Math.round(base * (1 - reductionFactor) * 10) / 10 });
     }
@@ -166,156 +185,60 @@ export function getMockScenarioResults(configs: ScenarioConfig[]): ScenarioResul
 
 // ===== 模块2：实时监控异常报警 =====
 
-export function getMockRealtimeStream(): RealtimeDataStream {
+export function getMockRealtimeStream(now = new Date()): RealtimeDataStream {
+  const currentPower = Math.round(getCampusLoadKw(now, 31));
+  const hour = getCampusDateParts(now).hour;
+  const waterFlow = 38 + Math.exp(-Math.pow((hour - 12) / 2.2, 2)) * 13 + Math.exp(-Math.pow((hour - 19) / 2.4, 2)) * 16;
   return {
-    timestamp: new Date().toISOString(),
-    totalPower: 2850 + Math.round(Math.sin(Date.now() / 10000) * 200),
-    totalWater: 45.2 + Math.round(Math.sin(Date.now() / 12000) * 5 * 10) / 10,
-    totalHeat: 12.8 + Math.round(Math.sin(Date.now() / 8000) * 2 * 10) / 10,
-    totalCarbon: 28.5 + Math.round(Math.sin(Date.now() / 15000) * 3 * 10) / 10,
-    anomalyCount: 3,
+    timestamp: now.toISOString(),
+    totalPower: currentPower,
+    totalWater: Math.round(waterFlow * 10) / 10,
+    totalHeat: [11, 12, 1, 2, 3].includes(getCampusDateParts(now).month) ? 12.8 : 0,
+    totalCarbon: Math.round(currentPower * 0.5672 / 100) / 10,
+    anomalyCount: getSystemAnomalySnapshots(now).filter((anomaly) => anomaly.status !== 'resolved').length,
   };
 }
 
-export function getMockAnomalies(): AIAnomalyCard[] {
-  return [
-    {
-      id: 'anom-001',
-      pattern: 'spike',
-      patternLabel: '用电突增',
-      severity: 'blocking',
-      buildingId: 'b01',
-      buildingName: '主教学楼',
-      deviceName: '中央空调机组#3',
-      detectedAt: '2026-07-12T14:32:00Z',
-      duration: '2h 15min',
-      aiConfidence: 0.92,
-      aiRootCause: '空调系统夜间未关闭，叠加室外温度异常升高至38°C，导致冷负荷急剧增加',
-      aiEvidence: [
-        { type: 'data', description: '该楼栋过去7天夜间能耗均值偏高240%' },
-        { type: 'weather', description: '当日室外温度38°C，高于季节均值6°C' },
-        { type: 'pattern', description: '负荷曲线与同类建筑教学楼B偏差超过3σ' },
-      ],
-      impact: { extraEmission: 2.8, extraCost: 2240, affectedArea: '主教学楼 全楼', affectedPeople: 3500 },
-      suggestedActions: [
-        { action: '立即关闭非教学区域空调', linkToModule: 'reduction' },
-        { action: '转工单处理', linkToModule: 'l3' },
-      ],
-      status: 'new',
+export function getMockAnomalies(now = new Date()): AIAnomalyCard[] {
+  const patternFor = (title: string, category: string): AIAnomalyCard['pattern'] => {
+    if (category === 'data') return 'drift';
+    if (title.includes('空载') || title.includes('超时') || title.includes('夜间')) return 'idle_run';
+    if (title.includes('偏高') || title.includes('异常') || title.includes('超限')) return 'over_limit';
+    return 'spike';
+  };
+  return getSystemAnomalySnapshots(now).map((anomaly, index) => ({
+    id: anomaly.id,
+    pattern: patternFor(anomaly.title, anomaly.category),
+    patternLabel: anomaly.title,
+    severity: anomaly.severity === 'emergency' ? 'blocking' : anomaly.severity === 'critical' ? 'severe' : anomaly.severity === 'warning' ? 'normal' : 'info',
+    buildingId: anomaly.buildingId,
+    buildingName: anomaly.buildingName,
+    deviceId: anomaly.deviceId,
+    deviceName: anomaly.deviceName,
+    detectedAt: anomaly.detectedAt,
+    duration: anomaly.duration,
+    aiConfidence: Math.min(0.96, 0.82 + (index % 5) * 0.03),
+    aiRootCause: anomaly.rootCause,
+    aiEvidence: anomaly.evidence.map((description, evidenceIndex) => ({
+      type: evidenceIndex === 0 ? 'data' : evidenceIndex === 1 ? 'pattern' : 'context',
+      description,
+    })),
+    impact: {
+      extraEmission: anomaly.extraEmission,
+      extraCost: anomaly.extraCost,
+      affectedArea: `${anomaly.buildingName} ${anomaly.deviceName ? '设备区域' : '相关区域'}`,
     },
-    {
-      id: 'anom-002',
-      pattern: 'idle_run',
-      patternLabel: '空载运行',
-      severity: 'severe',
-      buildingId: 'b05',
-      buildingName: '信息学院楼',
-      deviceName: '实验室排风系统',
-      detectedAt: '2026-07-12T08:15:00Z',
-      duration: '6h 40min',
-      aiConfidence: 0.85,
-      aiRootCause: '实验室排风系统在无人时段持续运行，定时策略未覆盖暑期特殊作息',
-      aiEvidence: [
-        { type: 'calendar', description: '当前为暑期，实验室使用率<10%' },
-        { type: 'data', description: '排风系统功率稳定在额定值85%，无调节迹象' },
-      ],
-      impact: { extraEmission: 1.5, extraCost: 1200, affectedArea: '信息学院楼 3-5层实验室' },
-      suggestedActions: [
-        { action: '调整排风系统定时策略', linkToModule: 'reduction' },
-      ],
-      status: 'new',
-    },
-    {
-      id: 'anom-003',
-      pattern: 'over_limit',
-      patternLabel: '超标排放',
-      severity: 'severe',
-      buildingId: 'b13',
-      buildingName: '1号宿舍楼',
-      detectedAt: '2026-07-11T22:00:00Z',
-      duration: '14h 30min',
-      aiConfidence: 0.78,
-      aiRootCause: '宿舍楼夜间用电超限，疑似学生使用大功率电器+空调整夜运行',
-      aiEvidence: [
-        { type: 'data', description: '夜间22:00-06:00功率超出日间均值30%' },
-        { type: 'pattern', description: '功率波动模式匹配大功率电器使用特征' },
-      ],
-      impact: { extraEmission: 3.2, extraCost: 2560, affectedArea: '1号宿舍楼 全楼', affectedPeople: 1200 },
-      suggestedActions: [
-        { action: '加强宿舍用电管理', linkToModule: 'reduction' },
-        { action: '转工单处理', linkToModule: 'l3' },
-      ],
-      status: 'acknowledged',
-    },
-    {
-      id: 'anom-004',
-      pattern: 'drift',
-      patternLabel: '数据偏移',
-      severity: 'normal',
-      buildingId: 'b10',
-      buildingName: '图书馆',
-      deviceName: '智能电表#LIB-03',
-      detectedAt: '2026-07-10T06:00:00Z',
-      duration: '2天',
-      aiConfidence: 0.65,
-      aiRootCause: '图书馆电表读数出现系统性偏移，可能为传感器故障或校准漂移',
-      aiEvidence: [
-        { type: 'data', description: '电表读数较相邻表计偏高12%，但实际负荷无明显变化' },
-        { type: 'pattern', description: '偏移量为恒定值，符合传感器漂移特征' },
-      ],
-      impact: { extraEmission: 0.3, extraCost: 240, affectedArea: '图书馆 全楼' },
-      suggestedActions: [
-        { action: '安排电表校准', linkToModule: 'l3' },
-      ],
-      status: 'new',
-    },
-    {
-      id: 'anom-005',
-      pattern: 'spike',
-      patternLabel: '用电突增',
-      severity: 'normal',
-      buildingId: 'b08',
-      buildingName: '能源学院楼',
-      detectedAt: '2026-07-12T10:00:00Z',
-      duration: '1h 30min',
-      aiConfidence: 0.71,
-      aiRootCause: '实验设备集中启动导致短时功率突增，属于正常实验活动',
-      aiEvidence: [
-        { type: 'calendar', description: '该时段有预约实验记录' },
-        { type: 'data', description: '功率在1.5小时后恢复正常水平' },
-      ],
-      impact: { extraEmission: 0.5, extraCost: 400, affectedArea: '能源学院楼 实验室' },
-      suggestedActions: [
-        { action: '确认实验计划后忽略', linkToModule: 'reduction' },
-      ],
-      status: 'new',
-    },
-    {
-      id: 'anom-006',
-      pattern: 'idle_run',
-      patternLabel: '空载运行',
-      severity: 'info',
-      buildingId: 'b11',
-      buildingName: '行政办公楼',
-      deviceName: '新风系统',
-      detectedAt: '2026-07-12T12:00:00Z',
-      duration: '30min',
-      aiConfidence: 0.58,
-      aiRootCause: '午休时段新风系统低效运行，可优化启停策略',
-      aiEvidence: [
-        { type: 'data', description: '午休时段CO2浓度低于阈值，新风需求低' },
-      ],
-      impact: { extraEmission: 0.1, extraCost: 80, affectedArea: '行政办公楼 1-3层' },
-      suggestedActions: [
-        { action: '优化新风系统午休策略', linkToModule: 'reduction' },
-      ],
-      status: 'new',
-    },
-  ];
+    suggestedActions: anomaly.suggestions.map((action, actionIndex) => ({
+      action,
+      linkToModule: actionIndex === 0 ? 'reduction' : 'l3',
+    })),
+    status: anomaly.status === 'pending' ? 'new' : anomaly.status,
+  }));
 }
 
-export function getMockAnomalyTimeline(anomalyId: string): AnomalyTimelineEvent[] {
-  const baseTime = new Date('2026-07-12T14:32:00Z');
+export function getMockAnomalyTimeline(anomalyId: string, now = new Date()): AnomalyTimelineEvent[] {
+  const anomaly = getSystemAnomalySnapshots(now).find((item) => item.id === anomalyId);
+  const baseTime = anomaly ? new Date(anomaly.detectedAt) : now;
   return [
     {
       id: `tl-${anomalyId}-1`,
@@ -333,7 +256,7 @@ export function getMockAnomalyTimeline(anomalyId: string): AnomalyTimelineEvent[
       phase: 'confirmed',
       phaseLabel: '人工确认',
       actor: '张工(后勤)',
-      detail: '后勤值班人员确认异常属实，初步判断为空调系统问题',
+      detail: anomaly ? `后勤值班人员确认异常属实：${anomaly.title}` : '后勤值班人员确认异常属实并开始复核',
     },
     {
       id: `tl-${anomalyId}-3`,
@@ -342,7 +265,7 @@ export function getMockAnomalyTimeline(anomalyId: string): AnomalyTimelineEvent[
       phase: 'dispatched',
       phaseLabel: '已派单',
       actor: '系统自动',
-      detail: '自动生成维修工单WO-2026-0712-003，指派至暖通维修组',
+      detail: `自动生成维修工单并指派至${anomaly?.category === 'data' ? '数据运维组' : '能源管理组'}`,
     },
     {
       id: `tl-${anomalyId}-4`,
@@ -351,46 +274,39 @@ export function getMockAnomalyTimeline(anomalyId: string): AnomalyTimelineEvent[
       phase: 'processing',
       phaseLabel: '处理中',
       actor: '李师傅(暖通组)',
-      detail: '维修人员到达现场，检查空调控制面板与定时设置',
+      detail: anomaly?.suggestions[0] ?? '维修人员到达现场并按处置建议开始排查',
     },
   ];
 }
 
-export function getMockNotifications(): AlertNotification[] {
-  return [
-    { id: 'notif-1', anomalyId: 'anom-001', title: '用电突增告警', message: '主教学楼中央空调机组#3 用电突增，超出基线240%', channel: 'in_app', sentAt: '2026-07-12T14:33:00Z', read: false, targetPerson: '张工' },
-    { id: 'notif-2', anomalyId: 'anom-002', title: '空载运行告警', message: '信息学院楼实验室排风系统空载运行超过6小时', channel: 'in_app', sentAt: '2026-07-12T08:16:00Z', read: false, targetPerson: '张工' },
-    { id: 'notif-3', anomalyId: 'anom-003', title: '超标排放告警', message: '1号宿舍楼夜间用电超限，已持续14小时', channel: 'in_app', sentAt: '2026-07-11T22:05:00Z', read: false, targetPerson: '王主管' },
-    { id: 'notif-4', anomalyId: 'anom-001', title: '工单已派发', message: '工单WO-2026-0712-003已派发至暖通维修组', channel: 'in_app', sentAt: '2026-07-12T14:50:00Z', read: true, targetPerson: '张工' },
-    { id: 'notif-5', anomalyId: 'anom-004', title: '数据偏移提醒', message: '图书馆电表#LIB-03出现系统性偏移，建议校准', channel: 'in_app', sentAt: '2026-07-10T06:30:00Z', read: true, targetPerson: '王主管' },
-    { id: 'notif-6', anomalyId: 'anom-001', title: '短信通知', message: '【碳管理平台】主教学楼用电异常，请及时处理', channel: 'sms', sentAt: '2026-07-12T14:35:00Z', read: true, targetPerson: '张工' },
-    { id: 'notif-7', anomalyId: 'anom-001', title: '邮件通知', message: '主教学楼用电异常详情报告已发送至您的邮箱', channel: 'email', sentAt: '2026-07-12T14:36:00Z', read: true, targetPerson: '张工' },
-  ];
+export function getMockNotifications(now = new Date()): AlertNotification[] {
+  return getSystemAnomalySnapshots(now).slice(0, 9).map((anomaly, index) => ({
+    id: `notif-${index + 1}`,
+    anomalyId: anomaly.id,
+    title: anomaly.title,
+    message: `${anomaly.buildingName}${anomaly.deviceName ? ` · ${anomaly.deviceName}` : ''}：${anomaly.description}`,
+    channel: index < 7 ? 'in_app' : index === 7 ? 'sms' : 'email',
+    sentAt: anomaly.detectedAt,
+    read: anomaly.status === 'resolved' || anomaly.status === 'acknowledged',
+    targetPerson: anomaly.assignee ?? '能源值班员',
+  }));
 }
 
 // ===== 模块3：减排路径优化 =====
 
 export function getMockReductionBubbles(): ReductionBubble[] {
-  const buildings = [
-    { id: 'b01', name: '主教学楼', cat: 'teaching', area: 32000, issues: ['空调COP偏低', '照明功率密度超标'], reduction: 85 },
-    { id: 'b02', name: '第一教学楼', cat: 'teaching', area: 26000, issues: ['空调定时不合理'], reduction: 62 },
-    { id: 'b03', name: '第二教学楼', cat: 'teaching', area: 22000, issues: ['照明系统老旧'], reduction: 48 },
-    { id: 'b04', name: '第三教学楼', cat: 'teaching', area: 19000, issues: ['围护结构保温差'], reduction: 55 },
-    { id: 'b05', name: '信息学院楼', cat: 'lab', area: 24000, issues: ['实验室排风过量', '设备待机功耗高'], reduction: 72 },
-    { id: 'b06', name: '机械学院楼', cat: 'lab', area: 24000, issues: ['空压机效率低'], reduction: 58 },
-    { id: 'b07', name: '材料学院楼', cat: 'lab', area: 20000, issues: ['高温炉余热未回收'], reduction: 45 },
-    { id: 'b08', name: '能源学院楼', cat: 'lab', area: 20000, issues: ['实验设备能效低'], reduction: 40 },
-    { id: 'b09', name: '经管学院楼', cat: 'lab', area: 18000, issues: ['空调分区不合理'], reduction: 35 },
-    { id: 'b10', name: '图书馆', cat: 'library', area: 40000, issues: ['照明时长超标', '空调覆盖过大'], reduction: 90 },
-    { id: 'b11', name: '行政办公楼', cat: 'admin', area: 24000, issues: ['新风系统低效'], reduction: 30 },
-    { id: 'b12', name: '大礼堂', cat: 'admin', area: 28000, issues: ['间歇使用能耗高'], reduction: 25 },
-    { id: 'b13', name: '1号宿舍楼', cat: 'dorm', area: 15000, issues: ['夜间用电超限', '热水系统低效'], reduction: 55 },
-    { id: 'b14', name: '2号宿舍楼', cat: 'dorm', area: 15000, issues: ['空调能效低'], reduction: 42 },
-    { id: 'b15', name: '3号宿舍楼', cat: 'dorm', area: 15000, issues: ['照明常开'], reduction: 38 },
-    { id: 'b16', name: '第一食堂', cat: 'canteen', area: 8000, issues: ['炊具能效低', '排烟系统能耗高'], reduction: 50 },
-    { id: 'b17', name: '第二食堂', cat: 'canteen', area: 7000, issues: ['冷藏设备老旧'], reduction: 35 },
-    { id: 'b18', name: '体育馆', cat: 'gym', area: 15000, issues: ['空调覆盖过大', '照明功率高'], reduction: 45 },
-  ];
+  const anomalyMap = new Map<string, string[]>();
+  getSystemAnomalySnapshots(new Date()).forEach((anomaly) => {
+    anomalyMap.set(anomaly.buildingId, [...(anomalyMap.get(anomaly.buildingId) ?? []), anomaly.title]);
+  });
+  const buildings = SYSTEM_BUILDINGS.slice(0, 18).map((building) => ({
+    id: building.id,
+    name: building.name,
+    cat: building.category,
+    area: building.area,
+    issues: anomalyMap.get(building.id) ?? ['运行策略仍有优化空间'],
+    reduction: Math.round(Math.max(24, building.annualEmissionForecast - building.annualEmissionTarget) * 0.42),
+  }));
 
   return buildings.map((b) => ({
     buildingId: b.id,
@@ -488,7 +404,7 @@ export const QUICK_QUESTIONS: QuickQuestion[] = [
   { id: 'q2', category: 'accounting', question: '绿电凭证怎么核算？', icon: '📊' },
   { id: 'q3', category: 'compliance', question: '配额清缴流程是什么？', icon: '📋' },
   { id: 'q4', category: 'standard', question: 'DB11/T 1785-2020 主要变化有哪些？', icon: '📖' },
-  { id: 'q5', category: 'accounting', question: '教学楼A的排放核算用了哪个因子？', icon: '🔢' },
+  { id: 'q5', category: 'accounting', question: '主楼的排放核算用了哪个因子？', icon: '🔢' },
   { id: 'q6', category: 'compliance', question: '当前碳排放是否超标？', icon: '⚠️' },
 ];
 
@@ -514,7 +430,7 @@ const QA_PAIRS: Record<string, { answer: string; sources: { title: string; type:
     confidence: 0.93,
   },
   'DB11/T 1785': {
-    answer: '**DB11/T 1785-2020**《高等学校碳排放核算指南》主要变化：\n\n### 相比旧版的主要更新\n1. **核算范围扩大**：新增Scope 3（其他间接排放），包括**通勤、废弃物、采购**等\n2. **排放因子更新**：电力排放因子调整为 **0.5703 tCO₂/MWh**（2025年版）\n3. **数据质量要求**：新增数据质量评级体系（A/B/C/D四级）\n4. **报告模板统一**：采用新版标准化报告模板\n5. **MRV强化**：增加监测、报告、核查（MRV）全流程要求\n\n### 过渡安排\n- 2026年为过渡期，允许新旧标准并行\n- 2027年起全面执行新标准',
+    answer: '**DB11/T 1785-2020**《高等学校碳排放核算指南》主要变化：\n\n### 相比旧版的主要更新\n1. **核算范围扩大**：新增Scope 3（其他间接排放），包括**通勤、废弃物、采购**等\n2. **排放因子更新**：系统当前电力排放因子为 **0.5672 tCO₂/MWh**\n3. **数据质量要求**：新增数据质量评级体系（A/B/C/D四级）\n4. **报告模板统一**：采用新版标准化报告模板\n5. **MRV强化**：增加监测、报告、核查（MRV）全流程要求\n\n### 过渡安排\n- 2026年为过渡期，允许新旧标准并行\n- 2027年起全面执行新标准',
     sources: [
       { title: 'DB11/T 1785-2020 全文', type: 'standard', refId: 'DB11-1785' },
       { title: '北京市生态环境局关于执行新标准的通知', type: 'policy', refId: 'BJ-EE-2025-12' },
@@ -522,7 +438,7 @@ const QA_PAIRS: Record<string, { answer: string; sources: { title: string; type:
     confidence: 0.88,
   },
   '排放因子': {
-    answer: '**教学楼A（主教学楼）**当前使用的排放因子如下：\n\n| 能源类型 | 排放因子 | 单位 | 来源 |\n|----------|----------|------|------|\n| 电力 | 0.5703 | tCO₂/MWh | DB11/T 1785-2020 |\n| 天然气 | 2.1622 | tCO₂/万Nm³ | 北京市2025年版 |\n| 热力 | 0.1100 | tCO₂/GJ | 北京市2025年版 |\n\n> 以上因子为2026年度有效版本，下次更新时间为2027年1月。',
+    answer: '**主楼**当前使用的排放因子如下：\n\n| 能源类型 | 排放因子 | 单位 | 来源 |\n|----------|----------|------|------|\n| 电力 | 0.5672 | tCO₂/MWh | 生态环境部2025 |\n| 天然气 | 2.1620 | tCO₂/万Nm³ | JS/T 303-2026 |\n| 热力 | 0.1100 | tCO₂/GJ | JS/T 303-2026 |\n\n> 该口径与碳核算工作台的已锁定因子版本一致。',
     sources: [
       { title: '北京市2025年排放因子目录', type: 'config', refId: 'BJ-EF-2025' },
     ],
@@ -539,6 +455,18 @@ const QA_PAIRS: Record<string, { answer: string; sources: { title: string; type:
 };
 
 export function getMockChatResponse(userMessage: string): { answer: string; sources: { title: string; type: string; refId: string }[]; confidence: number } {
+  if (userMessage.includes('超标')) {
+    const now = new Date();
+    const snapshot = getCampusOperationalSnapshot(now);
+    const date = campusDateKey(now);
+    const quotaGap = snapshot.annualForecast - snapshot.annualQuota;
+    const targetGap = snapshot.annualForecast - snapshot.annualTarget;
+    return {
+      answer: `### 当前碳排放状态\n\n数据截至 **${date}**：\n\n| 指标 | 当前值 | 参考值 | 状态 |\n|------|--------|--------|------|\n| 年累计排放 | ${snapshot.annualCarbon.toLocaleString()} tCO₂e | 年度配额 ${snapshot.annualQuota.toLocaleString()} tCO₂e | 配额使用${snapshot.quotaUseRate}% |\n| 年底预测 | ${snapshot.annualForecast.toLocaleString()} tCO₂e | 年度目标 ${snapshot.annualTarget.toLocaleString()} tCO₂e | 预测超目标${targetGap.toLocaleString()} t |\n\n### 风险提示\n- 按当前趋势，年底较固定配额缺口约 **${quotaGap.toLocaleString()} tCO₂e**\n- 材料测试楼、图书馆、1斋等楼宇存在不同类型异常\n- 建议先完成数据补录和设备处置，再进入正式核算与履约决策`,
+      sources: [{ title: '系统实时核算数据', type: 'data', refId: `SYS-CALC-${date.replaceAll('-', '')}` }],
+      confidence: 0.94,
+    };
+  }
   for (const [keyword, response] of Object.entries(QA_PAIRS)) {
     if (userMessage.includes(keyword)) {
       return response;

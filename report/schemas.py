@@ -192,7 +192,9 @@ class ReportGenerateRequest(BaseModel):
     """生成报告请求"""
     enterprise: EnterpriseInfo
     activity_data: list[ActivityData] = Field(..., min_length=1)
+    emission_sources: list[EmissionSource] = Field(default_factory=list)
     emission_factors: Optional[list[EmissionFactor]] = None
+    report_number: str = ""
     report_format: ReportFormat = ReportFormat.WORD
     include_html_preview: bool = False
     template_version: str = Field(default="DB11/T 1785-2020")
@@ -214,7 +216,9 @@ class ReportPreviewRequest(BaseModel):
     """HTML 预览请求"""
     enterprise: EnterpriseInfo
     activity_data: list[ActivityData]
+    emission_sources: list[EmissionSource] = []
     emission_factors: Optional[list[EmissionFactor]] = None
+    report_number: str = ""
 
 
 class ReportPreviewResponse(BaseModel):
@@ -222,6 +226,7 @@ class ReportPreviewResponse(BaseModel):
     success: bool
     html: str = ""
     summary: Optional[EmissionSummary] = None
+    calculations: list[dict] = Field(default_factory=list)
     message: str = ""
 
 
@@ -239,6 +244,8 @@ class ValidateRequest(BaseModel):
     """数据校验请求"""
     enterprise: EnterpriseInfo
     activity_data: list[ActivityData]
+    emission_sources: list[EmissionSource] = []
+    emission_factors: Optional[list[EmissionFactor]] = None
 
 
 class ValidationResult(BaseModel):
@@ -249,8 +256,30 @@ class ValidationResult(BaseModel):
     suggestions: list[str] = Field(default_factory=list)
 
 
+class ValidateResponse(BaseModel):
+    """数据校验响应"""
+    is_valid: bool
+    errors: list[ValidationResult] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    suggestions: list[str] = Field(default_factory=list)
+
+
 class EmissionFactorQuery(BaseModel):
     """排放因子查询响应"""
     factors: list[EmissionFactor]
     last_updated: str
     authority: str = "北京市生态环境局"
+
+
+class EmissionFactorsResponse(BaseModel):
+    """排放因子查询响应（API 返回）"""
+    factors: list[dict] = Field(default_factory=list)
+    last_updated: str = ""
+    authority: str = "北京市生态环境局"
+
+
+class HealthResponse(BaseModel):
+    """健康检查响应"""
+    status: str
+    service: str
+    version: str

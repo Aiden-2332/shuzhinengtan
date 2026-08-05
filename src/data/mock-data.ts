@@ -5,6 +5,8 @@ import type {
   Anomaly, CalculationBatch, QuotaAccount, ComplianceEvent,
   Measure, AISuggestion, QuotaTransaction
 } from '@/types';
+import { getPreviousCampusMonthKey, getSystemAnomalySnapshots } from '@/data/campus-system-data';
+import { getCampusDateParts } from '@/lib/campus-realtime';
 
 // ========== 基础配置 ==========
 export const CURRENT_YEAR = 2026;
@@ -166,56 +168,30 @@ export function getCampusContribution(year: number) {
 
 // ========== 异常数据 ==========
 export function getAnomalies(status?: string): Anomaly[] {
-  const anomalies: Anomaly[] = [
-    {
-      id: 'anom-001',
-      buildingId: 'b01',
-      buildingName: '教学楼A',
-      type: 'baseline_deviation',
-      severity: 'warning',
-      period: '2026-06',
-      impactValue: 2850,
-      impactCost: 2280,
-      status: 'pending',
-      rule: '夜间基载异常：连续7天22:00-06:00时段负荷较同类建筑基线高28%',
-      evidence: ['hourly_load_chart_202606.png', 'comparison_with_similar_buildings.png'],
-      responsiblePerson: '张工程师',
-      dueDate: '2026-07-15',
-      createdAt: '2026-06-22'
-    },
-    {
-      id: 'anom-002',
-      buildingId: 'b06',
-      buildingName: '实验楼',
-      type: 'consumption_spike',
-      severity: 'warning',
-      period: '2026-05',
-      impactValue: 1200,
-      impactCost: 960,
-      status: 'assigned',
-      rule: '月度环比增长超过20%',
-      evidence: ['monthly_comparison_chart.png'],
-      responsiblePerson: '李主管',
-      dueDate: '2026-07-20',
-      createdAt: '2026-06-01'
-    },
-    {
-      id: 'anom-003',
-      buildingId: 'b13',
-      buildingName: '学生宿舍1号楼',
-      type: 'data_missing',
-      severity: 'blocked',
-      period: '2026-06',
-      impactValue: 0,
-      impactCost: 0,
-      status: 'processing',
-      rule: '缺失超过10%的数据点',
-      evidence: ['data_gap_report.pdf'],
-      responsiblePerson: '王科员',
-      dueDate: '2026-07-10',
-      createdAt: '2026-06-25'
-    }
-  ];
+  const now = new Date();
+  const due = new Date(now.getTime() + 7 * 86_400_000);
+  const dueParts = getCampusDateParts(due);
+  const dueDate = `${dueParts.year}-${String(dueParts.month).padStart(2, '0')}-${String(dueParts.day).padStart(2, '0')}`;
+  const anomalies: Anomaly[] = getSystemAnomalySnapshots(now).map((anomaly) => ({
+    id: anomaly.id,
+    buildingId: anomaly.buildingId,
+    buildingName: anomaly.buildingName,
+    type: anomaly.category === 'data'
+      ? 'data_missing'
+      : anomaly.title.includes('夜间') || anomaly.title.includes('空载')
+        ? 'baseline_deviation'
+        : 'consumption_spike',
+    severity: anomaly.severity === 'emergency' ? 'blocked' : anomaly.severity === 'critical' ? 'serious' : anomaly.severity,
+    period: getPreviousCampusMonthKey(now),
+    impactValue: Math.round(anomaly.extraEmission * 1_000),
+    impactCost: anomaly.extraCost,
+    status: anomaly.status === 'acknowledged' ? 'assigned' : anomaly.status === 'resolved' ? 'closed' : anomaly.status,
+    rule: `${anomaly.description} 阈值：${anomaly.threshold}${anomaly.unit}`,
+    evidence: anomaly.evidence,
+    responsiblePerson: anomaly.assignee ?? '碳管理员',
+    dueDate,
+    createdAt: anomaly.detectedAt.slice(0, 10),
+  }));
   
   if (status) {
     return anomalies.filter(a => a.status === status);
@@ -338,16 +314,17 @@ export const measures: Measure[] = [
 
 // ========== AI 建议数据 ==========
 export function getAISuggestion(anomalyId: string): AISuggestion {
+  const now = new Date();
+  const anomaly = getSystemAnomalySnapshots(now).find((item) => item.id === anomalyId)
+    ?? getSystemAnomalySnapshots(now)[0];
   return {
     id: 'suggestion-001',
     anomalyId,
-    buildingId: 'b01',
+    buildingId: anomaly.buildingId,
     evidence: [
-      '教学楼A在2026年6月15-21日期间，夜间(22:00-06:00)平均负荷为85kW',
-      '同类建筑(教学楼B、C)同期夜间平均负荷为65kW',
-      '较基线偏离28%，折算额外用电量约2850kWh',
-      '该时段电价约为0.8元/kWh，额外费用约2280元',
-      '空调系统为主要负载，占比约70%'
+      ...anomaly.evidence,
+      `检测指标：${anomaly.metricValue}${anomaly.unit}，阈值${anomaly.threshold}${anomaly.unit}`,
+      `根因判断：${anomaly.rootCause}`,
     ],
     causes: [
       { name: '空调未按时关闭', confidence: 0.85 },
@@ -359,7 +336,7 @@ export function getAISuggestion(anomalyId: string): AISuggestion {
         measureId: 'measure-1',
         name: '空调运行策略优化',
         applicability: 'high',
-        estimatedSavings: { energy: 12000, emission: 7.26, cost: 9600 },
+        estimatedSavings: { energy: 12000, emission: 6.81, cost: 9600 },
         investment: 15000,
         paybackPeriod: 1.6
       },
@@ -367,16 +344,16 @@ export function getAISuggestion(anomalyId: string): AISuggestion {
         measureId: 'measure-3',
         name: '夜间基载治理',
         applicability: 'high',
-        estimatedSavings: { energy: 8550, emission: 5.17, cost: 6840 },
+        estimatedSavings: { energy: 8550, emission: 4.85, cost: 6840 },
         investment: 5000,
         paybackPeriod: 0.7
       }
     ],
-    estimatedSavings: { energy: 20550, emission: 12.43, cost: 16440 },
+    estimatedSavings: { energy: 20550, emission: 11.66, cost: 16440 },
     investment: 20000,
     paybackPeriod: 1.2,
     status: 'pending',
-    createdAt: '2026-06-23'
+    createdAt: now.toISOString().slice(0, 10)
   };
 }
 

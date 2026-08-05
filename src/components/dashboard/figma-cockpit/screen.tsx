@@ -21,7 +21,7 @@ import "./screen.css";
 type Page = "leader" | "logistics" | "function";
 
 const NAV = [
-  { key: "leader" as const, href: "/", label: "领导驾驶舱", icon: "◈" },
+  { key: "leader" as const, href: "/leader", label: "领导驾驶舱", icon: "◈" },
   { key: "logistics" as const, href: "/operations", label: "后勤组驾驶舱", icon: "◉" },
   { key: "function" as const, href: "/portal", label: "功能中心", icon: "◫" },
 ];

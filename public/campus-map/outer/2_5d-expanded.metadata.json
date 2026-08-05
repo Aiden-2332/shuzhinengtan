@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "source": "map2.png",
+  "url": "/campus-map/outer/2_5d-expanded.webp",
+  "outputDivisor": 8,
+  "safeMapCrop": {
+    "left": 160,
+    "top": 0,
+    "width": 2200,
+    "height": 1362
+  },
+  "otherCampusMask": {
+    "width": 900,
+    "height": 340,
+    "solidUntil": "72%"
+  },
+  "outerWidth": 17600,
+  "outerHeight": 10896,
+  "cropOrigin": [
+    2368,
+    2104
+  ],
+  "notes": "Official-map controls are outside the crop; the upper-left secondary campus is covered by a feathered map-paper mask outside the main-campus overlap."
+}

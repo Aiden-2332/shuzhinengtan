@@ -4,11 +4,14 @@ import React, { useCallback, useMemo } from 'react';
 import { useCalculationStore, type FilterConditions } from '@/stores/calculation-store';
 import type { DataSourceRecord, DataSourceStatus, AuditStatus, EvidenceStatus } from '@/types';
 import { STANDARD_META } from '@/data/calculation-data';
+import { getPreviousCampusMonthKey } from '@/data/campus-system-data';
 import {
   X, Search, RotateCcw, Download, Eye, Pencil, Trash2, PlusCircle,
   Upload, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ChevronUp, ChevronDown, Filter, FileText, CheckCircle2,
 } from 'lucide-react';
+
+const DEFAULT_CALCULATION_PERIOD = getPreviousCampusMonthKey();
 
 // ========== 筛选抽屉 ==========
 export function FilterDrawer() {
@@ -483,7 +486,7 @@ export function AddRecordModal() {
     emissionScope: 'scope2' as DataSourceRecord['emissionScope'],
     dataClassification: '外购电力',
     campus: '主校区' as DataSourceRecord['campus'],
-    period: '2026-06',
+    period: DEFAULT_CALCULATION_PERIOD,
     value: '',
     unit: 'kWh',
     source: 'manual' as DataSourceRecord['source'],
@@ -527,7 +530,7 @@ export function AddRecordModal() {
     };
     addRecord(newRecord);
     setShowAddModal(false);
-    setForm({ sourceCode: 'S-A04', sourceName: '', category: 'energy', emissionScope: 'scope2', dataClassification: '外购电力', campus: '主校区', period: '2026-06', value: '', unit: 'kWh', source: 'manual' });
+    setForm({ sourceCode: 'S-A04', sourceName: '', category: 'energy', emissionScope: 'scope2', dataClassification: '外购电力', campus: '主校区', period: DEFAULT_CALCULATION_PERIOD, value: '', unit: 'kWh', source: 'manual' });
   };
 
   return (
@@ -714,7 +717,7 @@ export function ImportModal() {
           emissionScope: 'scope2',
           dataClassification: '外购电力',
           campus: '主校区',
-          period: '2026-06',
+          period: DEFAULT_CALCULATION_PERIOD,
           value: 10000 * (i + 1),
           unit: 'kWh',
           source: 'import',
@@ -740,7 +743,7 @@ export function ImportModal() {
   };
 
   const downloadTemplate = () => {
-    const template = '数据源编码,数据源名称,排放范围,数据分类,校区,月份,数值,单位,数据来源\nS-A04,示例用电,scope2,外购电力,主校区,2026-06,100000,kWh,meter';
+    const template = `数据源编码,数据源名称,排放范围,数据分类,校区,月份,数值,单位,数据来源\nS-A04,示例用电,scope2,外购电力,主校区,${DEFAULT_CALCULATION_PERIOD},100000,kWh,meter`;
     const blob = new Blob(['\uFEFF' + template], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

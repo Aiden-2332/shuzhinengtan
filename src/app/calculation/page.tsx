@@ -8,13 +8,13 @@ import type { CalculationStandard } from '@/types';
 
 // 子组件
 import { TrialCalcModal, TrialCalcProgress, AnomalyModal, LockConfirmModal, UnlockModal, DeleteConfirmModal } from '@/components/calculation/dialogs';
-import { FilterDrawer, DetailDrawer, BatchReviewDrawer, ReportConfigModal, ReportProgressModal, ReportPreviewDrawer, AddRecordModal, EditRecordModal, ImportModal } from '@/components/calculation/drawers';
+import { FilterDrawer, DetailDrawer, BatchReviewDrawer, AddRecordModal, EditRecordModal, ImportModal } from '@/components/calculation/drawers';
 import { OverviewTab, EnergyStructureTab, ExtendedEmissionTab } from '@/components/calculation/tabs';
 import { DataSourceTable } from '@/components/calculation/data-table';
 import { ComplianceReportButton } from '@/components/calculation/ComplianceReportButton';
 
 import {
-  Calculator, FileText, CheckCircle2, TrendingDown,
+  Calculator, CheckCircle2, TrendingDown,
   Shield, Database, Zap, BarChart3,
   Building2, ChevronRight, Activity, RotateCcw,
   Lock, UnlockKeyhole,
@@ -55,16 +55,6 @@ export default function CalculationPage() {
     } else {
       store.setShowLockConfirm(true);
     }
-  }, [store]);
-
-  // 生成报告
-  const handleReport = useCallback(() => {
-    store.setReportConfig({
-      ...store.reportConfig,
-      standard: store.standard,
-      period: store.period,
-    });
-    store.setShowReportConfigModal(true);
   }, [store]);
 
   // 恢复演示数据
@@ -119,7 +109,7 @@ export default function CalculationPage() {
                 <RotateCcw className="w-3 h-3" /> 恢复数据
               </button>
               <Link
-                href="/"
+                href="/leader"
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/50 rounded-lg text-sm transition-all"
               >
                 <Building2 className="w-4 h-4" />
@@ -171,13 +161,6 @@ export default function CalculationPage() {
                   锁定批次
                 </>
               )}
-            </button>
-            <button
-              onClick={handleReport}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg text-sm font-medium shadow-lg shadow-purple-500/20 transition-all"
-            >
-              <FileText className="w-4 h-4" />
-              生成合规报告
             </button>
             <ComplianceReportButton />
           </div>
@@ -243,9 +226,6 @@ export default function CalculationPage() {
       <FilterDrawer />
       <DetailDrawer />
       <BatchReviewDrawer />
-      <ReportConfigModal />
-      <ReportProgressModal />
-      <ReportPreviewDrawer />
       <AddRecordModal />
       <EditRecordModal />
       <ImportModal />

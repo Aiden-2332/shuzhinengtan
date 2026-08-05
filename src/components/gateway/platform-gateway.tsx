@@ -42,7 +42,7 @@ const gatewayItems: GatewayItem[] = [
     status: "已接入",
     external: true,
   },
-  { name: "领导驾驶舱", subtitle: "LEADERSHIP COCKPIT", href: "/", icon: Headphones },
+  { name: "领导驾驶舱", subtitle: "LEADERSHIP COCKPIT", href: "/leader", icon: Headphones },
   { name: "后勤驾驶舱", subtitle: "LOGISTICS COCKPIT", href: "/operations", icon: Boxes },
   { name: "智慧碳行中心", subtitle: "SMART CARBON CENTER", href: "/portal", icon: Leaf },
   {

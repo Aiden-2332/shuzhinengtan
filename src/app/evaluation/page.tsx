@@ -574,7 +574,7 @@ export default function EvaluationPage() {
       {/* ── Page header ── */}
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">绿色 / 低碳校园评价</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">绿色低碳校园评价</h1>
           <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">
             基于国家标准 GB/T 29117-2025、GB/T 51356-2019 与北京市地方标准 DB11/T 1404-2025 的三层递进评价体系
           </p>

@@ -226,7 +226,7 @@ export function EnergyStructureTab() {
 
 // ========== 扩展排放标签页 ==========
 export function ExtendedEmissionTab() {
-  const { records, addRecord, updateRecord, batchLocked } = useCalculationStore();
+  const { records, addRecord, updateRecord, batchLocked, period } = useCalculationStore();
   const extendedData = useMemo(() => getExtendedEmissionData(), []);
 
   const [showAddExtended, setShowAddExtended] = React.useState(false);
@@ -264,7 +264,7 @@ export function ExtendedEmissionTab() {
       emissionScope: 'scope3',
       dataClassification: newItem.category,
       campus: '主校区',
-      period: '2026-06',
+      period,
       value: Number(newItem.value),
       unit: newItem.unit,
       emissionValue: Number(newItem.value),
