@@ -461,8 +461,18 @@ export function getMockChatResponse(userMessage: string): { answer: string; sour
     const date = campusDateKey(now);
     const quotaGap = snapshot.annualForecast - snapshot.annualQuota;
     const targetGap = snapshot.annualForecast - snapshot.annualTarget;
+    const targetStatus = targetGap > 0
+      ? `预测超目标 +${targetGap.toLocaleString()} t`
+      : targetGap < 0
+        ? `预测低于目标 ${Math.abs(targetGap).toLocaleString()} t`
+        : '预测符合年度目标';
+    const quotaStatus = quotaGap > 0
+      ? `年底较固定配额缺口约 **${quotaGap.toLocaleString()} tCO₂e**`
+      : quotaGap < 0
+        ? `年底预计剩余配额约 **${Math.abs(quotaGap).toLocaleString()} tCO₂e**`
+        : '年底预计与固定配额持平';
     return {
-      answer: `### 当前碳排放状态\n\n数据截至 **${date}**：\n\n| 指标 | 当前值 | 参考值 | 状态 |\n|------|--------|--------|------|\n| 年累计排放 | ${snapshot.annualCarbon.toLocaleString()} tCO₂e | 年度配额 ${snapshot.annualQuota.toLocaleString()} tCO₂e | 配额使用${snapshot.quotaUseRate}% |\n| 年底预测 | ${snapshot.annualForecast.toLocaleString()} tCO₂e | 年度目标 ${snapshot.annualTarget.toLocaleString()} tCO₂e | 预测超目标${targetGap.toLocaleString()} t |\n\n### 风险提示\n- 按当前趋势，年底较固定配额缺口约 **${quotaGap.toLocaleString()} tCO₂e**\n- 材料测试楼、图书馆、1斋等楼宇存在不同类型异常\n- 建议先完成数据补录和设备处置，再进入正式核算与履约决策`,
+      answer: `### 当前碳排放状态\n\n数据截至 **${date}**：\n\n| 指标 | 当前值 | 参考值 | 状态 |\n|------|--------|--------|------|\n| 年累计排放 | ${snapshot.annualCarbon.toLocaleString()} tCO₂e | 年度配额 ${snapshot.annualQuota.toLocaleString()} tCO₂e | 配额使用${snapshot.quotaUseRate}% |\n| 年底预测 | ${snapshot.annualForecast.toLocaleString()} tCO₂e | 年度目标 ${snapshot.annualTarget.toLocaleString()} tCO₂e | ${targetStatus} |\n\n### 风险提示\n- 按当前趋势，${quotaStatus}\n- 材料测试楼、图书馆、1斋等楼宇存在不同类型异常\n- 建议先完成数据补录和设备处置，再进入正式核算与履约决策`,
       sources: [{ title: '系统实时核算数据', type: 'data', refId: `SYS-CALC-${date.replaceAll('-', '')}` }],
       confidence: 0.94,
     };

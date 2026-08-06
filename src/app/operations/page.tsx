@@ -1,7 +1,5 @@
 "use client";
 
-import FigmaCockpitScreen from "@/components/dashboard/figma-cockpit/screen";
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -188,10 +186,9 @@ function RealtimeLoadPanel({ data }: { data: LoadCurvePoint[] }) {
         data={trendData}
         unit="kW"
         height={190}
-        areaKey="realtime"
         series={[
           { key: "realtime", label: "实时", color: "#35d4e4" },
-          { key: "yesterday", label: "昨日", color: "#d6ad5e", dashed: true },
+          { key: "yesterday", label: "昨日", color: "#d6ad5e", presentation: "bar" },
           { key: "forecast", label: "预测", color: "#a7bdc2", dashed: true },
         ]}
       />
@@ -199,7 +196,7 @@ function RealtimeLoadPanel({ data }: { data: LoadCurvePoint[] }) {
   );
 }
 
-export function LegacyOperationsDashboardPage() {
+export default function OperationsDashboardPage() {
   const nowMs = useRealtimeNow();
   const [initialBuildingId, setInitialBuildingId] = useState<string | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
@@ -318,8 +315,4 @@ export function LegacyOperationsDashboardPage() {
       </div>
     </ThreeColumnLayout>
   );
-}
-
-export default function LogisticsCockpitPage() {
-  return <FigmaCockpitScreen />;
 }

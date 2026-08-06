@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Leaf } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
@@ -27,10 +26,17 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,16,24,.18)_0%,rgba(3,16,24,.05)_52%,rgba(3,16,24,.82)_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,16,24,.72)_0%,transparent_34%,rgba(3,16,24,.82)_100%)]" />
 
-        <div className="absolute left-10 top-9 flex items-center gap-3 xl:left-14 xl:top-12">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400 text-cyan-950 shadow-[0_10px_28px_rgba(34,211,238,.24)]">
-            <Leaf aria-hidden="true" className="h-5 w-5" />
-          </div>
+        <div className="absolute left-10 top-9 flex items-center gap-4 xl:left-14 xl:top-12">
+          <Image
+            src="/brand/timeloit-login-wordmark.png"
+            alt="Timeloit 时代凌宇"
+            width={3022}
+            height={1345}
+            sizes="128px"
+            priority
+            className="h-auto w-28 object-contain xl:w-32"
+          />
+          <span className="h-9 w-px bg-cyan-100/30" aria-hidden="true" />
           <div>
             <div className="text-base font-semibold tracking-[-0.02em]">高校智慧碳管理平台</div>
             <div className="mt-0.5 text-xs text-cyan-100/75">Smart Carbon Management Platform</div>
@@ -52,9 +58,16 @@ export default function LoginPage() {
 
         <div className="relative w-full">
           <div className="mb-12 flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400 text-cyan-950">
-              <Leaf aria-hidden="true" className="h-5 w-5" />
-            </div>
+            <Image
+              src="/brand/timeloit-login-wordmark.png"
+              alt="Timeloit 时代凌宇"
+              width={3022}
+              height={1345}
+              sizes="104px"
+              priority
+              className="h-auto w-24 object-contain sm:w-28"
+            />
+            <span className="h-8 w-px bg-cyan-100/25" aria-hidden="true" />
             <div>
               <div className="text-sm font-semibold">高校智慧碳管理平台</div>
               <div className="mt-0.5 text-[11px] text-cyan-100/70">Smart Carbon Management Platform</div>

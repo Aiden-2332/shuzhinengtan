@@ -166,8 +166,17 @@ const FORECAST_MONTHLY_WEIGHTS = [0.117, 0.111, 0.094, 0.08, 0.073, 0.089, 0.098
 
 export const CAMPUS_CARBON_QUOTA = 21_500;
 export const CAMPUS_CARBON_TARGET = 20_400;
-export const CAMPUS_CARBON_FORECAST = 22_180;
+
+// Keep the historical/actual series anchored to its original baseline while
+// the target-aligned forecast is updated independently below.
+export const CAMPUS_CARBON_BASELINE = 22_180;
+export const CAMPUS_CARBON_FORECAST = CAMPUS_CARBON_TARGET;
+export const CAMPUS_FORECAST_LOAD_SCALE = CAMPUS_CARBON_FORECAST / CAMPUS_CARBON_BASELINE;
 export const CAMPUS_ELECTRICITY_FACTOR = 0.5672;
+
+export function getCampusForecastLoadKw(date: Date): number {
+  return Math.round(getCampusLoadKw(date, 3) * CAMPUS_FORECAST_LOAD_SCALE);
+}
 
 function currentYearProgress(now: Date): number {
   const { year, month, day, hour, minute } = getCampusDateParts(now);
@@ -254,9 +263,9 @@ export function getSystemMonthlyCarbon(now = new Date()) {
       : 1;
     const seed = getCampusDateAt(year, month, 1).getTime();
     const actualFactor = 0.985 + deterministicNoise(seed, 41) * 0.025;
-    actual += CAMPUS_CARBON_FORECAST * weight * actualFactor * elapsed;
+    actual += CAMPUS_CARBON_BASELINE * weight * actualFactor * elapsed;
     target += CAMPUS_CARBON_TARGET * weight * elapsed;
-    forecast += CAMPUS_CARBON_FORECAST * weight * elapsed;
+    forecast += CAMPUS_CARBON_FORECAST * FORECAST_MONTHLY_WEIGHTS[index] * elapsed;
     return {
       month: `${month}月`,
       monthKey: `${year}-${String(month).padStart(2, "0")}`,
@@ -307,7 +316,7 @@ export function getSystemRollingMonthlyCarbon(now = new Date()): SystemRollingMo
       monthKey,
       actual: currentYearPoint
         ? currentYearPoint.actual - (previousPoint?.actual ?? 0)
-        : Math.round(CAMPUS_CARBON_FORECAST * ANNUAL_WEIGHTS[month - 1] * actualFactor),
+        : Math.round(CAMPUS_CARBON_BASELINE * ANNUAL_WEIGHTS[month - 1] * actualFactor),
       target: currentYearPoint
         ? currentYearPoint.target - (previousPoint?.target ?? 0)
         : Math.round(CAMPUS_CARBON_TARGET * ANNUAL_WEIGHTS[month - 1]),

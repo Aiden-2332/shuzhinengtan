@@ -3,6 +3,7 @@
 import { useId, useMemo, type ReactNode } from "react";
 import {
   Area,
+  Bar,
   CartesianGrid,
   Cell,
   ComposedChart,
@@ -391,6 +392,7 @@ export interface TrendSeries {
   label: string;
   color: string;
   dashed?: boolean;
+  presentation?: "line" | "bar";
 }
 
 type TrendSeriesRole = "actual" | "benchmark" | "forecast" | "comparison";
@@ -446,10 +448,11 @@ function styleTrendSeries(item: TrendSeries, areaKey?: string): StyledTrendSerie
   };
 }
 
-function trendLayer(role: TrendSeriesRole): number {
-  if (role === "forecast") return 0;
-  if (role === "benchmark") return 1;
-  if (role === "comparison") return 2;
+function trendLayer(series: StyledTrendSeries): number {
+  if (series.presentation === "bar") return -1;
+  if (series.role === "forecast") return 0;
+  if (series.role === "benchmark") return 1;
+  if (series.role === "comparison") return 2;
   return 3;
 }
 
@@ -474,8 +477,10 @@ export function AdaptiveTrendChart({
 
   if (!data.length || !validSeries.length) return <EmptyVisualization label="当前时间范围暂无趋势数据" />;
   const styledSeries = validSeries.map((item) => styleTrendSeries(item, areaKey));
-  const renderedSeries = styledSeries.toSorted((a, b) => trendLayer(a.role) - trendLayer(b.role));
+  const renderedSeries = styledSeries.toSorted((a, b) => trendLayer(a) - trendLayer(b));
   const areaSeries = areaKey ? styledSeries.find((item) => item.key === areaKey) : undefined;
+  const barSeries = renderedSeries.filter((item) => item.presentation === "bar");
+  const lineSeries = renderedSeries.filter((item) => item.presentation !== "bar");
 
   return (
     <div className="cockpit-trend" style={{ height }}>
@@ -504,20 +509,24 @@ export function AdaptiveTrendChart({
                 {styledSeries.map((item) => (
                   <span key={item.key}>
                     <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
-                      <line
-                        x1="1"
-                        y1="5"
-                        x2="21"
-                        y2="5"
-                        stroke={item.displayColor}
-                        strokeWidth={item.role === "actual" ? 3 : 2.4}
-                        strokeDasharray={item.strokeDasharray}
-                        strokeLinecap="round"
-                      />
-                      {item.role === "benchmark" ? (
+                      {item.presentation === "bar" ? (
+                        <rect x="3" y="1" width="16" height="8" rx="1" fill={item.displayColor} fillOpacity=".48" stroke={item.displayColor} strokeOpacity=".72" />
+                      ) : (
+                        <line
+                          x1="1"
+                          y1="5"
+                          x2="21"
+                          y2="5"
+                          stroke={item.displayColor}
+                          strokeWidth={item.role === "actual" ? 3 : 2.4}
+                          strokeDasharray={item.strokeDasharray}
+                          strokeLinecap="round"
+                        />
+                      )}
+                      {item.role === "benchmark" && item.presentation !== "bar" ? (
                         <circle cx="11" cy="5" r="2.2" fill="rgba(6,23,31,.98)" stroke={item.displayColor} strokeWidth="1.3" />
                       ) : null}
-                      {item.role === "forecast" ? (
+                      {item.role === "forecast" && item.presentation !== "bar" ? (
                         <rect x="9.2" y="3.2" width="3.6" height="3.6" rx="0.6" fill={item.displayColor} transform="rotate(45 11 5)" />
                       ) : null}
                     </svg>
@@ -528,6 +537,21 @@ export function AdaptiveTrendChart({
             )}
             wrapperStyle={{ color: "var(--theme-muted)", fontSize: 10, paddingTop: 4 }}
           />
+          {barSeries.map((item) => (
+            <Bar
+              key={item.key}
+              dataKey={item.key}
+              name={item.label}
+              fill={item.displayColor}
+              fillOpacity={0.46}
+              stroke={item.displayColor}
+              strokeOpacity={0.72}
+              strokeWidth={1}
+              radius={[2, 2, 0, 0]}
+              maxBarSize={28}
+              isAnimationActive={false}
+            />
+          ))}
           {areaSeries ? (
             <Area
               type="monotone"
@@ -541,7 +565,7 @@ export function AdaptiveTrendChart({
               isAnimationActive={false}
             />
           ) : null}
-          {renderedSeries.map((item) => (
+          {lineSeries.map((item) => (
             <Line
               key={`${item.key}-halo`}
               type="monotone"
@@ -560,7 +584,7 @@ export function AdaptiveTrendChart({
               isAnimationActive={false}
             />
           ))}
-          {renderedSeries.map((item) => (
+          {lineSeries.map((item) => (
             <Line
               key={item.key}
               type="monotone"
