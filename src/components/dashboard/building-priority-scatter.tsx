@@ -22,7 +22,7 @@ interface PreparedDatum extends BuildingPriorityDatum {
 }
 
 const WIDTH = 330;
-const HEIGHT = 408;
+const HEIGHT = 260;
 const MARGIN = { top: 12, right: 8, bottom: 32, left: 36 };
 const PLOT_WIDTH = WIDTH - MARGIN.left - MARGIN.right;
 const PLOT_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom;

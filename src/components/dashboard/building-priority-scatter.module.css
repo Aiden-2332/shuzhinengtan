@@ -9,7 +9,8 @@
 
 .plot {
   display: block;
-  min-height: 280px;
+  min-height: 0;
+  height: 100%;
   flex: 1 1 0;
   width: 100%;
   overflow: visible;
@@ -23,7 +24,7 @@
 
 .zone-label {
   fill: #f0b94f;
-  font-size: 8.5px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -46,12 +47,12 @@
 
 .axis-text {
   fill: var(--theme-subtle);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .axis-title {
   fill: var(--theme-muted);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .bubble {
@@ -90,7 +91,7 @@
 
 .bubble-label {
   fill: #effffd;
-  font-size: 9.5px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: -.15px;
   paint-order: stroke;
@@ -106,7 +107,7 @@
   justify-content: space-between;
   gap: 6px;
   color: var(--theme-subtle);
-  font-size: 8.5px;
+  font-size: 12px;
 }
 
 .legend-items {
@@ -124,8 +125,8 @@
 }
 
 .legend-item i {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
 

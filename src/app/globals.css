@@ -247,6 +247,12 @@ body {
   gap: 6px;
 }
 
+.app-header__destination-nav {
+  margin-right: 2px;
+  padding-right: 12px;
+  border-right: 1px solid rgba(148, 163, 184, .22);
+}
+
 .app-header__nav-button {
   height: 34px;
   gap: 6px;
@@ -331,7 +337,14 @@ body {
   }
 
   .app-header__right {
+    gap: 7px;
     padding-top: 1px;
+  }
+
+  .app-header__destination-nav {
+    gap: 4px;
+    margin-right: 0;
+    padding-right: 7px;
   }
 
   .app-header__map-toolbar,
@@ -380,9 +393,18 @@ body {
 }
 
 .cockpit-shell {
-  --cockpit-edge: clamp(9px, .72vw, 16px);
-  --cockpit-panel-width: clamp(252px, 17.2vw, 342px);
+  --cockpit-edge: clamp(10px, .72vw, 18px);
+  --cockpit-panel-width: clamp(304px, 20vw, 392px);
   --cockpit-side-panel-width: var(--cockpit-panel-width);
+  --cockpit-type-title: clamp(15px, .94vw, 18px);
+  --cockpit-type-body: clamp(12px, .7vw, 14px);
+  --cockpit-type-meta: clamp(12px, .72vw, 14px);
+  --cockpit-type-axis: clamp(12px, .68vw, 13px);
+  --cockpit-type-unit: clamp(12px, .66vw, 13px);
+  --cockpit-type-value: clamp(18px, 1.08vw, 22px);
+  --cockpit-type-kpi: clamp(24px, 1.65vw, 34px);
+  /* Keep secondary dashboard copy readable over the bright campus raster. */
+  --theme-subtle: color-mix(in srgb, var(--theme-muted) 78%, var(--theme-text) 22%);
   background: #e3eaed;
   color: var(--theme-text);
 }
@@ -400,7 +422,7 @@ body {
   width: var(--cockpit-panel-width);
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, .72vh, 13px);
+  gap: clamp(10px, .86vh, 15px);
   overflow: hidden;
   pointer-events: none;
   scrollbar-width: none;
@@ -428,10 +450,10 @@ body {
   overflow: hidden;
   isolation: isolate;
   pointer-events: auto;
-  background-color: rgba(5, 18, 28, .82);
+  background-color: rgba(5, 18, 28, .94);
   background:
     radial-gradient(circle at 18% -8%, rgba(var(--theme-primary-rgb), .16), transparent 38%),
-    linear-gradient(145deg, color-mix(in srgb, var(--theme-bg) 86%, transparent), color-mix(in srgb, var(--theme-bg) 79%, transparent));
+    linear-gradient(145deg, color-mix(in srgb, var(--theme-bg) 95%, transparent), color-mix(in srgb, var(--theme-bg) 91%, transparent));
   box-shadow:
     0 16px 40px rgba(0, 9, 17, .24),
     inset 0 1px 0 rgba(255,255,255,.15),
@@ -484,25 +506,22 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: auto;
-  padding: clamp(9px, .62vw, 13px);
-  scrollbar-color: rgba(var(--theme-primary-rgb), .34) transparent;
-  scrollbar-width: thin;
+  overflow-y: hidden;
+  padding: clamp(10px, .62vw, 14px);
+  scrollbar-width: none;
 }
-.floating-glass-panel__content::-webkit-scrollbar { width: 4px; }
-.floating-glass-panel__content::-webkit-scrollbar-track { background: transparent; }
-.floating-glass-panel__content::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(var(--theme-primary-rgb), .34); }
+.floating-glass-panel__content::-webkit-scrollbar { display: none; }
 .floating-glass-panel__content .cockpit-section-heading {
   padding-right: var(--floating-panel-toggle-space);
 }
 .floating-glass-panel__toggle {
   position: absolute;
   z-index: 4;
-  top: clamp(6px, .48vw, 9px);
-  right: clamp(6px, .48vw, 9px);
+  top: clamp(8px, .52vw, 10px);
+  right: clamp(8px, .52vw, 10px);
   display: flex;
-  height: 25px;
-  min-width: 25px;
+  height: 32px;
+  min-width: 32px;
   align-items: center;
   justify-content: center;
   gap: 7px;
@@ -514,10 +533,10 @@ body {
 }
 .floating-glass-panel__toggle:hover { color: var(--theme-text); border-color: var(--theme-border); background: rgba(var(--theme-primary-rgb),.14); }
 .floating-glass-panel__grip { width: 11px; height: 11px; display: none; }
-.floating-glass-panel__chevron { width: 13px; height: 13px; transition: transform .28s cubic-bezier(.22,1,.36,1); }
-.floating-glass-panel__collapsed-label { display: none; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 650; letter-spacing: .03em; }
-.floating-glass-panel[data-collapsed="true"] { align-self: flex-start; flex: 0 0 34px; min-height: 34px; min-width: min(100%, 148px); }
-.floating-glass-panel[data-collapsed="true"] .floating-glass-panel__toggle { position: relative; inset: auto; width: 100%; height: 34px; padding: 0 10px; justify-content: flex-start; }
+.floating-glass-panel__chevron { width: 16px; height: 16px; transition: transform .28s cubic-bezier(.22,1,.36,1); }
+.floating-glass-panel__collapsed-label { display: none; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--cockpit-type-body); font-weight: 650; letter-spacing: .02em; }
+.floating-glass-panel[data-collapsed="true"] { align-self: flex-start; flex: 0 0 42px; min-height: 42px; min-width: min(100%, 182px); }
+.floating-glass-panel[data-collapsed="true"] .floating-glass-panel__toggle { position: relative; inset: auto; width: 100%; height: 42px; padding: 0 12px; justify-content: flex-start; }
 .floating-glass-panel[data-collapsed="true"] .floating-glass-panel__collapsed-label,
 .floating-glass-panel[data-collapsed="true"] .floating-glass-panel__grip { display: block; }
 .floating-glass-panel[data-collapsed="true"] .floating-glass-panel__chevron { margin-left: auto; transform: rotate(-90deg); }
@@ -537,7 +556,7 @@ body {
   color: var(--theme-text);
   background: var(--theme-surface-strong);
   box-shadow: 0 9px 28px rgba(1,10,18,.25), inset 0 1px 0 rgba(255,255,255,.13);
-  font-size: clamp(10px, .63vw, 12px);
+  font-size: clamp(12px, .72vw, 13px);
 }
 .cockpit-trend-trigger svg[data-open="true"] { transform: rotate(180deg); }
 .cockpit-trend-trigger svg { transition: transform .2s cubic-bezier(.22, 1, .36, 1); }
@@ -547,7 +566,7 @@ body {
   left: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 2);
   right: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 2);
   bottom: clamp(46px, 4vw, 62px);
-  max-height: clamp(190px, 27vh, 310px);
+  max-height: clamp(280px, 36vh, 390px);
   overflow: hidden;
   border: 1px solid var(--theme-border);
   border-radius: 18px;
@@ -555,7 +574,7 @@ body {
   box-shadow: 0 22px 60px rgba(1,10,18,.34), inset 0 1px 0 rgba(255,255,255,.13);
 }
 .cockpit-bottom-strip { position: absolute; z-index: 19; left: 50%; bottom: var(--cockpit-edge); transform: translateX(-50%); }
-.cockpit-demo-note { position: absolute; z-index: 18; right: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 2); bottom: var(--cockpit-edge); color: rgba(31,45,50,.72); font-size: clamp(9px, .52vw, 11px); }
+.cockpit-demo-note { position: absolute; z-index: 18; right: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 2); bottom: var(--cockpit-edge); color: rgba(31,45,50,.82); font-size: var(--cockpit-type-meta); }
 .map-legend-glass {
   z-index: 17;
   left: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 2);
@@ -608,19 +627,28 @@ body {
 
 /* 21:9: spend additional width on the map, not on typography. */
 @media (min-aspect-ratio: 2/1) {
-  .cockpit-shell { --cockpit-panel-width: clamp(250px, 14.2vw, 328px); --cockpit-edge: clamp(10px, .65vw, 17px); }
+  .cockpit-shell { --cockpit-panel-width: clamp(304px, 17vw, 380px); --cockpit-edge: clamp(10px, .65vw, 18px); }
   .cockpit-panel-rail { gap: clamp(8px, .92vh, 14px); }
 }
 
 /* 4:3: keep all rail modules readable while preserving the center map width. */
 @media (max-aspect-ratio: 4/3) {
-  .cockpit-shell { --cockpit-panel-width: clamp(215px, 21vw, 270px); --cockpit-edge: clamp(7px, .62vw, 11px); }
+  .cockpit-shell { --cockpit-panel-width: clamp(286px, 28vw, 330px); --cockpit-edge: clamp(8px, .62vw, 12px); }
   .cockpit-trend-drawer { left: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 1.5); right: calc(var(--cockpit-panel-width) + var(--cockpit-edge) * 1.5); }
 }
 
+@media (max-width: 1180px) {
+  .cockpit-shell { --cockpit-panel-width: clamp(286px, 27vw, 324px); }
+  .floating-glass-panel__content { padding: 9px 10px; }
+}
+
+@media (max-height: 820px) {
+  .floating-glass-panel__content { padding: 8px 10px; }
+}
+
 @media (min-width: 3000px) {
-  .cockpit-shell { --cockpit-panel-width: clamp(330px, 12vw, 410px); --cockpit-edge: clamp(16px, .65vw, 28px); }
-  .floating-glass-panel__content { padding: clamp(13px, .5vw, 18px); }
+  .cockpit-shell { --cockpit-panel-width: clamp(410px, 13vw, 470px); --cockpit-edge: clamp(18px, .65vw, 30px); }
+  .floating-glass-panel__content { padding: clamp(16px, .58vw, 22px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -731,52 +759,77 @@ body {
   animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Energy Theme - Light Background Override */
+/* Energy pages use the same dark operational language as the cockpit and navigation. */
 .energy-theme {
-  --color-background: 0 0% 100%;
-  --color-foreground: 222 47% 11%;
-  --color-card: 0 0% 100%;
-  --color-card-foreground: 222 47% 11%;
-  --color-popover: 0 0% 100%;
-  --color-popover-foreground: 222 47% 11%;
-  --color-primary: 192 91% 40%;
-  --color-primary-foreground: 0 0% 100%;
-  --color-secondary: 210 40% 96%;
-  --color-secondary-foreground: 222 47% 11%;
-  --color-muted: 210 40% 96%;
-  --color-muted-foreground: 215 16% 47%;
-  --color-accent: 210 40% 96%;
-  --color-accent-foreground: 222 47% 11%;
+  --energy-bg: #07131c;
+  --energy-surface: #0d202c;
+  --energy-surface-strong: #102a38;
+  --energy-surface-elevated: #143344;
+  --energy-border: rgb(126 218 226 / 22%);
+  --energy-border-strong: rgb(126 218 226 / 42%);
+  --energy-text: #f2fbfc;
+  --energy-muted: #a7bdc2;
+  --energy-subtle: #78939a;
+  --energy-primary: #35d4e4;
+  --energy-axis: #8eabb2;
+  --energy-grid: rgb(152 196 204 / 18%);
+  --energy-tooltip: #102a38;
+  --energy-success: #4bd39a;
+  --energy-warning: #f0bb54;
+  --energy-danger: #ff6b72;
+  --color-background: 200 41% 8%;
+  --color-foreground: 186 36% 96%;
+  --color-card: 196 46% 12%;
+  --color-card-foreground: 186 36% 96%;
+  --color-popover: 196 46% 12%;
+  --color-popover-foreground: 186 36% 96%;
+  --color-primary: 186 71% 55%;
+  --color-primary-foreground: 200 41% 8%;
+  --color-secondary: 197 35% 17%;
+  --color-secondary-foreground: 186 36% 96%;
+  --color-muted: 197 34% 16%;
+  --color-muted-foreground: 191 17% 64%;
+  --color-accent: 197 35% 20%;
+  --color-accent-foreground: 186 36% 96%;
   --color-destructive: 0 84% 60%;
   --color-destructive-foreground: 210 40% 98%;
-  --color-border: 214 32% 91%;
-  --color-input: 214 32% 91%;
-  --color-ring: 192 91% 40%;
+  --color-border: 193 31% 24%;
+  --color-input: 193 31% 24%;
+  --color-ring: 186 71% 55%;
+  --background: 200 41% 8%;
+  --foreground: 186 36% 96%;
+  --card: #102a38;
+  --muted: #173344;
+  --muted-foreground: #a7bdc2;
+  --border: #28505c;
 
-  background-color: #fff;
-  color: #0f172a;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 82% -12%, rgb(53 212 228 / 10%), transparent 32%),
+    linear-gradient(145deg, #07131c 0%, #0a1b26 52%, #07131c 100%);
+  color: var(--energy-text);
 }
 
 .energy-theme .card-dark {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(145deg, rgb(20 51 68 / 84%), rgb(13 32 44 / 96%));
+  border: 1px solid var(--energy-border);
   border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  box-shadow: 0 14px 32px rgb(0 9 17 / 20%), inset 0 1px 0 rgb(255 255 255 / 6%);
 }
 
 .energy-theme .card-dark:hover {
-  border-color: #06b6d4;
-  box-shadow: 0 4px 12px rgb(6 182 212 / 15%);
+  border-color: var(--energy-border-strong);
+  box-shadow: 0 16px 34px rgb(0 9 17 / 28%), 0 0 26px rgb(53 212 228 / 10%);
 }
 
 .energy-theme .kpi-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(145deg, rgb(20 51 68 / 90%), rgb(13 32 44 / 97%));
+  border: 1px solid var(--energy-border);
   border-radius: 0.75rem;
   padding: 1.5rem;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 6%);
+  box-shadow: 0 12px 28px rgb(0 9 17 / 20%), inset 0 1px 0 rgb(255 255 255 / 6%);
 }
 
 .energy-theme .kpi-card::before {
@@ -788,6 +841,119 @@ body {
   height: 2px;
   background: linear-gradient(90deg, transparent, rgb(6 182 212 / 60%), transparent);
 }
+
+/* The energy pages still contain a few intentionally light utility classes from the
+   original implementation. Remap them at the theme boundary so all three pages
+   share one dark surface without changing their behavior or data semantics. */
+.energy-theme [class*="bg-white"],
+.energy-theme [class*="bg-slate-50"],
+.energy-theme [class*="bg-slate-100"],
+.energy-theme [class*="bg-slate-200"],
+.energy-theme [class*="bg-gray-100"] {
+  background-color: var(--energy-surface) !important;
+}
+.energy-theme [class*="bg-slate-50/60"],
+.energy-theme [class*="bg-muted/50"] { background-color: rgb(20 51 68 / 46%) !important; }
+.energy-theme [class*="bg-blue-50"],
+.energy-theme [class*="bg-cyan-50"] { background-color: rgb(53 212 228 / 10%) !important; }
+.energy-theme [class*="bg-emerald-50"],
+.energy-theme [class*="bg-green-50"] { background-color: rgb(75 211 154 / 10%) !important; }
+.energy-theme [class*="bg-amber-50"],
+.energy-theme [class*="bg-yellow-50"],
+.energy-theme [class*="bg-orange-50"] { background-color: rgb(240 187 84 / 12%) !important; }
+.energy-theme [class*="bg-red-50"] { background-color: rgb(255 107 114 / 10%) !important; }
+.energy-theme [class*="bg-violet-50"] { background-color: rgb(180 139 255 / 11%) !important; }
+.energy-theme [class*="bg-blue-100"] { background-color: rgb(53 212 228 / 16%) !important; }
+.energy-theme [class*="bg-red-100"] { background-color: rgb(255 107 114 / 16%) !important; }
+.energy-theme [class*="bg-orange-100"],
+.energy-theme [class*="bg-yellow-100"] { background-color: rgb(240 187 84 / 17%) !important; }
+.energy-theme [class*="bg-green-100"],
+.energy-theme [class*="bg-emerald-100"] { background-color: rgb(75 211 154 / 16%) !important; }
+.energy-theme [class*="text-slate-900"],
+.energy-theme [class*="text-slate-800"],
+.energy-theme [class*="text-slate-700"],
+.energy-theme [class*="text-gray-900"] { color: var(--energy-text) !important; }
+.energy-theme [class*="text-slate-600"],
+.energy-theme [class*="text-slate-500"],
+.energy-theme [class*="text-slate-400"],
+.energy-theme [class*="text-gray-600"],
+.energy-theme [class*="text-gray-500"] { color: var(--energy-muted) !important; }
+.energy-theme [class*="text-blue-900"],
+.energy-theme [class*="text-blue-800"],
+.energy-theme [class*="text-blue-700"],
+.energy-theme [class*="text-blue-600"] { color: var(--energy-primary) !important; }
+.energy-theme [class*="text-emerald-900"],
+.energy-theme [class*="text-emerald-800"],
+.energy-theme [class*="text-emerald-700"],
+.energy-theme [class*="text-emerald-600"] { color: var(--energy-success) !important; }
+.energy-theme [class*="text-amber-900"],
+.energy-theme [class*="text-amber-800"],
+.energy-theme [class*="text-amber-700"],
+.energy-theme [class*="text-orange-900"],
+.energy-theme [class*="text-orange-800"],
+.energy-theme [class*="text-orange-700"],
+.energy-theme [class*="text-orange-600"] { color: var(--energy-warning) !important; }
+.energy-theme [class*="text-red-900"],
+.energy-theme [class*="text-red-800"],
+.energy-theme [class*="text-red-700"],
+.energy-theme [class*="text-red-600"] { color: var(--energy-danger) !important; }
+.energy-theme [class*="text-violet-700"],
+.energy-theme [class*="text-purple-700"] { color: #c49bff !important; }
+.energy-theme [class*="border-slate-100"],
+.energy-theme [class*="border-slate-200"],
+.energy-theme [class*="border-slate-300"],
+.energy-theme [class*="border-blue-100"],
+.energy-theme [class*="border-blue-200"],
+.energy-theme [class*="border-emerald-200"],
+.energy-theme [class*="border-amber-200"],
+.energy-theme [class*="border-orange-200"],
+.energy-theme [class*="border-red-100"],
+.energy-theme [class*="border-red-200"] { border-color: var(--energy-border) !important; }
+.energy-theme [class*="hover:bg-blue-50"]:hover { background-color: rgb(53 212 228 / 8%) !important; }
+.energy-theme [class*="hover:bg-slate-50"]:hover { background-color: rgb(255 255 255 / 5%) !important; }
+.energy-theme select,
+.energy-theme input,
+.energy-theme textarea {
+  color-scheme: dark;
+  background-color: var(--energy-surface) !important;
+  color: var(--energy-text);
+  border-color: var(--energy-border) !important;
+}
+.energy-theme option {
+  background: var(--energy-surface-strong);
+  color: var(--energy-text);
+}
+.energy-theme .recharts-cartesian-grid line {
+  stroke: var(--energy-grid);
+}
+.energy-theme .recharts-cartesian-axis-tick-value,
+.energy-theme .recharts-label {
+  fill: var(--energy-axis);
+}
+.energy-theme .recharts-default-tooltip {
+  background: var(--energy-tooltip) !important;
+  border: 1px solid var(--energy-border-strong) !important;
+  color: var(--energy-text) !important;
+  box-shadow: 0 12px 28px rgb(0 9 17 / 34%) !important;
+}
+.energy-theme .recharts-tooltip-label,
+.energy-theme .recharts-tooltip-item { color: var(--energy-text) !important; }
+
+/* Radix portals mount under body, so keep opened sheets/dialogs in the same world. */
+body:has(.energy-theme) [data-slot="sheet-content"],
+body:has(.energy-theme) [data-slot="dialog-content"] {
+  background: #102a38 !important;
+  color: #f2fbfc;
+  border-color: rgb(126 218 226 / 28%) !important;
+}
+body:has(.energy-theme) [data-slot="sheet-content"] [class*="bg-white"],
+body:has(.energy-theme) [data-slot="dialog-content"] [class*="bg-white"],
+body:has(.energy-theme) [data-slot="sheet-content"] [class*="bg-slate-50"],
+body:has(.energy-theme) [data-slot="dialog-content"] [class*="bg-slate-50"] { background-color: #143344 !important; }
+body:has(.energy-theme) [data-slot="sheet-content"] [class*="border-slate-"],
+body:has(.energy-theme) [data-slot="dialog-content"] [class*="border-slate-"] { border-color: rgb(126 218 226 / 22%) !important; }
+body:has(.energy-theme) [data-slot="sheet-content"] [class*="text-slate-"],
+body:has(.energy-theme) [data-slot="dialog-content"] [class*="text-slate-"] { color: #a7bdc2 !important; }
 
 /* Demo Watermark */
 .demo-watermark {
