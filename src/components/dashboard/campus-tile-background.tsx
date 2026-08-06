@@ -29,6 +29,9 @@ interface CampusTileBackgroundProps {
   initialBuildingId?: string | null;
   onBuildingSelect?: (buildingId: string | null) => void;
   renderBuildingPopup?: (building: CampusMapBuilding, onClose: () => void) => ReactNode;
+  /** Adds a dark dashboard tint above the map without blocking foreground UI. */
+  tone?: "leader" | "operations";
+  cockpit?: boolean;
 }
 
 interface ViewportSize {
@@ -586,6 +589,8 @@ export function CampusTileBackground({
   initialBuildingId = null,
   onBuildingSelect,
   renderBuildingPopup,
+  tone = "leader",
+  cockpit = false,
 }: CampusTileBackgroundProps) {
   const config = MAP_CONFIG[map];
   const initialTileZoom = selectTileZoom(config.initialScale, config);
@@ -609,7 +614,7 @@ export function CampusTileBackground({
   const [view, setView] = useState<ViewState | null>(null);
   const [tileZoom, setTileZoom] = useState(initialTileZoom);
   const [isInteracting, setIsInteracting] = useState(false);
-  const [showBuildingLabels, setShowBuildingLabels] = useState(true);
+  const [showBuildingLabels, setShowBuildingLabels] = useState(!cockpit);
   const [showBuildingFrames, setShowBuildingFrames] = useState(false);
   const [activeLayer, setActiveLayer] = useState<CampusLayerFilter>("all");
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
@@ -1018,6 +1023,13 @@ export function CampusTileBackground({
   const canZoomOut = Boolean(view && view.scale > fitScale + 0.000_001);
   const canZoomIn = Boolean(view && view.scale < MAX_NATIVE_SCALE - 0.000_001);
 
+  const tint = tone === "leader"
+    ? cockpit
+      ? "radial-gradient(circle at 51% 43%, rgba(104,202,232,.04) 0%, rgba(13,69,97,.03) 48%, rgba(3,27,45,.16) 100%), linear-gradient(180deg, rgba(24,83,112,.04), rgba(3,25,42,.14))"
+      : "linear-gradient(180deg, rgba(8,16,40,0.16), rgba(8,16,40,0.38))"
+    : cockpit
+      ? "radial-gradient(circle at 50% 44%, rgba(104,202,232,.035) 0%, rgba(13,69,97,.025) 50%, rgba(3,27,45,.15) 100%), linear-gradient(180deg, rgba(24,83,112,.035), rgba(3,25,42,.13))"
+      : "linear-gradient(180deg, rgba(8,16,40,0.10), rgba(8,16,40,0.30))";
   return (
     <div
       ref={containerRef}
@@ -1052,7 +1064,7 @@ export function CampusTileBackground({
             zoom={config.minZoom}
             view={view}
             tiles={plan.overviewTiles}
-            className="z-[1]"
+            className={cockpit ? "z-[1] brightness-[.94] saturate-[.94] contrast-[1.06] hue-rotate-[4deg]" : "z-[1]"}
             animateTransform={!isInteracting}
           />
           {plan.zoom !== config.minZoom ? (
@@ -1061,7 +1073,7 @@ export function CampusTileBackground({
               zoom={plan.zoom}
               view={view}
               tiles={plan.tiles}
-              className="z-[2]"
+              className={cockpit ? "z-[2] brightness-[.94] saturate-[.94] contrast-[1.06] hue-rotate-[4deg]" : "z-[2]"}
               animateTransform={!isInteracting}
             />
           ) : null}
@@ -1074,6 +1086,15 @@ export function CampusTileBackground({
           view={view}
           viewport={viewport}
         />
+      ) : null}
+
+      <div className="pointer-events-none absolute inset-0 z-10" style={{ background: tint }} />
+      {cockpit ? (
+        <>
+          <div className="campus-night-blueprint pointer-events-none absolute inset-0 z-[9]" />
+          <div className="campus-night-lights pointer-events-none absolute inset-0 z-[11]" />
+          <div className="campus-night-vignette pointer-events-none absolute inset-0 z-[13]" />
+        </>
       ) : null}
 
       {view ? (
@@ -1093,52 +1114,54 @@ export function CampusTileBackground({
         />
       ) : null}
 
-      <div
-        className="absolute top-[calc(var(--cockpit-edge)+72px)] z-20 flex flex-col items-end gap-2"
-        style={{ right: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
-        onPointerDown={(event) => event.stopPropagation()}
-        onDoubleClick={(event) => event.stopPropagation()}
-      >
-        <div className="overflow-hidden rounded-lg border border-cyan-400/20 bg-[#07152f] shadow-lg">
-          <button
-            type="button"
-            aria-label="放大地图"
-            title="放大地图"
-            disabled={!canZoomIn}
-            onClick={() => zoomBy(BUTTON_ZOOM_FACTOR)}
-            className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-          <div className="h-px bg-cyan-400/15" />
-          <button
-            type="button"
-            aria-label="缩小地图"
-            title="缩小地图"
-            disabled={!canZoomOut}
-            onClick={() => zoomBy(1 / BUTTON_ZOOM_FACTOR)}
-            className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"
-          >
-            <Minus className="h-4 w-4" />
-          </button>
-          <div className="h-px bg-cyan-400/15" />
-          <button
-            type="button"
-            aria-label="重置地图视图"
-            title="重置地图视图"
-            onClick={resetView}
-            className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </button>
+      {!cockpit && (
+        <div
+          className="absolute top-[calc(var(--cockpit-edge)+72px)] z-20 flex flex-col items-end gap-2"
+          style={{ right: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
+        >
+          <div className="overflow-hidden rounded-lg border border-cyan-400/20 bg-[#07152f] shadow-lg">
+            <button
+              type="button"
+              aria-label="放大地图"
+              title="放大地图"
+              disabled={!canZoomIn}
+              onClick={() => zoomBy(BUTTON_ZOOM_FACTOR)}
+              className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <div className="h-px bg-cyan-400/15" />
+            <button
+              type="button"
+              aria-label="缩小地图"
+              title="缩小地图"
+              disabled={!canZoomOut}
+              onClick={() => zoomBy(1 / BUTTON_ZOOM_FACTOR)}
+              className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <div className="h-px bg-cyan-400/15" />
+            <button
+              type="button"
+              aria-label="重置地图视图"
+              title="重置地图视图"
+              onClick={resetView}
+              className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-md border border-cyan-400/15 bg-[#07152f] px-2 py-1 text-[10px] text-cyan-50/80">
+            <Move className="h-3 w-3" />
+            <span>Z{plan?.zoom ?? 0}/{config.maxZoom}</span>
+            <span className="text-cyan-100/35">·</span>
+            <span>{view ? Math.round(view.scale * 100) : 0}%</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 rounded-md border border-cyan-400/15 bg-[#07152f] px-2 py-1 text-[10px] text-cyan-50/80">
-          <Move className="h-3 w-3" />
-          <span>Z{plan?.zoom ?? 0}/{config.maxZoom}</span>
-          <span className="text-cyan-100/35">·</span>
-          <span>{view ? Math.round(view.scale * 100) : 0}%</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import FigmaCockpitScreen from "@/components/dashboard/figma-cockpit/screen";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -197,7 +199,7 @@ function RealtimeLoadPanel({ data }: { data: LoadCurvePoint[] }) {
   );
 }
 
-export default function OperationsDashboardPage() {
+export function LegacyOperationsDashboardPage() {
   const nowMs = useRealtimeNow();
   const [initialBuildingId, setInitialBuildingId] = useState<string | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
@@ -316,4 +318,8 @@ export default function OperationsDashboardPage() {
       </div>
     </ThreeColumnLayout>
   );
+}
+
+export default function LogisticsCockpitPage() {
+  return <FigmaCockpitScreen />;
 }

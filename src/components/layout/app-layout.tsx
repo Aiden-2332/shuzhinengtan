@@ -4,17 +4,16 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
+import { PortalReturnButton } from "./portal-return-button";
 import { type CockpitTheme } from "./theme-switcher";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-// 登录页独立显示；驾驶舱全屏显示且不使用侧边栏。
+// 登录页独立显示；驾驶舱、功能中心与门户全屏显示。
 const LOGIN_ROUTE = "/";
-const COCKPIT_ROUTES = ["/leader", "/operations"];
-
-// 能源管理页面使用浅色主题。
+const COCKPIT_ROUTES = ["/leader", "/operations", "/portal", "/gateway"];
 const ENERGY_ROUTES = ["/energy-monitor", "/energy-flow", "/energy-diagnosis"];
 
 export function AppLayout({ children }: AppLayoutProps) {
@@ -23,8 +22,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
 
   const isLogin = pathname === LOGIN_ROUTE;
-  const isCockpit = COCKPIT_ROUTES.includes(pathname);
+  const isCockpit = COCKPIT_ROUTES.includes(pathname) || pathname.startsWith("/gateway/");
   const isEnergy = ENERGY_ROUTES.some((route) => pathname === route || pathname.startsWith(route + "/"));
+  const showPortalReturn = !isLogin && pathname !== "/gateway" && !pathname.startsWith("/gateway/");
 
   useEffect(() => {
     const saved = window.localStorage.getItem("cockpit-theme") as CockpitTheme | null;
@@ -44,7 +44,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div data-theme={theme} className={`theme-root flex h-screen flex-col overflow-hidden ${isEnergy ? "bg-slate-100" : "bg-slate-950"}`}>
-      {/* Background Grid Effect - only for dark pages */}
       {!isEnergy && !isCockpit && (
         <div
           className="fixed inset-0 opacity-20 pointer-events-none"
@@ -58,12 +57,14 @@ export function AppLayout({ children }: AppLayoutProps) {
         />
       )}
 
-      <AppHeader
-        sidebarCollapsed={sidebarCollapsed}
-        onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
-        theme={theme}
-        onThemeChange={handleThemeChange}
-      />
+      {!isCockpit && (
+        <AppHeader
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
+          theme={theme}
+          onThemeChange={handleThemeChange}
+        />
+      )}
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {!isCockpit && <AppSidebar collapsed={sidebarCollapsed} />}
@@ -71,6 +72,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
       </div>
+      {showPortalReturn && <PortalReturnButton compact={!isCockpit} />}
     </div>
   );
 }

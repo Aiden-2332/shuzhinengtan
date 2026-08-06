@@ -305,3 +305,19 @@ export function getBuildingPriorityData(now = new Date()): BuildingPriorityItem[
     };
   });
 }
+
+// ============================================================
+// Figma Cockpit 兼容导出
+// ============================================================
+
+export const resources = resourceConsumptionData;
+
+export const compositions: { title: string; items: CompositionItem[] }[] = [
+  { title: "碳排放组成", items: carbonCompositionData },
+  { title: "能源组成", items: energyCompositionData },
+  { title: "水资源组成", items: waterCompositionData },
+];
+
+export const rankings: [string, number, string][] = emissionRankingData.map(
+  (item) => [item.name, item.value, item.color]
+);
