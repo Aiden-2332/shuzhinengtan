@@ -164,30 +164,10 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Logo Area */}
-      <div
-        className={cn(
-          "h-14 flex items-center border-b border-cyan-500/20 transition-all duration-300",
-          collapsed ? "px-3 justify-center" : "px-5"
-        )}
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-            <Leaf className="w-4 h-4 text-white" />
-          </div>
-          {!collapsed && (
-            <div>
-              <h1 className="text-sm font-bold text-white leading-tight">智慧碳管理</h1>
-              <p className="text-[10px] text-cyan-400 leading-tight">Carbon Platform</p>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Navigation */}
       <nav
         className={cn(
-          "flex-1 overflow-y-auto py-3 transition-all duration-300",
+          "flex-1 overflow-y-auto pb-3 pt-4 transition-all duration-300",
           collapsed ? "px-2" : "px-3"
         )}
       >

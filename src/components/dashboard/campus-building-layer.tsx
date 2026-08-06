@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   BedDouble,
   Building2,
@@ -36,6 +36,7 @@ export interface CampusBuildingLayerProps {
   selectedBuildingId: string | null;
   animateTransform: boolean;
   onSelect: (id: string | null) => void;
+  renderPopup?: (building: CampusMapBuilding, onClose: () => void) => ReactNode;
 }
 
 interface ProjectedBuilding {
@@ -70,6 +71,9 @@ type LabelDetail = "dots" | "important" | "full";
 
 const LABEL_VIEWPORT_MARGIN = 140;
 const POPUP_EDGE_GAP = 12;
+const POPUP_WIDTH = 380;
+const POPUP_HEIGHT = 570;
+const POPUP_TOP_CLEARANCE = 136;
 const LABEL_HEIGHT = 30;
 const LABEL_COLLISION_GAP = 6;
 const IMPORTANT_LABEL_PRIORITY = 58;
@@ -192,7 +196,36 @@ export function CampusBuildingLayer({
   selectedBuildingId,
   animateTransform,
   onSelect,
+  renderPopup,
 }: CampusBuildingLayerProps) {
+  const popupRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!selectedBuildingId) return;
+
+    const returnFocusTarget =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const focusFrame = window.requestAnimationFrame(() => {
+      popupRef.current?.focus({ preventScroll: true });
+    });
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onSelect(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      window.removeEventListener("keydown", handleKeyDown);
+      if (returnFocusTarget?.isConnected) {
+        returnFocusTarget.focus({ preventScroll: true });
+      }
+    };
+  }, [onSelect, selectedBuildingId]);
+
   const projectedBuildings = useMemo<ProjectedBuilding[]>(
     () =>
       buildings.map((building) => {
@@ -363,12 +396,12 @@ export function CampusBuildingLayer({
     return {
       x: clamp(
         selectedBuilding.screenX,
-        POPUP_EDGE_GAP + 20,
-        viewport.width - POPUP_EDGE_GAP - 20,
+        Math.min(viewport.width / 2, POPUP_EDGE_GAP + POPUP_WIDTH / 2),
+        Math.max(viewport.width / 2, viewport.width - POPUP_EDGE_GAP - POPUP_WIDTH / 2),
       ),
       y: clamp(
         selectedBuilding.screenY - 22,
-        POPUP_EDGE_GAP + 32,
+        Math.min(POPUP_HEIGHT, viewport.height * 0.76) + POPUP_TOP_CLEARANCE,
         viewport.height - POPUP_EDGE_GAP,
       ),
     };
@@ -583,11 +616,13 @@ export function CampusBuildingLayer({
 
       {selectedBuilding && popupPosition ? (
         <section
+          ref={popupRef}
           role="dialog"
           aria-modal="false"
+          tabIndex={-1}
           aria-label={`${selectedBuilding.building.name}能碳信息弹窗位点`}
           data-campus-building-popup-anchor={selectedBuilding.building.id}
-          className={`pointer-events-auto absolute flex h-9 w-10 items-center justify-center rounded-xl border border-[rgba(var(--theme-primary-rgb),.5)] bg-[color-mix(in_srgb,var(--theme-surface-strong)_94%,black)] shadow-[0_8px_24px_rgba(0,0,0,.35),0_0_16px_rgba(var(--theme-primary-rgb),.28)] backdrop-blur-md ${
+          className={`pointer-events-auto absolute focus:outline-none ${renderPopup ? "z-[10000]" : "flex h-9 w-10 items-center justify-center rounded-xl border border-[rgba(var(--theme-primary-rgb),.5)] bg-[color-mix(in_srgb,var(--theme-surface-strong)_94%,black)] shadow-[0_8px_24px_rgba(0,0,0,.35),0_0_16px_rgba(var(--theme-primary-rgb),.28)] backdrop-blur-md"} ${
             animateTransform
               ? "transition-[left,top] duration-150 ease-out"
               : ""
@@ -601,16 +636,18 @@ export function CampusBuildingLayer({
           onClick={(event) => event.stopPropagation()}
           onDoubleClick={(event) => event.stopPropagation()}
         >
-          <button
-            type="button"
-            aria-label={`关闭${selectedBuilding.building.name}能碳信息弹窗位点`}
-            title="关闭弹窗位点"
-            className="group relative flex h-7 w-7 items-center justify-center rounded-lg text-[var(--theme-primary)] transition-[background-color,box-shadow,transform] hover:scale-105 hover:bg-[rgba(var(--theme-primary-rgb),.12)] hover:shadow-[0_0_12px_rgba(var(--theme-primary-rgb),.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]"
-            onClick={() => onSelect(null)}
-          >
-            <MapPinned aria-hidden="true" className="h-4 w-4 drop-shadow-[0_0_6px_rgba(var(--theme-primary-rgb),.68)] transition-opacity group-hover:opacity-0" />
-            <X aria-hidden="true" className="absolute h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-          </button>
+          {renderPopup ? renderPopup(selectedBuilding.building, () => onSelect(null)) : (
+            <button
+              type="button"
+              aria-label={`关闭${selectedBuilding.building.name}能碳信息弹窗位点`}
+              title="关闭弹窗位点"
+              className="group relative flex h-7 w-7 items-center justify-center rounded-lg text-[var(--theme-primary)] transition-[background-color,box-shadow,transform] hover:scale-105 hover:bg-[rgba(var(--theme-primary-rgb),.12)] hover:shadow-[0_0_12px_rgba(var(--theme-primary-rgb),.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]"
+              onClick={() => onSelect(null)}
+            >
+              <MapPinned aria-hidden="true" className="h-4 w-4 drop-shadow-[0_0_6px_rgba(var(--theme-primary-rgb),.68)] transition-opacity group-hover:opacity-0" />
+              <X aria-hidden="true" className="absolute h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+            </button>
+          )}
           <span
             aria-hidden="true"
             className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-x-[5px] border-t-[7px] border-x-transparent border-t-[var(--theme-primary)] opacity-70"

@@ -10,6 +10,8 @@ export interface AlarmDetail {
   categoryLabel: string;
   description: string;
   location: string;
+  floor?: string;
+  room?: string;
   buildingId: string;
   buildingName: string;
   deviceId?: string;
@@ -48,6 +50,22 @@ export const STATUS_META: Record<AlarmStatus, { label: string; color: string; bg
   closed: { label: "已关闭", color: "text-gray-400", bgColor: "bg-gray-500/15" },
 };
 
+const ALARM_SPACE_BY_ID: Record<string, { floor: string; room: string }> = {
+  "ANOM-001": { floor: "3层", room: "空调机房 3-01" },
+  "ANOM-002": { floor: "B1层", room: "2号变配电室" },
+  "ANOM-003": { floor: "4层", room: "东区实验排风机房" },
+  "ANOM-004": { floor: "5层", room: "阅览区 A5-12" },
+  "ANOM-005": { floor: "B1层", room: "总配电室" },
+  "ANOM-006": { floor: "3层", room: "公共卫生间 3-07" },
+  "ANOM-007": { floor: "B1层", room: "东区水表井" },
+  "ANOM-008": { floor: "1层", room: "餐饮后厨燃气间" },
+  "ANOM-009": { floor: "1层", room: "制冷机房" },
+  "ANOM-010": { floor: "3层", room: "走廊及办公室区" },
+  "ANOM-011": { floor: "B1层", room: "UPS 机房 A 区" },
+  "ANOM-012": { floor: "2层", room: "空压机房 2-06" },
+  "ANOM-013": { floor: "1层", room: "工训电气间 C3" },
+};
+
 export function getAllAlarms(now = new Date()): AlarmDetail[] {
   const dateKey = formatCampusDateKey(now).replaceAll("-", "");
   return getSystemAnomalySnapshots(now).map((anomaly, index) => {
@@ -56,6 +74,11 @@ export function getAllAlarms(now = new Date()): AlarmDetail[] {
     const severity: AlarmSeverity = anomaly.severity === "emergency" || anomaly.severity === "critical"
       ? "danger"
       : anomaly.severity;
+    const space = ALARM_SPACE_BY_ID[anomaly.id] ?? {
+      floor: "全楼",
+      room: anomaly.deviceName ?? "设备区域",
+    };
+    const operationsBuildingId = getCampusMapBuildingId("2d", anomaly.buildingName) ?? anomaly.buildingId;
     return {
       id: anomaly.id,
       title: anomaly.title,
@@ -63,8 +86,10 @@ export function getAllAlarms(now = new Date()): AlarmDetail[] {
       category,
       categoryLabel: CATEGORY_META[category].label,
       description: anomaly.description,
-      location: `主校区 ${anomaly.buildingName}`,
-      buildingId: anomaly.buildingId,
+      location: `主校区 ${anomaly.buildingName} ${space.floor} · ${space.room}`,
+      floor: space.floor,
+      room: space.room,
+      buildingId: operationsBuildingId,
       buildingName: anomaly.buildingName,
       deviceId: anomaly.deviceId,
       deviceName: anomaly.deviceName,
@@ -509,4 +534,5 @@ export const AllAlarms: AlarmDetail[] = [
   },
 ];
 import { getSystemAnomalySnapshots } from "@/data/campus-system-data";
+import { getCampusMapBuildingId } from "@/data/campus-map-buildings";
 import { formatCampusDateKey } from "@/lib/campus-realtime";

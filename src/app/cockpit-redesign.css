@@ -10,9 +10,7 @@
   inset: 0;
   z-index: 15;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(228, 237, 239, .72), transparent 19%, transparent 81%, rgba(228, 237, 239, .72)),
-    linear-gradient(180deg, transparent 75%, rgba(223, 233, 236, .42));
+  background: linear-gradient(90deg, rgba(228, 237, 239, .72), transparent 19%, transparent 81%, rgba(228, 237, 239, .72));
 }
 
 .floating-glass-panel {

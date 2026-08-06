@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   BarChart3,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
+import { BuildingInsightPopup } from "@/components/dashboard/building-insight-popup";
 import { useRealtimeNow } from "@/hooks/use-realtime-now";
 import type { FloatingPanelSpec } from "@/components/dashboard/floating-glass-panel";
 import {
@@ -43,10 +44,13 @@ import {
   type BuildingEnergyRankItem,
   type LoadCurvePoint,
 } from "@/data/operations-data";
+import { getCampusMapBuildings, type CampusMapBuilding } from "@/data/campus-map-buildings";
+import { getAllAlarms } from "@/data/alarm-data";
 
 const LEVEL_LABELS = { emergency: "紧急", important: "重要", minor: "次要" } as const;
 const LEVEL_ORDER = { emergency: 0, important: 1, minor: 2 } as const;
 const LEVEL_TONE = { emergency: "danger", important: "warning", minor: "normal" } as const;
+const OPERATIONS_BUILDING_IDS = new Set(getCampusMapBuildings("2d").map((building) => building.id));
 
 function CarbonOverviewPanel({ data }: { data: CarbonOverview }) {
   const scopes = [
@@ -195,6 +199,10 @@ function RealtimeLoadPanel({ data }: { data: LoadCurvePoint[] }) {
 
 export default function OperationsDashboardPage() {
   const nowMs = useRealtimeNow();
+  const [initialBuildingId, setInitialBuildingId] = useState<string | null>(null);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [focusedAlarmId, setFocusedAlarmId] = useState<string | null>(null);
+  const deepLinkHandledRef = useRef(false);
   const kpis = useMemo(() => nowMs === null ? [] : getOperationsKPIs(new Date(nowMs)), [nowMs]);
   const carbonOverview = useMemo(() => nowMs === null ? null : getCarbonOverview(new Date(nowMs)), [nowMs]);
   const alerts = useMemo(() => nowMs === null ? [] : getAlertsData(new Date(nowMs)), [nowMs]);
@@ -203,6 +211,66 @@ export default function OperationsDashboardPage() {
   const instruments = useMemo(() => getInstrumentStatus(), []);
   const buildings = useMemo(() => nowMs === null ? [] : getBuildingEnergyRanking(new Date(nowMs)), [nowMs]);
   const load = useMemo(() => nowMs === null ? [] : getRealtimeLoadData(new Date(nowMs)), [nowMs]);
+  const allAlarms = useMemo(() => nowMs === null ? [] : getAllAlarms(new Date(nowMs)), [nowMs]);
+
+  useEffect(() => {
+    if (deepLinkHandledRef.current || nowMs === null) return;
+    deepLinkHandledRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const requestedBuildingId = params.get("building");
+    const requestedAlarmId = params.get("alarm");
+    const buildingId = requestedBuildingId && OPERATIONS_BUILDING_IDS.has(requestedBuildingId)
+      ? requestedBuildingId
+      : null;
+    const matchedAlarm = requestedAlarmId
+      ? allAlarms.find((alarm) => alarm.id === requestedAlarmId)
+      : null;
+    const alarmId = buildingId && matchedAlarm?.buildingId === buildingId
+      ? matchedAlarm.id
+      : null;
+    setInitialBuildingId(buildingId);
+    setSelectedBuildingId(buildingId);
+    setFocusedAlarmId(alarmId);
+
+    if ((requestedBuildingId && !buildingId) || (requestedAlarmId && !alarmId)) {
+      const url = new URL(window.location.href);
+      if (requestedBuildingId && !buildingId) {
+        url.searchParams.delete("building");
+      }
+      if (!buildingId || (requestedAlarmId && !alarmId)) {
+        url.searchParams.delete("alarm");
+      }
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, [allAlarms, nowMs]);
+
+  const handleBuildingSelect = useCallback((buildingId: string | null) => {
+    const buildingChanged = buildingId !== selectedBuildingId;
+    setSelectedBuildingId(buildingId);
+    const url = new URL(window.location.href);
+    if (buildingId) {
+      url.searchParams.set("building", buildingId);
+      if (buildingChanged) {
+        url.searchParams.delete("alarm");
+        setFocusedAlarmId(null);
+      }
+    } else {
+      url.searchParams.delete("building");
+      url.searchParams.delete("alarm");
+      setFocusedAlarmId(null);
+    }
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [selectedBuildingId]);
+
+  const renderBuildingPopup = useCallback((building: CampusMapBuilding, onClose: () => void) => (
+    <BuildingInsightPopup
+      building={building}
+      mode="operations"
+      nowMs={nowMs ?? 0}
+      focusedAlarmId={focusedAlarmId}
+      onClose={onClose}
+    />
+  ), [focusedAlarmId, nowMs]);
 
   const leftPanels: FloatingPanelSpec[] = [
     { id: "carbon-overview", label: "碳排放总览", priority: "critical", content: carbonOverview ? <CarbonOverviewPanel data={carbonOverview} /> : null },
@@ -223,9 +291,15 @@ export default function OperationsDashboardPage() {
       centerBottomPanel={<RealtimeLoadPanel data={load} />}
       centerBottomLabel="校园实时负荷"
       colorMode="energy"
+      selectedBuilding={selectedBuildingId}
     >
       <div className="relative h-full">
-        <CampusTileBackground map="2d" />
+        <CampusTileBackground
+          map="2d"
+          initialBuildingId={initialBuildingId}
+          onBuildingSelect={handleBuildingSelect}
+          renderBuildingPopup={renderBuildingPopup}
+        />
         <KpiRibbon
           liveLabel="运行数据同步"
           metrics={kpis.map((item) => ({

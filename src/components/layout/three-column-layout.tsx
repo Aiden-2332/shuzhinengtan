@@ -73,6 +73,10 @@ export function ThreeColumnLayout({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [bottomOpen]);
 
+  useEffect(() => {
+    if (selectedBuilding) setBottomOpen(false);
+  }, [selectedBuilding]);
+
   return (
     <div className="cockpit-shell relative isolate h-full min-h-0 overflow-hidden text-slate-100">
       <div className="absolute inset-0 z-0">
@@ -90,7 +94,7 @@ export function ThreeColumnLayout({
       <PanelRail side="left" panels={leftPanels} fallback={leftPanel} />
       <PanelRail side="right" panels={rightPanels} fallback={rightPanel} />
 
-      {centerBottomPanel ? (
+      {centerBottomPanel && !selectedBuilding ? (
         <>
           <button
             type="button"

@@ -2,7 +2,7 @@
 
 // Leader cockpit lives on its own route so the product root can be the login surface.
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Building2,
@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
 import { CampusTileBackground } from "@/components/dashboard/campus-tile-background";
+import { BuildingPriorityScatter } from "@/components/dashboard/building-priority-scatter";
+import { BuildingInsightPopup } from "@/components/dashboard/building-insight-popup";
+import { EmissionSourceFlow } from "@/components/dashboard/emission-source-flow";
 import { useRealtimeNow } from "@/hooks/use-realtime-now";
 import { formatCampusDateTime } from "@/lib/campus-realtime";
 import type { FloatingPanelSpec } from "@/components/dashboard/floating-glass-panel";
@@ -22,11 +25,9 @@ import {
   AdaptiveTrendChart,
   clampPercent,
   CompositionWaffle,
-  DonutBreakdown,
   formatMeasure,
   GaugeDial,
   KpiRibbon,
-  LollipopRanking,
   PanelHeading,
   RadarProfile,
   StatusMatrix,
@@ -42,7 +43,7 @@ import {
   carbonCompositionData,
   energyCompositionData,
   waterCompositionData,
-  getEmissionRankingData,
+  getBuildingPriorityData,
 } from "@/data/leader-dashboard-data";
 import type {
   EconomicZoneData,
@@ -51,8 +52,10 @@ import type {
   MonthlyTrendPoint,
   ResourceConsumptionItem,
   CompositionItem,
-  EmissionRankingItem,
+  BuildingPriorityItem,
 } from "@/data/leader-dashboard-data";
+import type { CampusMapBuilding } from "@/data/campus-map-buildings";
+import styles from "./leader-dashboard.module.css";
 
 function EconomicZonePanel({ data }: { data: EconomicZoneData }) {
   const usedPercent = clampPercent(data.totalQuota > 0 ? (data.usedQuota / data.totalQuota) * 100 : 0);
@@ -88,11 +91,7 @@ function EmissionSourcePanel({ data }: { data: EmissionSourceItem[] }) {
   return (
     <div className="cockpit-panel-fill">
       <PanelHeading icon={<Layers3 />} title="排放源构成" meta={`合计 ${formatMeasure(total, 0)} tCO₂e`} />
-      <DonutBreakdown
-        data={data.map((item) => ({ id: item.name, label: item.name, value: item.value, color: item.color }))}
-        unit="tCO₂e"
-        centerLabel="排放总量"
-      />
+      <EmissionSourceFlow data={data} />
     </div>
   );
 }
@@ -138,14 +137,18 @@ function MonthlyTrendPanel({ data }: { data: MonthlyTrendPoint[] }) {
     target: item.target,
     forecast: item.forecast,
   })), [data]);
+  const first = data.at(0);
   const latest = data.at(-1);
+  const range = first && latest
+    ? `${first.monthKey.replace("-", ".")}—${latest.monthKey.replace("-", ".")}`
+    : "近12个月";
 
   return (
     <div className="p-4">
       <PanelHeading
         icon={<ChartNoAxesCombined />}
-        title="月度累计排放趋势"
-        meta={latest ? `最新 ${formatMeasure(latest.actual, 0)} tCO₂e` : "暂无数据"}
+        title="近12个月月度排放"
+        meta={latest ? `${range} · 本月实时` : "暂无数据"}
       />
       <AdaptiveTrendChart
         data={trendData}
@@ -214,17 +217,18 @@ function CompositionPanel({ carbon, energy, water }: { carbon: CompositionItem[]
   );
 }
 
-function EmissionRankingPanel({ data }: { data: EmissionRankingItem[] }) {
+function BuildingPriorityPanel({ data }: { data: BuildingPriorityItem[] }) {
   return (
-    <div>
-      <PanelHeading icon={<Building2 />} title="建筑排放排名" meta={`${data.length} 栋`} tone="risk" />
-      <LollipopRanking data={data.map((item) => ({ id: item.name, label: item.name, value: item.value, unit: item.unit, color: item.color }))} />
+    <div className="cockpit-panel-fill">
+      <PanelHeading icon={<Building2 />} title="建筑治理优先级" meta={`${data.length} 栋 · 强度 × 目标偏差`} tone="risk" />
+      <BuildingPriorityScatter data={data} />
     </div>
   );
 }
 
 export default function LeaderDashboard() {
   const nowMs = useRealtimeNow();
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const dashboardData = useMemo(() => {
     if (nowMs === null) return null;
     const now = new Date(nowMs);
@@ -235,8 +239,20 @@ export default function LeaderDashboard() {
       risks: getRiskWarnings(now),
       monthlyTrend: getMonthlyTrendData(now),
       resources: getResourceConsumptionData(now),
-      ranking: getEmissionRankingData(now),
+      buildingPriority: getBuildingPriorityData(now),
     };
+  }, [nowMs]);
+
+  const renderBuildingPopup = useCallback((building: CampusMapBuilding, onClose: () => void) => {
+    if (nowMs === null) return null;
+    return (
+      <BuildingInsightPopup
+        building={building}
+        mode="leader"
+        nowMs={nowMs}
+        onClose={onClose}
+      />
+    );
   }, [nowMs]);
 
   if (dashboardData === null) return null;
@@ -247,9 +263,9 @@ export default function LeaderDashboard() {
     { id: "risk-warning", label: "风险与决策事项", priority: "critical", content: <RiskWarningPanel data={dashboardData.risks} /> },
   ];
   const rightPanels: FloatingPanelSpec[] = [
-    { id: "resource-analysis", label: "资源消耗", priority: "critical", content: <ResourceAnalysisPanel data={dashboardData.resources} /> },
-    { id: "composition", label: "分类构成", priority: "secondary", content: <CompositionPanel carbon={carbonCompositionData} energy={energyCompositionData} water={waterCompositionData} /> },
-    { id: "emission-ranking", label: "建筑排放排名", content: <EmissionRankingPanel data={dashboardData.ranking} /> },
+    { id: "resource-analysis", label: "资源消耗", priority: "critical", className: styles["resource-panel"], content: <ResourceAnalysisPanel data={dashboardData.resources} /> },
+    { id: "composition", label: "分类构成", priority: "secondary", className: styles["composition-panel"], content: <CompositionPanel carbon={carbonCompositionData} energy={energyCompositionData} water={waterCompositionData} /> },
+    { id: "building-priority", label: "建筑治理优先级", className: styles["priority-panel"], content: <BuildingPriorityPanel data={dashboardData.buildingPriority} /> },
   ];
 
   return (
@@ -258,11 +274,16 @@ export default function LeaderDashboard() {
       leftPanels={leftPanels}
       rightPanels={rightPanels}
       centerBottomPanel={<MonthlyTrendPanel data={dashboardData.monthlyTrend} />}
-      centerBottomLabel="月度累计排放趋势"
+      centerBottomLabel="近12个月月度排放"
       colorMode="carbon"
+      selectedBuilding={selectedBuildingId}
     >
       <div className="relative h-full">
-        <CampusTileBackground map="2_5d" />
+        <CampusTileBackground
+          map="2_5d"
+          onBuildingSelect={setSelectedBuildingId}
+          renderBuildingPopup={renderBuildingPopup}
+        />
         <KpiRibbon metrics={dashboardData.kpis.map((item) => ({ id: item.label, label: item.label, value: item.value, unit: item.unit, detail: item.sub }))} />
         {nowMs !== null ? (
           <div className="absolute right-3 top-3 z-20 rounded-md border border-cyan-400/20 bg-[#07152f]/90 px-2 py-1 text-[10px] text-cyan-100">

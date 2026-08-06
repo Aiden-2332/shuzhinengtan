@@ -2,7 +2,7 @@
  * 领导组驾驶舱 - 专用数据
  *
  * 涵盖：顶部KPI、经济控制分区、排放源构成、风险预警、
- *       月度累计趋势、资源消耗分析、三类组成、排放TOP 5
+ *       近12个月月度趋势、资源消耗分析、三类组成、排放TOP 5
  */
 
 import {
@@ -13,7 +13,7 @@ import {
   getCampusOperationalSnapshot,
   getSystemAnomalySnapshots,
   getSystemBuildingRanking,
-  getSystemMonthlyCarbon,
+  getSystemRollingMonthlyCarbon,
 } from "@/data/campus-system-data";
 
 // ============================================================
@@ -108,13 +108,14 @@ export const riskWarnings: RiskWarning[] = [
 
 export interface MonthlyTrendPoint {
   month: string;
+  monthKey: string;
   actual: number;
   target: number;
   forecast: number;
 }
 
 export function getMonthlyTrendData(now: Date): MonthlyTrendPoint[] {
-  return getSystemMonthlyCarbon(now).map(({ month, actual, target, forecast }) => ({ month, actual, target, forecast }));
+  return getSystemRollingMonthlyCarbon(now);
 }
 
 // ============================================================
@@ -203,6 +204,15 @@ export function getLeaderKPIs(now = new Date()): LeaderKPI[] {
   ];
 }
 
+export interface BuildingPriorityItem {
+  id: string;
+  name: string;
+  carbonIntensity: number;
+  targetGapPct: number;
+  emission: number;
+  level: "danger" | "warning" | "normal";
+}
+
 export function getEconomicZoneData(now = new Date()): EconomicZoneData {
   const snapshot = getCampusOperationalSnapshot(now);
   const { month } = getCampusDateParts(now);
@@ -272,4 +282,26 @@ export function getEmissionRankingData(now = new Date()): EmissionRankingItem[] 
     unit: "tCO₂e",
     color: colors[index],
   }));
+}
+
+export function getBuildingPriorityData(now = new Date()): BuildingPriorityItem[] {
+  return getSystemBuildingRanking(now, 10).map((building) => {
+    const carbonIntensity = building.area > 0
+      ? building.annualEmissionForecast * 1000 / building.area
+      : 0;
+    const level = building.overTargetPct >= 15 || carbonIntensity >= 95
+      ? "danger"
+      : building.overTargetPct >= 10 || carbonIntensity >= 75
+        ? "warning"
+        : "normal";
+
+    return {
+      id: building.id,
+      name: building.name,
+      carbonIntensity: Math.round(carbonIntensity * 10) / 10,
+      targetGapPct: building.overTargetPct,
+      emission: building.currentYearEmission,
+      level,
+    };
+  });
 }

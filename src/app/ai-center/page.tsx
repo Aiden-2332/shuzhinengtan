@@ -1,132 +1,62 @@
-'use client';
+import AICenterDashboard, { type AICenterBuildingContext } from '@/components/ai-center/AICenterDashboard';
+import type { AICenterSource } from '@/components/ai-center/BuildingAnalysisContext';
+import { getCampusMapBuildings } from '@/data/campus-map-buildings';
+import { getBuildingPeerBenchmark } from '@/data/building-benchmark-data';
+import type { AIModule } from '@/stores/ai-center-store';
 
-import { useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { useAICenterStore } from '@/stores/ai-center-store';
-import {
-  getMockPredictionCurve, getMockHolidayPlans, getMockRiskCalendar,
-  getMockAnomalies, getMockNotifications, getMockRealtimeStream,
-  getMockReductionBubbles, getMockOptimizationPath, getMockCostScenarios,
-  getMockComplianceChecks, getMockPolicyChanges, getMockWelcomeMessage,
-} from '@/data/ai-center-mock';
-import TopTabBar from '@/components/ai-center/TopTabBar';
-import PredictionPanel from '@/components/ai-center/PredictionPanel';
-import PredictionRight from '@/components/ai-center/PredictionRight';
-import MonitoringPanel from '@/components/ai-center/MonitoringPanel';
-import MonitoringRight from '@/components/ai-center/MonitoringRight';
-import PolicyPanel from '@/components/ai-center/PolicyPanel';
-import PolicyRight from '@/components/ai-center/PolicyRight';
-import BottomBar from '@/components/ai-center/BottomBar';
-import AISuggestionPage from '@/app/ai-suggestion/page';
-import { useRealtimeNow } from '@/hooks/use-realtime-now';
+interface AICenterPageProps {
+  searchParams: Promise<{
+    building?: string | string[];
+    module?: string | string[];
+    focus?: string | string[];
+    source?: string | string[];
+  }>;
+}
 
-export default function AICenterPage() {
-  const nowMs = useRealtimeNow();
-  const activeModule = useAICenterStore((s) => s.activeModule);
-  const setPredictionCurve = useAICenterStore((s) => s.setPredictionCurve);
-  const setHolidayPlans = useAICenterStore((s) => s.setHolidayPlans);
-  const setRiskCalendar = useAICenterStore((s) => s.setRiskCalendar);
-  const setAnomalies = useAICenterStore((s) => s.setAnomalies);
-  const setNotifications = useAICenterStore((s) => s.setNotifications);
-  const setReductionBubbles = useAICenterStore((s) => s.setReductionBubbles);
-  const setReductionPath = useAICenterStore((s) => s.setReductionPath);
-  const setCostScenarios = useAICenterStore((s) => s.setCostScenarios);
-  const setComplianceChecks = useAICenterStore((s) => s.setComplianceChecks);
-  const setPolicyChanges = useAICenterStore((s) => s.setPolicyChanges);
-  const setChatMessages = useAICenterStore((s) => s.setChatMessages);
-  const predictionPeriod = useAICenterStore((s) => s.predictionPeriod);
-  const optimizationConstraints = useAICenterStore((s) => s.optimizationConstraints);
+const AI_CENTER_BUILDINGS_BY_ID = new Map(
+  getCampusMapBuildings('2_5d').map((building) => [building.id, building] as const),
+);
+const AI_MODULES = new Set<AIModule>(['prediction', 'monitoring', 'policy', 'suggestion']);
+const AI_SOURCES = new Set<AICenterSource>(['leader', 'operations', 'alarms']);
 
-  // 初始化加载所有模块数据
-  useEffect(() => {
-    setReductionBubbles(getMockReductionBubbles());
-    setReductionPath(getMockOptimizationPath(optimizationConstraints.budget));
-    setCostScenarios(getMockCostScenarios());
-    setComplianceChecks(getMockComplianceChecks());
-    setPolicyChanges(getMockPolicyChanges());
-    setChatMessages([getMockWelcomeMessage()]);
-  }, []);
+export default async function AICenterPage({ searchParams }: AICenterPageProps) {
+  const { building, module, focus, source } = await searchParams;
+  const rawBuildingId = Array.isArray(building) ? building[0] : building;
+  const buildingId = rawBuildingId?.trim().slice(0, 128) || null;
 
-  useEffect(() => {
-    if (nowMs === null) return;
-    const now = new Date(nowMs);
-    setPredictionCurve(getMockPredictionCurve(predictionPeriod, now));
-    setHolidayPlans(getMockHolidayPlans(now));
-    setRiskCalendar(getMockRiskCalendar(now));
-    setAnomalies(getMockAnomalies(now));
-    setNotifications(getMockNotifications(now));
-  }, [nowMs, predictionPeriod, setPredictionCurve, setHolidayPlans, setRiskCalendar, setAnomalies, setNotifications]);
+  let buildingContext: AICenterBuildingContext | null = null;
+  if (buildingId) {
+    const matchedBuilding = AI_CENTER_BUILDINGS_BY_ID.get(buildingId);
+    buildingContext = {
+      id: buildingId,
+      name: matchedBuilding?.name ?? null,
+      carbon: matchedBuilding ? {
+        annualEmission: matchedBuilding.carbon.annualEmission,
+        targetEmission: matchedBuilding.carbon.targetEmission,
+        energyIntensity: matchedBuilding.carbon.energyIntensity,
+        area: matchedBuilding.carbon.area,
+      } : null,
+      benchmark: matchedBuilding ? getBuildingPeerBenchmark(matchedBuilding) : null,
+    };
+  }
 
-  // 实时数据流模拟
-  useEffect(() => {
-    const setRealtimeStream = useAICenterStore.getState().setRealtimeStream;
-    const interval = setInterval(() => {
-      setRealtimeStream(getMockRealtimeStream());
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 预测周期变化时更新
-  useEffect(() => {
-    setPredictionCurve(getMockPredictionCurve(predictionPeriod, nowMs === null ? new Date() : new Date(nowMs)));
-  }, [predictionPeriod, nowMs, setPredictionCurve]);
-
-  const leftPanel = () => {
-    switch (activeModule) {
-      case 'prediction': return <PredictionPanel key="prediction" />;
-      case 'monitoring': return <MonitoringPanel key="monitoring" />;
-      case 'policy': return <PolicyPanel key="policy" />;
-      case 'suggestion': return null;
-    }
-  };
-
-  const rightPanel = () => {
-    switch (activeModule) {
-      case 'prediction': return <PredictionRight key="prediction" />;
-      case 'monitoring': return <MonitoringRight key="monitoring" />;
-      case 'policy': return <PolicyRight key="policy" />;
-      case 'suggestion': return null;
-    }
-  };
+  const rawModule = Array.isArray(module) ? module[0] : module;
+  const initialModule = rawModule && AI_MODULES.has(rawModule as AIModule)
+    ? rawModule as AIModule
+    : null;
+  const rawFocus = Array.isArray(focus) ? focus[0] : focus;
+  const analysisFocus = rawFocus?.trim().slice(0, 80) || null;
+  const rawSource = Array.isArray(source) ? source[0] : source;
+  const initialSource = rawSource && AI_SOURCES.has(rawSource as AICenterSource)
+    ? rawSource as AICenterSource
+    : null;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #081028, #0d1b3d)' }}>
-      {/* 顶部 Tab 栏 */}
-      <TopTabBar />
-
-      {/* AI减排建议 - 全页渲染 */}
-      {activeModule === 'suggestion' ? (
-        <div className="flex-1 overflow-auto" style={{ height: 'calc(100vh - 60px - 72px)' }}>
-          <AISuggestionPage />
-        </div>
-      ) : (
-        <>
-          {/* 主体双栏 */}
-          <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 60px - 72px)' }}>
-            {/* 左侧面板 32% */}
-            <div className="w-[32%] min-w-[380px] border-r overflow-y-auto" style={{ borderColor: 'rgba(52,136,255,0.1)' }}>
-              <AnimatePresence mode="wait">
-                {leftPanel()}
-              </AnimatePresence>
-            </div>
-
-            {/* 右侧主面板 68% */}
-            <div className="flex-1 overflow-y-auto">
-              <AnimatePresence mode="wait">
-                {rightPanel()}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* 底部操作栏 */}
-          <BottomBar />
-        </>
-      )}
-
-      {/* 水印 */}
-      <div className="fixed bottom-2 right-4 text-xs select-none pointer-events-none z-50" style={{ color: 'rgba(140,140,140,0.3)' }}>
-        Demo模拟数据 仅课题演示
-      </div>
-    </div>
+    <AICenterDashboard
+      buildingContext={buildingContext}
+      initialModule={initialModule}
+      analysisFocus={analysisFocus}
+      source={initialSource}
+    />
   );
 }

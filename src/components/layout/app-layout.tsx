@@ -43,7 +43,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   return (
-    <div data-theme={theme} className={`theme-root flex h-screen overflow-hidden ${isEnergy ? "bg-slate-100" : "bg-slate-950"}`}>
+    <div data-theme={theme} className={`theme-root flex h-screen flex-col overflow-hidden ${isEnergy ? "bg-slate-100" : "bg-slate-950"}`}>
       {/* Background Grid Effect - only for dark pages */}
       {!isEnergy && !isCockpit && (
         <div
@@ -58,18 +58,16 @@ export function AppLayout({ children }: AppLayoutProps) {
         />
       )}
 
-      {/* Sidebar - ????????? */}
-      {!isCockpit && <AppSidebar collapsed={sidebarCollapsed} />}
+      <AppHeader
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
+        theme={theme}
+        onThemeChange={handleThemeChange}
+      />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AppHeader
-          sidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-          theme={theme}
-          onThemeChange={handleThemeChange}
-        />
-        <main className={`flex-1 min-h-0 relative ${isCockpit ? "overflow-hidden" : "overflow-y-auto p-6"} ${isEnergy ? "energy-theme" : ""}`}>
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {!isCockpit && <AppSidebar collapsed={sidebarCollapsed} />}
+        <main className={`relative min-w-0 flex-1 ${isCockpit ? "overflow-hidden" : "overflow-y-auto p-6"} ${isEnergy ? "energy-theme" : ""}`}>
           {children}
         </main>
       </div>

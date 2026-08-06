@@ -32,8 +32,6 @@ import {
   type CampusMapBuilding,
 } from "@/data/campus-map-buildings";
 
-export const CAMPUS_MAP_HEADER_SLOT_ID = "campus-map-header-toolbar";
-
 export interface CampusMapOverlayControlsProps {
   buildings: CampusMapBuilding[];
   selectedBuildingId: string | null;

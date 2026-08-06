@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -9,7 +10,6 @@ import {
   Bell,
   User,
   ChevronDown,
-  Leaf,
   X,
   AlertTriangle,
   AlertCircle,
@@ -21,10 +21,12 @@ import {
   Factory,
   Grid3X3,
 } from "lucide-react";
+import { CampusMapOverlayControls } from "@/components/dashboard/campus-map-overlay-controls";
 import type { AlarmRecord } from "@/data/energy-monitor-data";
 import { getSystemAnomalySnapshots } from "@/data/campus-system-data";
 import { useRealtimeNow } from "@/hooks/use-realtime-now";
 import { formatCampusDateTime, getCampusDateParts } from "@/lib/campus-realtime";
+import { useCampusMapToolbarStore } from "@/stores/campus-map-toolbar-store";
 import { ThemeSwitcher, type CockpitTheme } from "./theme-switcher";
 import { NavAtmosphere } from "./nav-atmosphere";
 
@@ -49,6 +51,12 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
 
   // 判断是否在驾驶舱页面
   const isCockpit = COCKPIT_ROUTES.includes(pathname);
+  const isMapSurface = isCockpit || pathname === "/campus-map";
+  const mapToolbar = useCampusMapToolbarStore((state) => state.toolbar);
+  const setMapLabels = useCampusMapToolbarStore((state) => state.setShowLabels);
+  const setMapBuildingFrames = useCampusMapToolbarStore((state) => state.setShowBuildingFrames);
+  const setMapLayer = useCampusMapToolbarStore((state) => state.setActiveLayer);
+  const selectMapBuilding = useCampusMapToolbarStore((state) => state.selectBuilding);
   const currentUser = useMemo(() => {
     if (pathname === "/leader") {
       return { name: "校领导", role: "领导舱演示" };
@@ -131,49 +139,33 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
 
   // 驾驶舱按钮配置
   const cockpitButtons = [
-    { key: "L1", label: "领导组驾驶舱", icon: LayoutDashboard, href: "/leader", color: "from-cyan-500 to-blue-600" },
-    { key: "L3", label: "后勤组驾驶舱", icon: Factory, href: "/operations", color: "from-orange-500 to-amber-600" },
+    { key: "L1", label: "领导组驾驶舱", shortLabel: "领导舱", icon: LayoutDashboard, href: "/leader" },
+    { key: "L3", label: "后勤组驾驶舱", shortLabel: "后勤舱", icon: Factory, href: "/operations" },
   ];
 
   return (
     <header
-      className="app-header relative z-50 flex h-14 items-center justify-between gap-2 px-4"
+      className="app-header"
       data-cockpit={isCockpit ? "true" : "false"}
+      data-map-surface={isMapSurface ? "true" : "false"}
     >
-      <NavAtmosphere theme={theme} staticMode={isCockpit} />
-      {/* Left Section */}
-      <div className="relative z-10 flex shrink-0 items-center gap-3">
+      <NavAtmosphere theme={theme} staticMode={isMapSurface} />
+
+      <div className="app-header__left">
         {/* Sidebar Toggle (非驾驶舱时显示) */}
         {!isCockpit && (
           <button
             onClick={onToggleSidebar}
-            className="p-2 rounded-lg hover:bg-slate-800/50 transition-colors text-gray-400 hover:text-cyan-400"
+            className="app-header__icon-button"
             title={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+            aria-label={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
           >
-            {sidebarCollapsed ? (
-              <Grid3X3 className="w-5 h-5" />
-            ) : (
-              <Grid3X3 className="w-5 h-5" />
-            )}
+            <Grid3X3 className="h-5 w-5" />
           </button>
         )}
 
-        {/* Logo */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-            <Leaf className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-white leading-tight">高校智慧碳管理</h1>
-            <p className="text-[10px] text-cyan-400 leading-tight">Smart Carbon Platform</p>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="h-6 w-px bg-gray-700/50" />
-
         {/* 驾驶舱入口按钮组 */}
-        <div className="flex items-center gap-1.5">
+        <nav className="app-header__nav" aria-label="驾驶舱入口">
           {cockpitButtons.map((btn) => {
             const Icon = btn.icon;
             const isActive = pathname === btn.href;
@@ -183,14 +175,14 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
                 aria-label={btn.label}
                 title={btn.label}
                 onClick={() => router.push(btn.href)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 max-[1500px]:px-2 rounded-lg border transition-all duration-200 text-xs font-medium ${
+                className={`app-header__nav-button ${
                   isActive
                     ? "bg-cyan-500/20 border-cyan-500/60 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
                     : "bg-slate-800/40 border-gray-700/50 text-gray-400 hover:bg-slate-700/40 hover:border-gray-600 hover:text-gray-300"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
-                <span className="max-[1500px]:hidden">{btn.label}</span>
+                <span className="app-header__nav-label">{btn.shortLabel}</span>
               </button>
             );
           })}
@@ -201,19 +193,35 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
               aria-label="功能目录"
               title="功能目录"
               onClick={() => router.push("/portal")}
-              className="flex items-center gap-1.5 px-3 py-1.5 max-[1500px]:px-2 rounded-lg border border-gray-700/50 bg-slate-800/40 text-gray-400 hover:bg-slate-700/40 hover:text-gray-300 transition-all duration-200 text-xs font-medium"
+              className="app-header__nav-button border-gray-700/50 bg-slate-800/40 text-gray-400 hover:border-gray-600 hover:bg-slate-700/40 hover:text-gray-300"
             >
               <Grid3X3 className="w-3.5 h-3.5" />
-              <span className="max-[1500px]:hidden">功能目录</span>
+              <span className="app-header__nav-label">功能目录</span>
             </button>
           )}
-        </div>
+        </nav>
+
+        {isCockpit && mapToolbar ? (
+          <div className="app-header__map-toolbar" aria-label="地图顶部工具栏">
+            <CampusMapOverlayControls
+              key={mapToolbar.ownerId}
+              buildings={mapToolbar.buildings}
+              selectedBuildingId={mapToolbar.selectedBuildingId}
+              showLabels={mapToolbar.showLabels}
+              showBuildingFrames={mapToolbar.showBuildingFrames}
+              activeLayer={mapToolbar.activeLayer}
+              onShowLabelsChange={setMapLabels}
+              onShowBuildingFramesChange={setMapBuildingFrames}
+              onLayerChange={setMapLayer}
+              onBuildingSelect={selectMapBuilding}
+            />
+          </div>
+        ) : null}
 
         {/* Filters (非驾驶舱时显示) */}
         {!isCockpit && (
-          <>
-            <div className="h-6 w-px bg-gray-700/50" />
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/50 border border-cyan-500/20">
+          <div className="app-header__filters">
+            <div className="app-header__filter">
               <Calendar className="w-3.5 h-3.5 text-cyan-400" />
               <select
                 value={year}
@@ -225,7 +233,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/50 border border-cyan-500/20">
+            <div className="app-header__filter">
               <MapPin className="w-3.5 h-3.5 text-cyan-400" />
               <select
                 value={campus}
@@ -237,7 +245,7 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
                 <option value="east">东校区</option>
               </select>
             </div>
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/50 border border-cyan-500/20">
+            <div className="app-header__filter">
               <Database className="w-3.5 h-3.5 text-cyan-400" />
               <select
                 value={dataStatus}
@@ -249,30 +257,44 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
                 <option value="yearly">年度确认</option>
               </select>
             </div>
-          </>
+          </div>
         )}
       </div>
 
-      {/* The active cockpit map owns this slot through a React portal. Keeping
-          controls here prevents search and layer switches from covering map content. */}
-      <div
-        id="campus-map-header-toolbar"
-        aria-label="地图顶部工具栏"
-        className={isCockpit ? "relative z-10 mx-1 flex min-w-0 flex-1 items-center justify-center" : "hidden"}
-      />
+      <div className="app-header__brand" aria-label="高校智慧碳管理平台">
+        <span className="app-header__brand-logo">
+          <Image
+            src="/brand/timeloit-wordmark-light.png"
+            alt="Timeloit"
+            width={2184}
+            height={720}
+            sizes="112px"
+            priority
+          />
+        </span>
+        <span className="app-header__brand-divider" aria-hidden="true" />
+        <span className="app-header__brand-copy">
+          <h1>高校智慧碳管理平台</h1>
+          <span>Smart Carbon Platform</span>
+        </span>
+      </div>
 
       {/* Right Section */}
-      <div className="relative z-10 flex shrink-0 items-center gap-3">
+      <div className="app-header__right">
         <ThemeSwitcher value={theme} onChange={onThemeChange} />
         {/* Notifications - Alarm Center */}
         <div className="relative" ref={alarmRef}>
           <button
+            type="button"
             onClick={() => {
               setShowAlarms(!showAlarms);
               setShowLogin(false);
             }}
             className="relative p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
             title="告警中心"
+            aria-label={`告警中心，${unreadCount} 条待处理`}
+            aria-expanded={showAlarms}
+            aria-haspopup="dialog"
           >
             <Bell className="w-5 h-5 text-gray-400" />
             {unreadCount > 0 && (
@@ -375,20 +397,24 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
         {/* Demo profile */}
         <div className="relative" ref={loginRef}>
           <button
+            type="button"
             onClick={() => {
               setShowLogin(!showLogin);
               setShowAlarms(false);
             }}
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-cyan-500/20 hover:border-cyan-500/40 transition-colors"
+            className="flex items-center gap-2.5 rounded-lg border border-cyan-500/20 bg-slate-800/50 px-3 py-1.5 transition-colors hover:border-cyan-500/40 max-[1280px]:gap-1.5 max-[1280px]:px-2"
+            aria-label={`${currentUser.name}，${currentUser.role}`}
+            aria-expanded={showLogin}
+            aria-haspopup="dialog"
           >
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
               <User className="w-3.5 h-3.5 text-white" />
             </div>
-            <div className="text-xs">
+            <div className="text-xs max-[1280px]:hidden">
               <div className="text-gray-300 font-medium">{currentUser.name}</div>
               <div className="text-[10px] text-gray-500">{currentUser.role}</div>
             </div>
-            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showLogin ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform max-[1280px]:hidden ${showLogin ? "rotate-180" : ""}`} />
           </button>
 
           {/* Demo profile panel */}

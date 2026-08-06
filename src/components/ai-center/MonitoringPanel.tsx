@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAICenterStore, type AIAnomalyCard, type SeverityLevel } from '@/stores/ai-center-store';
 import RealtimeStreamDisplay from './RealtimeStreamDisplay';
@@ -28,16 +28,33 @@ const PATTERN_ICONS: Record<string, string> = {
   drift: '📉',
 };
 
-export default function MonitoringPanel() {
+export default function MonitoringPanel({ focusAlarmId = null }: { focusAlarmId?: string | null }) {
   const anomalies = useAICenterStore((s) => s.anomalies);
   const acknowledgeAnomaly = useAICenterStore((s) => s.acknowledgeAnomaly);
   const openDrawer = useAICenterStore((s) => s.openDrawer);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const lastFocusedAlarmIdRef = useRef<string | null>(null);
 
-  const sortedAnomalies = [...anomalies].sort((a, b) => {
+  const sortedAnomalies = anomalies.toSorted((a, b) => {
     const order: SeverityLevel[] = ['blocking', 'severe', 'normal', 'info'];
     return order.indexOf(a.severity) - order.indexOf(b.severity);
   });
+  const activeAnomalyId = expandedId ?? sortedAnomalies[0]?.id ?? '';
+
+  useEffect(() => {
+    if (
+      !focusAlarmId
+      || lastFocusedAlarmIdRef.current === focusAlarmId
+      || !anomalies.some((anomaly) => anomaly.id === focusAlarmId)
+    ) return;
+
+    lastFocusedAlarmIdRef.current = focusAlarmId;
+    setExpandedId(focusAlarmId);
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`ai-anomaly-${focusAlarmId}`)?.scrollIntoView({ block: 'center' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [anomalies, focusAlarmId]);
 
   return (
     <motion.div
@@ -70,7 +87,7 @@ export default function MonitoringPanel() {
 
       {/* 事件时间线 */}
       <SectionCard title="事件时间线">
-        <AnomalyTimeline anomalyId={anomalies[0]?.id || ''} />
+        <AnomalyTimeline anomalyId={activeAnomalyId} />
       </SectionCard>
 
       {/* 告警推送中心 */}
@@ -98,11 +115,11 @@ function AnomalyCard({
 
   return (
     <div
+      id={`ai-anomaly-${anomaly.id}`}
       className="rounded-lg overflow-hidden transition-all duration-200"
       style={{
         background: 'rgba(255,255,255,0.04)',
         border: `1px solid ${SEVERITY_COLORS[anomaly.severity]}30`,
-        borderLeft: `3px solid ${SEVERITY_COLORS[anomaly.severity]}`,
       }}
     >
       <button onClick={onToggle} className="w-full p-3 text-left">

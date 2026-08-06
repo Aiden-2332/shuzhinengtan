@@ -1,0 +1,146 @@
+.root {
+  container-type: inline-size;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.plot {
+  display: block;
+  min-height: 280px;
+  flex: 1 1 0;
+  width: 100%;
+  overflow: visible;
+}
+
+.priority-zone {
+  fill: rgb(233 111 131 / 8%);
+  stroke: rgb(233 111 131 / 28%);
+  stroke-dasharray: 3 4;
+}
+
+.zone-label {
+  fill: #f0b94f;
+  font-size: 8.5px;
+  font-weight: 700;
+}
+
+.grid-line {
+  stroke: rgb(167 189 194 / 14%);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+
+.axis-line {
+  stroke: rgb(167 189 194 / 28%);
+  stroke-width: 1;
+}
+
+.threshold-line {
+  stroke: rgb(240 185 79 / 52%);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.axis-text {
+  fill: var(--theme-subtle);
+  font-size: 8px;
+}
+
+.axis-title {
+  fill: var(--theme-muted);
+  font-size: 8px;
+}
+
+.bubble {
+  outline: none;
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
+.bubble:hover,
+.bubble:focus-visible {
+  filter: brightness(1.14);
+}
+
+.bubble-circle {
+  stroke-width: 1.35;
+  vector-effect: non-scaling-stroke;
+}
+
+.bubble:focus-visible .bubble-circle {
+  stroke: #f5ffff;
+  stroke-width: 2;
+}
+
+.bubble-leader {
+  stroke: rgb(211 235 235 / 48%);
+  stroke-width: .75;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.bubble-anchor {
+  fill: #e9ffff;
+  stroke: rgb(5 27 34 / 72%);
+  stroke-width: .75;
+  vector-effect: non-scaling-stroke;
+}
+
+.bubble-label {
+  fill: #effffd;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: -.15px;
+  paint-order: stroke;
+  stroke: rgb(4 21 28 / 82%);
+  stroke-linejoin: round;
+  stroke-width: 2.25px;
+  text-anchor: middle;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--theme-subtle);
+  font-size: 8.5px;
+}
+
+.legend-items {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.legend-item i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.legend-hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container (max-width: 270px) {
+  .legend-hint { display: none; }
+
+  .legend { justify-content: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble { transition: none; }
+}

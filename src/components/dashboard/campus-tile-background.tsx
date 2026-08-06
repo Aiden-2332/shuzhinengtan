@@ -10,24 +10,25 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
 import { Minus, Move, Plus, RotateCcw } from "lucide-react";
 import { CampusBuildingLayer } from "@/components/dashboard/campus-building-layer";
 import {
-  CAMPUS_MAP_HEADER_SLOT_ID,
-  CampusMapOverlayControls,
-} from "@/components/dashboard/campus-map-overlay-controls";
-import {
   getCampusBuildingLayer,
   getCampusMapBuildings,
+  type CampusMapBuilding,
   type CampusLayerFilter,
   type CampusMapKind,
 } from "@/data/campus-map-buildings";
+import { useCampusMapToolbarStore } from "@/stores/campus-map-toolbar-store";
 
 interface CampusTileBackgroundProps {
   map: CampusMapKind;
   className?: string;
+  initialBuildingId?: string | null;
+  onBuildingSelect?: (buildingId: string | null) => void;
+  renderBuildingPopup?: (building: CampusMapBuilding, onClose: () => void) => ReactNode;
 }
 
 interface ViewportSize {
@@ -582,9 +583,13 @@ function CampusMapEdgeFog({
 export function CampusTileBackground({
   map,
   className = "",
+  initialBuildingId = null,
+  onBuildingSelect,
+  renderBuildingPopup,
 }: CampusTileBackgroundProps) {
   const config = MAP_CONFIG[map];
   const initialTileZoom = selectTileZoom(config.initialScale, config);
+  const toolbarOwnerId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<ViewState | null>(null);
   const viewportRef = useRef<ViewportSize>({ width: 0, height: 0 });
@@ -596,6 +601,9 @@ export function CampusTileBackground({
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const dragRef = useRef<DragGesture | null>(null);
   const pinchRef = useRef<PinchGesture | null>(null);
+  const appliedInitialBuildingRef = useRef<string | null>(null);
+  const registerToolbar = useCampusMapToolbarStore((state) => state.registerToolbar);
+  const unregisterToolbar = useCampusMapToolbarStore((state) => state.unregisterToolbar);
 
   const [viewport, setViewport] = useState<ViewportSize>({ width: 0, height: 0 });
   const [view, setView] = useState<ViewState | null>(null);
@@ -605,7 +613,6 @@ export function CampusTileBackground({
   const [showBuildingFrames, setShowBuildingFrames] = useState(false);
   const [activeLayer, setActiveLayer] = useState<CampusLayerFilter>("all");
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
-  const [headerToolbarSlot, setHeaderToolbarSlot] = useState<HTMLElement | null>(null);
 
   const mappedBuildings = getCampusMapBuildings(map);
   const visibleBuildings = useMemo(
@@ -617,10 +624,6 @@ export function CampusTileBackground({
           ),
     [activeLayer, mappedBuildings],
   );
-
-  useEffect(() => {
-    setHeaderToolbarSlot(document.getElementById(CAMPUS_MAP_HEADER_SLOT_ID));
-  }, []);
 
   const scheduleView = useCallback((candidate: ViewState) => {
     const constrained = constrainView(candidate, viewportRef.current, config);
@@ -698,14 +701,19 @@ export function CampusTileBackground({
     });
   }, [config, mappedBuildings, scheduleView]);
 
+  const updateSelectedBuilding = useCallback((buildingId: string | null) => {
+    setSelectedBuildingId(buildingId);
+    onBuildingSelect?.(buildingId);
+  }, [onBuildingSelect]);
+
   const selectFromSearch = useCallback((buildingId: string) => {
     const building = mappedBuildings.find((item) => item.id === buildingId);
     if (building && activeLayer !== "all") {
       setActiveLayer(getCampusBuildingLayer(building));
     }
-    setSelectedBuildingId(buildingId);
+    updateSelectedBuilding(buildingId);
     focusBuilding(buildingId);
-  }, [activeLayer, focusBuilding, mappedBuildings]);
+  }, [activeLayer, focusBuilding, mappedBuildings, updateSelectedBuilding]);
 
   const changeLayer = useCallback((layer: CampusLayerFilter) => {
     setActiveLayer(layer);
@@ -718,14 +726,65 @@ export function CampusTileBackground({
       selectedBuilding &&
       getCampusBuildingLayer(selectedBuilding) !== layer
     ) {
-      setSelectedBuildingId(null);
+      updateSelectedBuilding(null);
     }
-  }, [mappedBuildings, selectedBuildingId]);
+  }, [mappedBuildings, selectedBuildingId, updateSelectedBuilding]);
 
   const selectBuilding = useCallback((buildingId: string | null) => {
-    setSelectedBuildingId(buildingId);
+    updateSelectedBuilding(buildingId);
     if (buildingId) focusBuilding(buildingId);
-  }, [focusBuilding]);
+  }, [focusBuilding, updateSelectedBuilding]);
+
+  useEffect(() => {
+    registerToolbar({
+      ownerId: toolbarOwnerId,
+      buildings: mappedBuildings,
+      selectedBuildingId,
+      showLabels: showBuildingLabels,
+      showBuildingFrames,
+      activeLayer,
+      onShowLabelsChange: setShowBuildingLabels,
+      onShowBuildingFramesChange: setShowBuildingFrames,
+      onLayerChange: changeLayer,
+      onBuildingSelect: selectFromSearch,
+    });
+  }, [
+    activeLayer,
+    changeLayer,
+    mappedBuildings,
+    registerToolbar,
+    selectFromSearch,
+    selectedBuildingId,
+    showBuildingFrames,
+    showBuildingLabels,
+    toolbarOwnerId,
+  ]);
+
+  useEffect(
+    () => () => unregisterToolbar(toolbarOwnerId),
+    [toolbarOwnerId, unregisterToolbar],
+  );
+
+  useEffect(() => {
+    if (
+      !initialBuildingId ||
+      !view ||
+      appliedInitialBuildingRef.current === initialBuildingId
+    ) return;
+    const building = mappedBuildings.find((item) => item.id === initialBuildingId);
+    if (!building) return;
+    appliedInitialBuildingRef.current = initialBuildingId;
+    if (activeLayer !== "all") setActiveLayer(getCampusBuildingLayer(building));
+    updateSelectedBuilding(initialBuildingId);
+    focusBuilding(initialBuildingId);
+  }, [
+    activeLayer,
+    focusBuilding,
+    initialBuildingId,
+    mappedBuildings,
+    updateSelectedBuilding,
+    view,
+  ]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -777,6 +836,10 @@ export function CampusTileBackground({
     if (!container) return;
 
     const handleWheel = (event: WheelEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-campus-building-popup-anchor]")) {
+        return;
+      }
       event.preventDefault();
       const current = viewRef.current;
       if (!current) return;
@@ -926,10 +989,10 @@ export function CampusTileBackground({
         completedDrag?.pointerId === event.pointerId &&
         !completedDrag.moved
       ) {
-        setSelectedBuildingId(null);
+        updateSelectedBuilding(null);
       }
     }
-  }, []);
+  }, [updateSelectedBuilding]);
 
   const handleDoubleClick = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const current = viewRef.current;
@@ -954,33 +1017,6 @@ export function CampusTileBackground({
   const fitScale = getFitScale(viewport, config);
   const canZoomOut = Boolean(view && view.scale > fitScale + 0.000_001);
   const canZoomIn = Boolean(view && view.scale < MAX_NATIVE_SCALE - 0.000_001);
-
-  const headerToolbar = useMemo(() => {
-    if (!headerToolbarSlot) return null;
-    return createPortal(
-      <CampusMapOverlayControls
-        buildings={mappedBuildings}
-        selectedBuildingId={selectedBuildingId}
-        showLabels={showBuildingLabels}
-        showBuildingFrames={showBuildingFrames}
-        activeLayer={activeLayer}
-        onShowLabelsChange={setShowBuildingLabels}
-        onShowBuildingFramesChange={setShowBuildingFrames}
-        onLayerChange={changeLayer}
-        onBuildingSelect={selectFromSearch}
-      />,
-      headerToolbarSlot,
-    );
-  }, [
-    activeLayer,
-    changeLayer,
-    headerToolbarSlot,
-    mappedBuildings,
-    selectFromSearch,
-    selectedBuildingId,
-    showBuildingFrames,
-    showBuildingLabels,
-  ]);
 
   return (
     <div
@@ -1053,10 +1089,9 @@ export function CampusTileBackground({
           selectedBuildingId={selectedBuildingId}
           animateTransform={!isInteracting}
           onSelect={selectBuilding}
+          renderPopup={renderBuildingPopup}
         />
       ) : null}
-
-      {headerToolbar}
 
       <div
         className="absolute top-[calc(var(--cockpit-edge)+72px)] z-20 flex flex-col items-end gap-2"
