@@ -1,25 +1,13 @@
-.resource-panel {
-  flex-grow: .82;
-}
+.resource-panel { flex-grow: 1.1; }
 
-.composition-panel {
-  flex-grow: .74;
-}
+.composition-panel { flex-grow: .92; }
 
-.priority-panel {
-  flex-grow: 1.58;
-}
+.priority-panel { flex-grow: 1.28; }
 
 @media (height <= 820px) {
-  .resource-panel {
-    flex-grow: .76;
-  }
+  .resource-panel { flex-grow: 1.16; }
 
-  .composition-panel {
-    flex-grow: .68;
-  }
+  .composition-panel { flex-grow: .98; }
 
-  .priority-panel {
-    flex-grow: 1.46;
-  }
+  .priority-panel { flex-grow: 1.2; }
 }

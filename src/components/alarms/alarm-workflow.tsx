@@ -78,7 +78,7 @@ function WorkflowActions({
   const isClosed = alarm.status === "resolved" || alarm.status === "closed";
   const assignee = workflow.assignee;
   const buttonClass = compact
-    ? "h-8 px-2.5 text-[10px]"
+    ? "h-8 px-2.5 text-xs"
     : "h-9 px-3 text-xs";
 
   return (
@@ -143,7 +143,7 @@ function WorkflowActions({
         </Link>
       </div>
       <p className="sr-only" aria-live="polite">{override?.lastAction ?? ""}</p>
-      {override?.lastAction ? <p className={cn("text-emerald-200/80", compact ? "mt-2 text-[10px]" : "mt-2.5 text-xs")}>{override.lastAction}</p> : null}
+      {override?.lastAction ? <p className={cn("text-emerald-200/80", compact ? "mt-2 text-xs" : "mt-2.5 text-xs")}>{override.lastAction}</p> : null}
     </>
   );
 }
@@ -171,10 +171,10 @@ export function AlarmWorkflowCompact({
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", SLA_TONES[workflow.slaState])}>{workflow.slaLabel}</span>
-            {workflow.escalationLevel ? <span className="text-[10px] font-medium text-rose-300">升级 Lv.{workflow.escalationLevel}</span> : null}
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", SLA_TONES[workflow.slaState])}>{workflow.slaLabel}</span>
+            {workflow.escalationLevel ? <span className="text-xs font-medium text-rose-300">升级 Lv.{workflow.escalationLevel}</span> : null}
           </div>
-          <p className="mt-1 truncate text-[10px] text-slate-500">
+          <p className="mt-1 truncate text-xs text-slate-500">
             {workflow.assignee ? `责任人 ${workflow.assignee}` : `待派单 · 推荐 ${workflow.recommendedAssignee}`} · 进度 {workflow.progress}%
           </p>
         </div>
@@ -185,7 +185,7 @@ export function AlarmWorkflowCompact({
         <div className="h-1 overflow-hidden rounded-full bg-white/8" role="progressbar" aria-label={`${alarm.title}处置进度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={workflow.progress}>
           <div className="h-full rounded-full bg-cyan-300 transition-[width] duration-200" style={{ width: `${workflow.progress}%` }} />
         </div>
-        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-slate-400">
+        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-400">
           <span className="truncate">工单：{workflow.workOrderId}</span>
           <span className="text-right">{workflow.notificationLabel}</span>
         </div>

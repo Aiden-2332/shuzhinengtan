@@ -167,11 +167,11 @@ function LoadCurveChart({ series }: { series: LoadCurveSeries[] }) {
       </div>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="time" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} interval={3} />
-          <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} unit="kW" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--energy-grid)" />
+          <XAxis dataKey="time" tick={{ fontSize: 11, fill: 'var(--energy-axis)' }} interval={3} />
+          <YAxis tick={{ fontSize: 11, fill: 'var(--energy-axis)' }} unit="kW" />
           <Tooltip
-            contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
+            contentStyle={{ background: 'var(--energy-tooltip)', border: '1px solid var(--energy-border)', borderRadius: 8, fontSize: 12 }}
           />
           {filtered.map(s => (
             <Line key={s.buildingId} type="monotone" dataKey={s.buildingName} stroke={s.color} strokeWidth={2} dot={false} />

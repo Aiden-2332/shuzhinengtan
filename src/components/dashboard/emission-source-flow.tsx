@@ -18,10 +18,10 @@ interface PreparedDatum extends EmissionSourceFlowDatum {
 }
 
 const WIDTH = 330;
-const HEIGHT = 196;
+const HEIGHT = 190;
 const SOURCE_X = 84;
-const SOURCE_Y = 92;
-const TARGET_X = 214;
+const SOURCE_Y = 106;
+const TARGET_X = 202;
 const RAIL_X = 18;
 const RAIL_WIDTH = 294;
 const MAX_VISIBLE_SOURCES = 5;
@@ -48,8 +48,8 @@ function prepareData(data: EmissionSourceFlowDatum[]): PreparedDatum[] {
         },
       ];
   const total = visible.reduce((sum, item) => sum + item.value, 0);
-  const top = 22;
-  const bottom = 148;
+  const top = 18;
+  const bottom = 138;
   const step = visible.length > 1 ? (bottom - top) / (visible.length - 1) : 0;
   let railOffset = 0;
 
@@ -103,38 +103,38 @@ export function EmissionSourceFlow({ data, unit = "tCO₂e" }: { data: EmissionS
               />
               <circle className={styles["endpoint-halo"]} cx={TARGET_X} cy={item.targetY} r={5.2} stroke={item.color} />
               <circle className={styles.endpoint} cx={TARGET_X} cy={item.targetY} r={2.8} fill={item.color} />
-              <text className={styles.label} x={TARGET_X + 11} y={item.targetY - 2}>{item.name}</text>
-              <text className={styles.value} x={TARGET_X + 11} y={item.targetY + 9}>{formatValue(item.value)} {unit}</text>
-              <text className={styles.share} x={WIDTH - 5} y={item.targetY + 2} textAnchor="end">{item.share.toFixed(0)}%</text>
+              <text className={styles.label} x={TARGET_X + 11} y={item.targetY - 4}>{item.name}</text>
+              <text className={styles.value} x={TARGET_X + 11} y={item.targetY + 11}>{formatValue(item.value)} {unit}</text>
+              <text className={styles.share} x={WIDTH - 5} y={item.targetY - 4} textAnchor="end">{item.share.toFixed(0)}%</text>
             </g>
           );
         })}
 
         <g className={styles["source-node"]} aria-hidden="true">
-          <rect x="12" y="53" width="72" height="78" rx="13" />
-          <path d="M 20 67 H 35 M 20 117 H 35 M 61 67 H 76 M 61 117 H 76" />
-          <text className={styles["source-label"]} x="48" y="73" textAnchor="middle">年度累计</text>
-          <text className={styles["source-value"]} x="48" y="98" textAnchor="middle">{formatValue(total)}</text>
-          <text className={styles["source-unit"]} x="48" y="113" textAnchor="middle">{unit}</text>
-          <circle className={styles["source-signal"]} cx="77" cy="60" r="2.5" />
+          <rect x="12" y="64" width="72" height="84" rx="13" />
+          <path d="M 20 79 H 35 M 20 133 H 35 M 61 79 H 76 M 61 133 H 76" />
+          <text className={styles["source-label"]} x="48" y="86" textAnchor="middle">年度累计</text>
+          <text className={styles["source-value"]} x="48" y="113" textAnchor="middle">{formatValue(total)}</text>
+          <text className={styles["source-unit"]} x="48" y="130" textAnchor="middle">{unit}</text>
+          <circle className={styles["source-signal"]} cx="77" cy="71" r="2.5" />
         </g>
 
         <g aria-label="排放源百分比总带">
-          <rect className={styles["rail-track"]} x={RAIL_X} y="174" width={RAIL_WIDTH} height="10" rx="3" />
+          <rect className={styles["rail-track"]} x={RAIL_X} y="160" width={RAIL_WIDTH} height="9" rx="3" />
           {prepared.map((item, index) => (
             <rect
               className={styles["rail-segment"]}
               key={`${item.id}-rail`}
               x={item.railX}
-              y="174"
+              y="160"
               width={Math.max(0, item.railWidth)}
-              height="10"
+              height="9"
               fill={item.color}
               rx={index === 0 || index === prepared.length - 1 ? 3 : 0}
             />
           ))}
-          <text className={styles["rail-caption"]} x={RAIL_X} y="193">100% 排放构成</text>
-          <text className={styles["rail-caption"]} x={RAIL_X + RAIL_WIDTH} y="193" textAnchor="end">流带粗细 = 来源占比</text>
+          <text className={styles["rail-caption"]} x={RAIL_X} y="183">100% 排放构成</text>
+          <text className={styles["rail-caption"]} x={RAIL_X + RAIL_WIDTH} y="183" textAnchor="end">流带粗细 = 来源占比</text>
         </g>
       </svg>
     </div>

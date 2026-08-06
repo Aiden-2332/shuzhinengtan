@@ -45,7 +45,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   return (
-    <div data-theme={theme} className={`theme-root flex h-screen flex-col overflow-hidden ${isEnergy ? "bg-slate-100" : "bg-slate-950"}`}>
+    <div data-theme={theme} className={`theme-root flex h-screen flex-col overflow-hidden ${isEnergy ? "bg-[#07131c]" : "bg-slate-950"}`}>
       {/* Background Grid Effect - only for dark pages */}
       {!isEnergy && !isCockpit && (
         <div

@@ -18,6 +18,7 @@ import { useRealtimeNow } from "@/hooks/use-realtime-now";
 import type { FloatingPanelSpec } from "@/components/dashboard/floating-glass-panel";
 import {
   AdaptiveTrendChart,
+  clampPercent,
   DonutBreakdown,
   formatMeasure,
   GaugeGrid,
@@ -151,13 +152,66 @@ function SystemEfficiencyPanel({ systems }: { systems: SystemEfficiencyItem[] })
 
 function InstrumentStatusPanel({ data }: { data: InstrumentStatus }) {
   const rows = [
-    { id: "online", label: "仪表在线率", value: data.onlineRate, unit: "%", detail: `在线 ${data.onlineCount} · 离线 ${data.offlineCount}` },
-    { id: "complete", label: "数据完整率", value: data.completenessRate, unit: "%", detail: `完整 ${data.completeCount} · 缺失 ${data.missingCount}` },
+    {
+      id: "online",
+      label: "仪表在线率",
+      healthyLabel: "在线",
+      issueLabel: "离线",
+      healthyCount: data.onlineCount,
+      issueCount: data.offlineCount,
+      rate: data.onlineRate,
+    },
+    {
+      id: "complete",
+      label: "数据完整率",
+      healthyLabel: "完整",
+      issueLabel: "缺失",
+      healthyCount: data.completeCount,
+      issueCount: data.missingCount,
+      rate: data.completenessRate,
+    },
   ];
+
   return (
-    <div className="cockpit-panel-fill">
+    <div className="cockpit-panel-fill cockpit-instrument-status">
       <PanelHeading icon={<Gauge />} title="仪表与数据状态" meta="实时质量" />
-      <GaugeGrid data={rows} />
+      {data.totalCount > 0 ? <div className="cockpit-status-distribution" role="list" aria-label="仪表与数据状态分布">
+        <div className="cockpit-status-distribution__context" role="presentation">
+          <span>监测对象</span>
+          <strong>{formatMeasure(data.totalCount, 0)}<small>台仪表</small></strong>
+          <em>按最近采集周期统计</em>
+        </div>
+        {rows.map((row) => {
+          const total = Math.max(0, row.healthyCount) + Math.max(0, row.issueCount);
+          const healthyShare = total > 0 ? clampPercent((row.healthyCount / total) * 100) : 0;
+          const issueShare = total > 0 ? clampPercent((row.issueCount / total) * 100) : 0;
+
+          return (
+            <article className="cockpit-status-distribution__item" key={row.id} role="listitem">
+              <div className="cockpit-status-distribution__heading">
+                <div>
+                  <strong>{row.label}</strong>
+                  <span>
+                    <i className="cockpit-status-distribution__swatch cockpit-status-distribution__swatch--healthy" aria-hidden="true" />
+                    {row.healthyLabel} {formatMeasure(row.healthyCount, 0)} ·
+                    <i className="cockpit-status-distribution__swatch cockpit-status-distribution__swatch--issue" aria-hidden="true" />
+                    {row.issueLabel} {formatMeasure(row.issueCount, 0)}
+                  </span>
+                </div>
+                <b>{formatMeasure(row.rate)}<small>%</small></b>
+              </div>
+              <div
+                className="cockpit-status-distribution__bar"
+                role="img"
+                aria-label={`${row.label}：${row.healthyLabel}${formatMeasure(row.healthyCount, 0)}，${row.issueLabel}${formatMeasure(row.issueCount, 0)}，合计${formatMeasure(total, 0)}`}
+              >
+                <span className="cockpit-status-distribution__segment cockpit-status-distribution__segment--healthy" style={{ width: `${healthyShare}%` }} />
+                <span className="cockpit-status-distribution__segment cockpit-status-distribution__segment--issue" style={{ width: `${issueShare}%` }} />
+              </div>
+            </article>
+          );
+        })}
+      </div> : <div className="cockpit-empty" role="status">暂无仪表质量数据</div>}
     </div>
   );
 }
@@ -185,7 +239,7 @@ function RealtimeLoadPanel({ data }: { data: LoadCurvePoint[] }) {
       <AdaptiveTrendChart
         data={trendData}
         unit="kW"
-        height={190}
+        height={230}
         series={[
           { key: "realtime", label: "实时", color: "#35d4e4" },
           { key: "yesterday", label: "昨日", color: "#d6ad5e", presentation: "bar" },
@@ -272,14 +326,14 @@ export default function OperationsDashboardPage() {
   ), [focusedAlarmId, nowMs]);
 
   const leftPanels: FloatingPanelSpec[] = [
-    { id: "carbon-overview", label: "碳排放总览", priority: "critical", content: carbonOverview ? <CarbonOverviewPanel data={carbonOverview} /> : null },
-    { id: "alert-center", label: "实时告警", priority: "critical", content: <AlertCenterPanel alerts={alerts} /> },
-    { id: "device-warning", label: "设备预警", content: <DeviceWarningPanel warnings={warnings} /> },
+    { id: "carbon-overview", label: "碳排放总览", className: "cockpit-carbon-overview-panel", content: carbonOverview ? <CarbonOverviewPanel data={carbonOverview} /> : null },
+    { id: "alert-center", label: "实时告警", className: "cockpit-alert-center-panel", content: <AlertCenterPanel alerts={alerts} /> },
+    { id: "device-warning", label: "设备预警", className: "cockpit-device-warning-panel", content: <DeviceWarningPanel warnings={warnings} /> },
   ];
   const rightPanels: FloatingPanelSpec[] = [
-    { id: "system-efficiency", label: "重点系统效率", content: <SystemEfficiencyPanel systems={systems} /> },
-    { id: "instrument-status", label: "仪表与数据状态", priority: "critical", content: <InstrumentStatusPanel data={instruments} /> },
-    { id: "building-ranking", label: "建筑能耗强度", priority: "secondary", content: <BuildingRankingPanel buildings={buildings} /> },
+    { id: "system-efficiency", label: "重点系统效率", className: "cockpit-system-efficiency-panel", content: <SystemEfficiencyPanel systems={systems} /> },
+    { id: "instrument-status", label: "仪表与数据状态", className: "cockpit-instrument-panel", content: <InstrumentStatusPanel data={instruments} /> },
+    { id: "building-ranking", label: "建筑能耗强度", priority: "critical", className: "cockpit-building-ranking-panel", content: <BuildingRankingPanel buildings={buildings} /> },
   ];
 
   return (
@@ -310,7 +364,7 @@ export default function OperationsDashboardPage() {
           }))}
         />
         <div className="map-legend-glass absolute bottom-3 rounded-lg p-2">
-          <div className="flex items-center gap-2 text-[9px] text-slate-400"><RadioTower className="h-3 w-3" />建筑点位 · 点击查看实时状态</div>
+          <div className="flex items-center gap-2 text-xs text-slate-400"><RadioTower className="h-3.5 w-3.5" />建筑点位 · 点击查看实时状态</div>
         </div>
       </div>
     </ThreeColumnLayout>
