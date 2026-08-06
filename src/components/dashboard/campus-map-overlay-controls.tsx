@@ -230,7 +230,7 @@ export const CampusMapOverlayControls = memo(function CampusMapOverlayControls({
                         {building.name}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[10px] text-white/38">
+                    <span className="shrink-0 text-xs text-white/38">
                       {building.category}
                     </span>
                   </button>
@@ -255,7 +255,7 @@ export const CampusMapOverlayControls = memo(function CampusMapOverlayControls({
           onKeyDown={(event) => {
             if (event.key === "Escape") setIsFiltersOpen(false);
           }}
-          className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold outline-none ring-1 ring-inset transition-[color,background-color,box-shadow,transform] active:scale-[.97] focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
+          className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold outline-none ring-1 ring-inset transition-[color,background-color,box-shadow,transform] active:scale-[.97] focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
             isFiltersOpen || activeLayer !== "all"
               ? "bg-[rgba(var(--theme-primary-rgb),.17)] text-white ring-[rgba(var(--theme-primary-rgb),.5)]"
               : "bg-white/[0.04] text-white/72 ring-white/10 hover:bg-white/[0.08] hover:text-white"
@@ -263,7 +263,7 @@ export const CampusMapOverlayControls = memo(function CampusMapOverlayControls({
         >
           <ActiveLayerIcon aria-hidden="true" className="h-3.5 w-3.5 text-[var(--theme-primary)]" />
           <span>{activeLayerOption.label}</span>
-          <span className="font-mono text-[9px] font-normal text-white/45">
+          <span className="hidden font-mono text-xs font-normal text-white/45 min-[1400px]:inline">
             {layerCounts[activeLayer]}
           </span>
           <ChevronDown
@@ -278,8 +278,8 @@ export const CampusMapOverlayControls = memo(function CampusMapOverlayControls({
             className="absolute right-0 top-[calc(100%+8px)] z-50 w-[292px] rounded-xl bg-[color-mix(in_srgb,var(--theme-surface-strong)_97%,black)] p-2 shadow-[0_18px_45px_rgba(0,0,0,.45)] ring-1 ring-inset ring-[rgba(var(--theme-primary-rgb),.24)]"
           >
             <div className="flex items-center justify-between px-1 pb-2 pt-0.5">
-              <span className="text-[11px] font-semibold text-white/84">建筑分类</span>
-              <span className="text-[10px] text-white/42">选择地图中显示的建筑</span>
+              <span className="text-xs font-semibold text-white/84">建筑分类</span>
+              <span className="text-xs text-white/42">选择地图中显示的建筑</span>
             </div>
             <div role="radiogroup" aria-label="建筑分类图层" className="grid grid-cols-2 gap-1">
               {LAYER_OPTIONS.map((option) => {
@@ -295,7 +295,7 @@ export const CampusMapOverlayControls = memo(function CampusMapOverlayControls({
                       onLayerChange(option.value);
                       setIsFiltersOpen(false);
                     }}
-                    className={`group flex h-9 items-center gap-2 rounded-lg px-2.5 text-left text-[11px] font-semibold outline-none transition-[color,background-color,box-shadow,transform] active:scale-[.98] focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
+                    className={`group flex h-9 items-center gap-2 rounded-lg px-2.5 text-left text-xs font-semibold outline-none transition-[color,background-color,box-shadow,transform] active:scale-[.98] focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
                       isActive
                         ? "bg-[rgba(var(--theme-primary-rgb),.17)] text-white ring-1 ring-inset ring-[rgba(var(--theme-primary-rgb),.45)]"
                         : "text-white/58 hover:bg-white/[0.07] hover:text-white/90"
@@ -306,7 +306,7 @@ export const CampusMapOverlayControls = memo(function CampusMapOverlayControls({
                       className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-[var(--theme-primary)]" : "text-white/40 group-hover:text-white/70"}`}
                     />
                     <span className="flex-1">{option.label}</span>
-                    <span className="font-mono text-[9px] font-normal text-white/36">
+                    <span className="font-mono text-xs font-normal text-white/36">
                       {layerCounts[option.value]}
                     </span>
                   </button>
@@ -327,11 +327,11 @@ export const CampusMapOverlayControls = memo(function CampusMapOverlayControls({
           className="hidden max-w-[150px] shrink-0 items-center gap-1.5 border-l border-white/10 px-2 min-[1700px]:flex"
         >
           <Leaf className="h-3.5 w-3.5 shrink-0 text-emerald-300 drop-shadow-[0_0_6px_rgba(110,231,183,.55)]" />
-          <span className="truncate text-[11px] font-semibold text-white/80">
+          <span className="truncate text-xs font-semibold text-white/80">
             {selectedBuilding.name}
           </span>
           {selectedBuilding.carbon ? (
-            <span className="shrink-0 font-mono text-[10px] text-emerald-200/75">
+            <span className="shrink-0 font-mono text-xs text-emerald-200/75">
               {selectedBuilding.carbon.annualEmission}t
             </span>
           ) : null}

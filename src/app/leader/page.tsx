@@ -10,7 +10,10 @@ import {
   Droplets,
   Layers3,
   Leaf,
+  Minus,
   Target,
+  TrendingDown,
+  TrendingUp,
   Zap,
 } from "lucide-react";
 import { ThreeColumnLayout } from "@/components/layout/three-column-layout";
@@ -81,7 +84,10 @@ function EconomicZonePanel({ data }: { data: EconomicZoneData }) {
           <span>风险状态<strong>{data.riskLabel}</strong></span>
         </div>
       </div>
-      <RadarProfile data={diagnostics.map((item) => ({ label: item.label, value: item.value, max: item.max }))} height={105} />
+      <RadarProfile
+        data={diagnostics.map((item) => ({ label: item.label, value: item.value, max: item.max }))}
+        height="clamp(94px, 18vh, 152px)"
+      />
     </div>
   );
 }
@@ -116,14 +122,14 @@ function RiskWarningPanel({ data }: { data: RiskWarning[] }) {
       ]} />
       {sorted.length ? (
         <div className="cockpit-alert-list cockpit-alert-list--compact">
-          {sorted.slice(0, 3).map((item) => (
+          {sorted.slice(0, 2).map((item) => (
             <div className="cockpit-alert" data-level={item.status} key={`${item.label}-${item.value}`}>
               <span className="cockpit-alert__signal" aria-hidden="true" />
               <div className="min-w-0"><div className="cockpit-alert__title">{item.label}</div><div className="cockpit-alert__detail">{item.desc}</div></div>
               <span className="cockpit-alert__value">{item.value}</span>
             </div>
           ))}
-          {sorted.length > 3 ? <div className="cockpit-list-overflow">另有 {sorted.length - 3} 项，进入功能面板查看</div> : null}
+          {sorted.length > 2 ? <div className="cockpit-list-overflow">另有 {sorted.length - 2} 项，进入功能面板查看</div> : null}
         </div>
       ) : <div className="cockpit-empty">当前没有风险事项</div>}
     </div>
@@ -153,7 +159,7 @@ function MonthlyTrendPanel({ data }: { data: MonthlyTrendPoint[] }) {
       <AdaptiveTrendChart
         data={trendData}
         unit="tCO₂e"
-        height={190}
+        height={230}
         areaKey="actual"
         series={[
           { key: "actual", label: "实际", color: "#35d4e4" },
@@ -167,6 +173,8 @@ function MonthlyTrendPanel({ data }: { data: MonthlyTrendPoint[] }) {
 
 function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
   const [viewMode, setViewMode] = useState<"total" | "perCapita">("total");
+  const deltaMax = Math.max(1, ...data.flatMap((item) => [Math.abs(item.yoy), Math.abs(item.mom)]));
+
   return (
     <div>
       <PanelHeading
@@ -185,12 +193,32 @@ function ResourceAnalysisPanel({ data }: { data: ResourceConsumptionItem[] }) {
           <div className="cockpit-resource-tile" key={item.label}>
             <span>{item.label}</span>
             <strong>{viewMode === "total" ? item.totalValue : item.perCapitaValue}<small>{viewMode === "total" ? item.totalUnit : item.perCapitaUnit}</small></strong>
-            <em>{item.yoyLabel}</em>
-            <em>{item.momLabel}</em>
+            <div className="cockpit-resource-deltas" aria-label={`${item.label}同比与环比变化`}>
+              <ResourceDelta label="同比" value={item.yoy} maxMagnitude={deltaMax} />
+              <ResourceDelta label="环比" value={item.mom} maxMagnitude={deltaMax} />
+            </div>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+function ResourceDelta({ label, value, maxMagnitude }: { label: string; value: number; maxMagnitude: number }) {
+  const direction = value > 0 ? "up" : value < 0 ? "down" : "flat";
+  const Icon = direction === "up" ? TrendingUp : direction === "down" ? TrendingDown : Minus;
+  const magnitude = Math.min(100, (Math.abs(value) / maxMagnitude) * 100);
+  const formattedValue = `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+
+  return (
+    <span className={`cockpit-resource-delta cockpit-resource-delta--${direction}`} aria-label={`${label} ${formattedValue}`}>
+      <span className="cockpit-resource-delta__label">{label}</span>
+      <span className="cockpit-resource-delta__track" aria-hidden="true">
+        <span className="cockpit-resource-delta__zero" />
+        <span className="cockpit-resource-delta__fill" style={{ width: `${magnitude}%` }} />
+      </span>
+      <span className="cockpit-resource-delta__value"><Icon aria-hidden="true" />{formattedValue}</span>
+    </span>
   );
 }
 
@@ -258,9 +286,9 @@ export default function LeaderDashboard() {
   if (dashboardData === null) return null;
 
   const leftPanels: FloatingPanelSpec[] = [
-    { id: "economic-zone", label: "经济控制分区", priority: "critical", content: <EconomicZonePanel data={dashboardData.economic} /> },
-    { id: "emission-source", label: "排放源构成", content: <EmissionSourcePanel data={dashboardData.emissionSources} /> },
-    { id: "risk-warning", label: "风险与决策事项", priority: "critical", content: <RiskWarningPanel data={dashboardData.risks} /> },
+    { id: "economic-zone", label: "经济控制分区", className: "cockpit-economic-zone-panel", content: <EconomicZonePanel data={dashboardData.economic} /> },
+    { id: "emission-source", label: "排放源构成", className: "cockpit-emission-source-panel", content: <EmissionSourcePanel data={dashboardData.emissionSources} /> },
+    { id: "risk-warning", label: "风险与决策事项", className: "cockpit-risk-warning-panel", content: <RiskWarningPanel data={dashboardData.risks} /> },
   ];
   const rightPanels: FloatingPanelSpec[] = [
     { id: "resource-analysis", label: "资源消耗", priority: "critical", className: styles["resource-panel"], content: <ResourceAnalysisPanel data={dashboardData.resources} /> },
@@ -286,16 +314,16 @@ export default function LeaderDashboard() {
         />
         <KpiRibbon metrics={dashboardData.kpis.map((item) => ({ id: item.label, label: item.label, value: item.value, unit: item.unit, detail: item.sub }))} />
         {nowMs !== null ? (
-          <div className="absolute right-3 top-3 z-20 rounded-md border border-cyan-400/20 bg-[#07152f]/90 px-2 py-1 text-[10px] text-cyan-100">
+          <div className="absolute right-3 top-3 z-20 rounded-md border border-cyan-400/20 bg-[#07152f]/90 px-2.5 py-1.5 text-xs text-cyan-100">
             数据截至 {formatCampusDateTime(new Date(nowMs))}
           </div>
         ) : null}
-        <div className="map-legend-glass absolute bottom-3 rounded-lg p-2">
-          <div className="mb-1 text-[9px] text-slate-400">建筑排放强度 · kgCO₂e/㎡</div>
-          <div className="flex items-center gap-2 text-[9px] text-slate-400">
-            <span className="h-1.5 w-8 bg-cyan-400" />低
-            <span className="h-1.5 w-8 bg-amber-400" />关注
-            <span className="h-1.5 w-8 bg-red-400" />高
+        <div className="map-legend-glass absolute bottom-3 rounded-lg p-2.5">
+          <div className="mb-1.5 text-xs text-slate-400">建筑排放强度 · kgCO₂e/㎡</div>
+          <div className="flex items-center gap-2.5 text-xs text-slate-400">
+            <span className="h-2 w-9 bg-cyan-400" />低
+            <span className="h-2 w-9 bg-amber-400" />关注
+            <span className="h-2 w-9 bg-red-400" />高
           </div>
         </div>
       </div>

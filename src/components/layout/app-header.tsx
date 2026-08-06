@@ -20,6 +20,9 @@ import {
   LayoutDashboard,
   Factory,
   Grid3X3,
+  ArrowLeft,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { CampusMapOverlayControls } from "@/components/dashboard/campus-map-overlay-controls";
 import type { AlarmRecord } from "@/data/energy-monitor-data";
@@ -48,9 +51,11 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
   const [year, setYear] = useState(() => String(getCampusDateParts(new Date()).year));
   const [campus, setCampus] = useState("all");
   const [dataStatus, setDataStatus] = useState("realtime");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 判断是否在驾驶舱页面
   const isCockpit = COCKPIT_ROUTES.includes(pathname);
+  const showGatewayReturn = isCockpit || pathname === "/portal";
   const isMapSurface = isCockpit || pathname === "/campus-map";
   const mapToolbar = useCampusMapToolbarStore((state) => state.toolbar);
   const setMapLabels = useCampusMapToolbarStore((state) => state.setShowLabels);
@@ -103,6 +108,26 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const syncFullscreenState = () => setIsFullscreen(Boolean(document.fullscreenElement));
+
+    syncFullscreenState();
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreenState);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (error) {
+      console.error("切换全屏失败", error);
+    }
+  };
 
   const alarmTypeIcon = (type: AlarmRecord["type"]) => {
     switch (type) {
@@ -164,42 +189,18 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
           </button>
         )}
 
-        {/* 驾驶舱入口按钮组 */}
-        <nav className="app-header__nav" aria-label="驾驶舱入口">
-          {cockpitButtons.map((btn) => {
-            const Icon = btn.icon;
-            const isActive = pathname === btn.href;
-            return (
-              <button
-                key={btn.key}
-                aria-label={btn.label}
-                title={btn.label}
-                onClick={() => router.push(btn.href)}
-                className={`app-header__nav-button ${
-                  isActive
-                    ? "bg-cyan-500/20 border-cyan-500/60 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-                    : "bg-slate-800/40 border-gray-700/50 text-gray-400 hover:bg-slate-700/40 hover:border-gray-600 hover:text-gray-300"
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span className="app-header__nav-label">{btn.shortLabel}</span>
-              </button>
-            );
-          })}
-
-          {/* 目录页入口（驾驶舱内显示） */}
-          {isCockpit && (
-            <button
-              aria-label="功能目录"
-              title="功能目录"
-              onClick={() => router.push("/portal")}
-              className="app-header__nav-button border-gray-700/50 bg-slate-800/40 text-gray-400 hover:border-gray-600 hover:bg-slate-700/40 hover:text-gray-300"
-            >
-              <Grid3X3 className="w-3.5 h-3.5" />
-              <span className="app-header__nav-label">功能目录</span>
-            </button>
-          )}
-        </nav>
+        {showGatewayReturn && (
+          <button
+            type="button"
+            aria-label="返回统一门户"
+            title="返回统一门户"
+            onClick={() => router.push("/gateway")}
+            className="app-header__nav-button app-header__gateway-return border-cyan-500/35 bg-cyan-500/10 text-cyan-300 hover:border-cyan-400/55 hover:bg-cyan-500/20 hover:text-cyan-100"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="app-header__nav-label">返回门户</span>
+          </button>
+        )}
 
         {isCockpit && mapToolbar ? (
           <div className="app-header__map-toolbar" aria-label="地图顶部工具栏">
@@ -281,6 +282,57 @@ export function AppHeader({ sidebarCollapsed = false, onToggleSidebar, theme, on
 
       {/* Right Section */}
       <div className="app-header__right">
+        {showGatewayReturn && (
+          <nav className="app-header__nav app-header__destination-nav" aria-label="驾驶舱与功能目录">
+            {cockpitButtons.map((btn) => {
+              const Icon = btn.icon;
+              const isActive = pathname === btn.href;
+              return (
+                <button
+                  key={btn.key}
+                  aria-label={btn.label}
+                  title={btn.label}
+                  onClick={() => router.push(btn.href)}
+                  className={`app-header__nav-button ${
+                    isActive
+                      ? "bg-cyan-500/20 border-cyan-500/60 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+                      : "bg-slate-800/40 border-gray-700/50 text-gray-400 hover:bg-slate-700/40 hover:border-gray-600 hover:text-gray-300"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span className="app-header__nav-label">{btn.shortLabel}</span>
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              aria-label="功能目录"
+              title="功能目录"
+              onClick={() => router.push("/portal")}
+              className={`app-header__nav-button ${
+                pathname === "/portal"
+                  ? "bg-cyan-500/20 border-cyan-500/60 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+                  : "border-gray-700/50 bg-slate-800/40 text-gray-400 hover:border-gray-600 hover:bg-slate-700/40 hover:text-gray-300"
+              }`}
+            >
+              <Grid3X3 className="w-3.5 h-3.5" />
+              <span className="app-header__nav-label">功能目录</span>
+            </button>
+          </nav>
+        )}
+
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="app-header__icon-button"
+          title={isFullscreen ? "退出全屏" : "进入全屏"}
+          aria-label={isFullscreen ? "退出全屏" : "进入全屏"}
+          aria-pressed={isFullscreen}
+        >
+          {isFullscreen ? <Minimize2 className="h-[18px] w-[18px]" /> : <Maximize2 className="h-[18px] w-[18px]" />}
+        </button>
+
         <ThemeSwitcher value={theme} onChange={onThemeChange} />
         {/* Notifications - Alarm Center */}
         <div className="relative" ref={alarmRef}>

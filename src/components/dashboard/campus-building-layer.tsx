@@ -71,8 +71,8 @@ type LabelDetail = "dots" | "important" | "full";
 
 const LABEL_VIEWPORT_MARGIN = 140;
 const POPUP_EDGE_GAP = 12;
-const POPUP_WIDTH = 380;
-const POPUP_HEIGHT = 570;
+const POPUP_WIDTH = 420;
+const POPUP_HEIGHT = 620;
 const POPUP_TOP_CLEARANCE = 136;
 const LABEL_HEIGHT = 30;
 const LABEL_COLLISION_GAP = 6;
@@ -409,7 +409,7 @@ export function CampusBuildingLayer({
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-[12] overflow-clip"
+      className={`pointer-events-none absolute inset-0 ${selectedBuilding ? "z-[25] overflow-visible" : "z-[12] overflow-clip"}`}
       aria-label="校园建筑交互图层"
     >
       <div
@@ -575,7 +575,7 @@ export function CampusBuildingLayer({
                       type="button"
                       aria-label={`选择建筑：${building.name}`}
                       aria-pressed={isSelected}
-                      className={`pointer-events-auto absolute flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-[11px] font-semibold tracking-[.01em] text-white outline-none transition-[background-color,border-color,box-shadow,transform] duration-200 hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-white ${
+                      className={`pointer-events-auto absolute flex h-[30px] items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-xs font-semibold tracking-[.01em] text-white outline-none transition-[background-color,border-color,box-shadow,transform] duration-200 hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-white ${
                         isSelected
                           ? "border-[var(--theme-accent)] bg-[color-mix(in_srgb,var(--theme-bg)_72%,var(--theme-accent))] shadow-[inset_0_1px_0_rgba(255,255,255,.14),0_0_18px_var(--theme-accent)]"
                           : "border-[rgba(var(--theme-primary-rgb),.50)] bg-[color-mix(in_srgb,var(--theme-bg)_92%,var(--theme-primary))] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_7px_18px_rgba(0,0,0,.28),0_0_12px_rgba(var(--theme-primary-rgb),.18)]"

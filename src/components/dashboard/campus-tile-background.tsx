@@ -1094,7 +1094,7 @@ export function CampusTileBackground({
       ) : null}
 
       <div
-        className="absolute top-[calc(var(--cockpit-edge)+72px)] z-20 flex flex-col items-end gap-2"
+        className="campus-map-zoom-controls absolute z-20 flex flex-col items-end gap-2"
         style={{ right: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
         onPointerDown={(event) => event.stopPropagation()}
         onDoubleClick={(event) => event.stopPropagation()}
@@ -1132,7 +1132,7 @@ export function CampusTileBackground({
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="flex items-center gap-1.5 rounded-md border border-cyan-400/15 bg-[#07152f] px-2 py-1 text-[10px] text-cyan-50/80">
+        <div className="flex items-center gap-1.5 rounded-md border border-cyan-400/15 bg-[#07152f] px-2 py-1 text-xs text-cyan-50/80">
           <Move className="h-3 w-3" />
           <span>Z{plan?.zoom ?? 0}/{config.maxZoom}</span>
           <span className="text-cyan-100/35">·</span>

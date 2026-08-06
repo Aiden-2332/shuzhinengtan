@@ -4,17 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Flame,
-  Droplets,
-  Sun,
-  ThermometerSun,
   Atom,
-  Scale,
-  PiggyBank,
-  TrendingDown,
   Bot,
   ScanEye,
   MapPinned,
-  BarChart3,
   Activity,
   Calculator,
   Wallet,
@@ -31,6 +24,7 @@ import { cn } from "@/lib/utils";
 // 小类使用完全不同于大类的专属图标，每个小类图标都独一无二
 const navigation = [
   {
+    id: "energy",
     name: "能源管理",
     // 大类图标：火焰 - 代表能源
     icon: Flame,
@@ -71,6 +65,7 @@ const navigation = [
     ],
   },
   {
+    id: "carbon",
     name: "碳管理",
     icon: Atom,
     children: [
@@ -117,6 +112,7 @@ const navigation = [
     ],
   },
   {
+    id: "ai",
     name: "AI 分析",
     icon: Bot,
     children: [
@@ -133,6 +129,7 @@ const navigation = [
     ],
   },
   {
+    id: "spatial",
     name: "空间可视化",
     icon: MapPinned,
     children: [
@@ -180,54 +177,45 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
           );
 
           return (
-            <div key={section.name} className="mb-3">
+            <div key={section.id} className="mb-4" role="group" aria-labelledby={`sidebar-section-${section.id}`}>
               {/* Category Header */}
               {!collapsed ? (
                 <div
+                  id={`sidebar-section-${section.id}`}
+                  role="heading"
+                  aria-level={2}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-md mb-1.5 transition-colors",
-                    sectionActive
-                      ? "bg-slate-800/60"
-                      : ""
+                    "mb-2 flex min-h-7 items-center gap-2 px-2",
+                    sectionActive ? "text-cyan-300" : "text-slate-300"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "w-5 h-5 rounded flex items-center justify-center",
-                      sectionActive
-                        ? "bg-cyan-500/20"
-                        : "bg-slate-800/80"
-                    )}
-                  >
-                    <SectionIcon
-                      className={cn(
-                        "w-3 h-3",
-                        sectionActive ? "text-cyan-400" : "text-gray-500"
-                      )}
-                    />
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[11px] font-semibold uppercase tracking-widest",
-                      sectionActive ? "text-cyan-300" : "text-gray-500"
-                    )}
-                  >
+                  <SectionIcon aria-hidden="true" className="size-3.5 shrink-0" />
+                  <span className="text-[11px] font-semibold leading-none">
                     {section.name}
                   </span>
-                  {sectionActive && (
-                    <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/30 to-transparent ml-2" />
-                  )}
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "h-px flex-1",
+                      sectionActive ? "bg-cyan-500/40" : "bg-slate-700/80"
+                    )}
+                  />
                 </div>
               ) : (
-                <div className="flex justify-center py-2 mb-1">
-                  <div className="w-7 h-7 rounded-lg bg-slate-800/80 flex items-center justify-center">
-                    <SectionIcon
-                      className={cn(
-                        "w-3.5 h-3.5",
-                        sectionActive ? "text-cyan-400" : "text-gray-500"
-                      )}
-                    />
-                  </div>
+                <div
+                  id={`sidebar-section-${section.id}`}
+                  role="heading"
+                  aria-level={2}
+                  title={`${section.name}（分类）`}
+                  className={cn(
+                    "mb-1 flex items-center gap-1.5 py-2",
+                    sectionActive ? "text-cyan-300" : "text-slate-400"
+                  )}
+                >
+                  <span aria-hidden="true" className="h-px flex-1 bg-current opacity-40" />
+                  <SectionIcon aria-hidden="true" className="size-3.5 shrink-0" />
+                  <span className="sr-only">{section.name}</span>
+                  <span aria-hidden="true" className="h-px flex-1 bg-current opacity-40" />
                 </div>
               )}
 
@@ -241,27 +229,32 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
                     <Link
                       key={item.name}
                       href={item.href}
+                      aria-current={isActive ? "page" : undefined}
+                      aria-label={collapsed ? item.name : undefined}
                       title={collapsed ? item.name : undefined}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-lg text-sm transition-all duration-200 group",
+                        "group flex items-center gap-2.5 rounded-lg border text-sm transition-[background-color,border-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
                         collapsed
-                          ? "justify-center px-1.5 py-2"
-                          : "px-2.5 py-2",
+                          ? "h-11 w-full justify-center p-0"
+                          : "min-h-12 px-2.5 py-2",
                         isActive
-                          ? cn(item.bgActive, "border", item.borderActive, "shadow-sm")
-                          : cn("border border-transparent", item.bgHover)
+                          ? cn(item.bgActive, item.borderActive, "shadow-sm")
+                          : cn("border-slate-800/90 bg-slate-900/30 hover:border-slate-700 hover:bg-slate-800/80", item.bgHover)
                       )}
                     >
                       {/* Icon with unique color per item */}
                       <div
                         className={cn(
-                          "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all",
+                          "flex size-8 shrink-0 items-center justify-center rounded-md border transition-[background-color,border-color,color] duration-200",
                           isActive
-                            ? cn(item.bgActive, item.color)
-                            : "bg-slate-800/60 text-gray-500 group-hover:bg-slate-700/60"
+                            ? cn(item.bgActive, item.borderActive, item.color)
+                            : cn(
+                                "border-slate-700/90 bg-slate-800/90 group-hover:border-slate-600 group-hover:bg-slate-700/90",
+                                item.color
+                              )
                         )}
                       >
-                        <ItemIcon className="w-3.5 h-3.5" />
+                        <ItemIcon aria-hidden="true" className="size-[18px]" strokeWidth={1.8} />
                       </div>
                       {!collapsed && (
                         <>
@@ -269,7 +262,7 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
                             <div
                               className={cn(
                                 "text-[13px] font-medium leading-tight",
-                                isActive ? "text-white" : "text-gray-300 group-hover:text-white"
+                                isActive ? "text-white" : "text-slate-200 group-hover:text-white"
                               )}
                             >
                               {item.name}
@@ -277,7 +270,7 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
                             <div
                               className={cn(
                                 "text-[10px] leading-tight mt-0.5",
-                                isActive ? "text-gray-400" : "text-gray-600 group-hover:text-gray-500"
+                                isActive ? "text-slate-300" : "text-slate-400 group-hover:text-slate-300"
                               )}
                             >
                               {item.desc}
@@ -300,7 +293,7 @@ export function AppSidebar({ collapsed = false }: AppSidebarProps) {
       {/* Footer */}
       {!collapsed && (
         <div className="px-4 py-3 border-t border-cyan-500/20">
-          <div className="text-[10px] text-gray-600 text-center">Demo 模拟数据 仅课题演示</div>
+          <div className="text-[10px] text-slate-400 text-center">Demo 模拟数据 仅课题演示</div>
         </div>
       )}
     </aside>

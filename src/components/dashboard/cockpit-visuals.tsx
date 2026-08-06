@@ -179,7 +179,7 @@ export function GaugeDial({ data, variant = "arc" }: { data: GaugeDatum; variant
 export function GaugeGrid({ data }: { data: GaugeDatum[] }) {
   const prepared = data.filter((item) => Number.isFinite(item.value));
   if (!prepared.length) return <EmptyVisualization />;
-  return <div className="cockpit-gauge-grid">{prepared.map((item) => <GaugeDial key={item.id} data={item} variant="ring" />)}</div>;
+  return <div className="cockpit-gauge-grid" data-count={prepared.length}>{prepared.map((item) => <GaugeDial key={item.id} data={item} variant="ring" />)}</div>;
 }
 
 export interface ShareDatum {
@@ -234,7 +234,7 @@ export function DonutBreakdown({ data, unit, centerLabel = "合计" }: { data: S
               {prepared.map((item) => <Cell key={item.id} fill={item.color} />)}
             </Pie>
             <Tooltip
-              contentStyle={{ background: "rgba(6,23,31,.97)", border: "1px solid var(--theme-border)", borderRadius: 8, fontSize: 10 }}
+              contentStyle={{ background: "rgba(6,23,31,.97)", border: "1px solid var(--theme-border)", borderRadius: 8, fontSize: 12 }}
               formatter={(value) => [`${formatMeasure(Number(value))}${unit ? ` ${unit}` : ""}`]}
             />
           </PieChart>
@@ -261,7 +261,7 @@ export interface RadarDatum {
   max?: number;
 }
 
-export function RadarProfile({ data, height = 142 }: { data: RadarDatum[]; height?: number }) {
+export function RadarProfile({ data, height = 152 }: { data: RadarDatum[]; height?: number | string }) {
   const prepared = useMemo(() => data
     .filter((item) => Number.isFinite(item.value))
     .map((item) => ({ ...item, score: clampPercent(item.max && item.max > 0 ? (item.value / item.max) * 100 : item.value) })), [data]);
@@ -272,11 +272,11 @@ export function RadarProfile({ data, height = 142 }: { data: RadarDatum[]; heigh
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart data={prepared} outerRadius="64%">
           <PolarGrid stroke="rgba(145,167,174,.24)" radialLines={false} />
-          <PolarAngleAxis dataKey="label" tick={{ fill: "var(--theme-muted)", fontSize: 8 }} />
+          <PolarAngleAxis dataKey="label" tick={{ fill: "var(--theme-muted)", fontSize: 12 }} />
           <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
           <Radar dataKey="score" stroke={COCKPIT_TONES.live} fill={COCKPIT_TONES.live} fillOpacity={0.16} strokeWidth={1.8} dot={{ r: 2, fill: COCKPIT_TONES.live }} isAnimationActive={false} />
           <Tooltip
-            contentStyle={{ background: "rgba(6,23,31,.97)", border: "1px solid var(--theme-border)", borderRadius: 8, fontSize: 10 }}
+            contentStyle={{ background: "rgba(6,23,31,.97)", border: "1px solid var(--theme-border)", borderRadius: 8, fontSize: 12 }}
             formatter={(value) => [`${formatMeasure(Number(value))}%`, "评分"]}
           />
         </RadarChart>
@@ -347,7 +347,7 @@ export function LollipopRanking({ data }: { data: RankDatum[] }) {
             <span className="cockpit-lollipop__rank">{String(index + 1).padStart(2, "0")}</span>
             <span className="cockpit-lollipop__label" title={item.label}>{item.label}</span>
             <span className="cockpit-lollipop__plot" aria-hidden="true">
-              <i style={{ width: `${percent}%`, borderColor: color }} />
+              <i style={{ width: `${percent}%`, backgroundColor: color }} />
               <b style={{ left: `${percent}%`, backgroundColor: color }} />
             </span>
             <strong>{formatMeasure(item.value)}<small>{item.unit}</small></strong>
@@ -460,7 +460,7 @@ export function AdaptiveTrendChart({
   data,
   series,
   unit,
-  height = 190,
+  height = 230,
   areaKey,
 }: {
   data: TrendDatum[];
@@ -496,11 +496,11 @@ export function AdaptiveTrendChart({
             </defs>
           ) : null}
           <CartesianGrid vertical={false} stroke="rgba(167,189,194,.16)" strokeDasharray="2 5" />
-          <XAxis dataKey="label" axisLine={false} tickLine={false} minTickGap={24} interval="preserveStartEnd" tick={{ fill: "var(--theme-subtle)", fontSize: 10 }} />
-          <YAxis axisLine={false} tickLine={false} width={46} domain={["auto", "auto"]} tick={{ fill: "var(--theme-subtle)", fontSize: 10 }} tickFormatter={(value: number) => formatMeasure(value, 0)} />
+          <XAxis dataKey="label" axisLine={false} tickLine={false} minTickGap={28} interval="preserveStartEnd" tick={{ fill: "var(--theme-subtle)", fontSize: 12 }} />
+          <YAxis axisLine={false} tickLine={false} width={54} domain={["auto", "auto"]} tick={{ fill: "var(--theme-subtle)", fontSize: 12 }} tickFormatter={(value: number) => formatMeasure(value, 0)} />
           <Tooltip
             cursor={{ stroke: "var(--theme-border)", strokeWidth: 1 }}
-            contentStyle={{ background: "rgba(6,23,31,.96)", border: "1px solid var(--theme-border)", borderRadius: 8, color: "var(--theme-text)", fontSize: 11 }}
+            contentStyle={{ background: "rgba(6,23,31,.96)", border: "1px solid var(--theme-border)", borderRadius: 8, color: "var(--theme-text)", fontSize: 12 }}
             formatter={(value) => [`${formatMeasure(Number(value))}${unit ? ` ${unit}` : ""}`]}
           />
           <Legend
@@ -535,7 +535,7 @@ export function AdaptiveTrendChart({
                 ))}
               </div>
             )}
-            wrapperStyle={{ color: "var(--theme-muted)", fontSize: 10, paddingTop: 4 }}
+            wrapperStyle={{ color: "var(--theme-muted)", fontSize: 12, paddingTop: 6 }}
           />
           {barSeries.map((item) => (
             <Bar
@@ -548,7 +548,7 @@ export function AdaptiveTrendChart({
               strokeOpacity={0.72}
               strokeWidth={1}
               radius={[2, 2, 0, 0]}
-              maxBarSize={28}
+              maxBarSize={34}
               isAnimationActive={false}
             />
           ))}

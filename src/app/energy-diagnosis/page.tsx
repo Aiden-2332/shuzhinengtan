@@ -41,7 +41,7 @@ function EfficiencyGauge({ diagnosis }: { diagnosis: DiagnosisSummary }) {
       <h3 className="text-sm font-semibold text-foreground mb-4">综合能效评分</h3>
       <div className="relative inline-flex items-center justify-center">
         <svg width="180" height="180" viewBox="0 0 180 180">
-          <circle cx="90" cy="90" r={radius} fill="none" stroke="var(--muted)" strokeWidth="12" />
+          <circle cx="90" cy="90" r={radius} fill="none" stroke="var(--energy-grid)" strokeWidth="12" />
           <circle
             cx="90" cy="90" r={radius} fill="none" stroke={color} strokeWidth="12"
             strokeLinecap="round" strokeDasharray={`${progress} ${circumference - progress}`}
@@ -113,9 +113,9 @@ function BenchmarkChart({ benchmark }: { benchmark: BenchmarkComparison }) {
       </h3>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={chartData} barCategoryGap="20%">
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
-          <YAxis tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} unit=" kgce" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--energy-grid)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--energy-axis)' }} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--energy-axis)' }} unit=" kgce" />
           <Tooltip />
           <Bar dataKey="intensity" name="单位面积能耗" radius={[4, 4, 0, 0]}>
             {chartData.map((entry, i) => (

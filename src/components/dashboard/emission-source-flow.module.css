@@ -2,14 +2,15 @@
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
-  align-items: center;
+  align-items: stretch;
 }
 
 .chart {
   display: block;
+  height: 100%;
   width: 100%;
-  min-height: 176px;
-  max-height: 224px;
+  min-height: 0;
+  max-height: none;
   overflow: visible;
 }
 
@@ -71,19 +72,19 @@
 
 .label {
   fill: var(--theme-text);
-  font-size: 9.5px;
+  font-size: 12.5px;
   font-weight: 720;
 }
 
 .value {
   fill: var(--theme-subtle);
-  font-size: 7.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 .share {
   fill: var(--theme-text);
-  font-size: 9.5px;
+  font-size: 12.5px;
   font-weight: 760;
   font-variant-numeric: tabular-nums;
 }
@@ -102,19 +103,19 @@
 
 .source-label {
   fill: var(--theme-muted);
-  font-size: 8px;
+  font-size: 12px;
 }
 
 .source-value {
   fill: var(--theme-text);
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 780;
   font-variant-numeric: tabular-nums;
 }
 
 .source-unit {
   fill: var(--theme-subtle);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 .source-signal {
@@ -134,7 +135,7 @@
 
 .rail-caption {
   fill: var(--theme-subtle);
-  font-size: 7px;
+  font-size: 12px;
 }
 
 @keyframes source-flow-pulse {

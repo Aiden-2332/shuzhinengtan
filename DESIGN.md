@@ -207,3 +207,24 @@
 Demo 模拟数据，不用于申报
 ```
 字号 12px，颜色 #94A3B8，透明度 80%
+
+## Gateway Service Hall
+
+The gateway is an Operate-surface entrance, not a marketing hero or a card carousel. Its visual world is a deep-navy university service hall with cyan wayfinding, smoked-glass panels, and restrained brass hardware. The page must present all six business centers as physical entrances in one desktop viewport.
+
+### Composition and materials
+
+- Six tall, low-set doors form the primary first-viewport signal. Every door has a lintel sign, number plaque, deep jamb, transom, paired leaves, two pull handles, lower panels, threshold, and grounded shadow.
+- The campus elevation, service conduits, wall seams, and perspective floor are code-drawn SVG/CSS architecture. The floor grid is a wayfinding and measurement surface, so its grid lines are intentional rather than generic background decoration.
+- Cyan identifies navigation and live system direction. Brass is reserved for hardware and the center route. Smoked panes and dark metal keep the hall legible without becoming a dashboard card stack.
+
+### Interaction contract
+
+- Each doorway is a real `Link` and navigates on the first click. Internal cockpits stay in the platform; external systems open in a new tab with `noopener noreferrer`.
+- Hover and keyboard focus part the two leaves slightly and reveal an entry plate, while reduced-motion users receive the same affordance without transition movement.
+- Desktop shows all six entrances. At 820px and below, the row becomes a horizontal scroll-snap rail so each tall door remains inspectable and actionable.
+- The footer always exposes the required disclosure: `Demo 模拟数据，不用于申报`.
+
+### Typography decision
+
+The gateway uses the approved system stack for this Operate surface: `Bahnschrift`, `DIN Alternate`, `Noto Sans SC`, and `Microsoft YaHei` fallbacks. The first two provide a condensed architectural voice when available; the Chinese fallbacks preserve reliable local rendering because this repository has no font asset to self-host. Do not replace this stack with a decorative display face without a product-approved font asset and a corresponding token update.

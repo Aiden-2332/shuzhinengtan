@@ -169,7 +169,7 @@ export function EnergyFlowSankey({
           emphasis: { focus: "adjacency" },
           blur: { itemStyle: { opacity: 0.17 }, lineStyle: { opacity: 0.06 } },
           label: {
-            color: "#334155",
+            color: "#d9edf0",
             fontSize: 11,
             distance: 5,
             formatter: (raw: unknown) => {
@@ -197,7 +197,7 @@ export function EnergyFlowSankey({
               itemStyle: {
                 color: qualityColor,
                 opacity: isDimmed ? 0.18 : 1,
-                borderColor: isException ? STATUS_META[node.status].color : node.dataQuality < 90 ? "#64748b" : "#ffffff",
+                borderColor: isException ? STATUS_META[node.status].color : node.dataQuality < 90 ? "#647d86" : "#6fa6ad",
                 borderWidth: selectedNodeId === node.id ? 3 : isException ? 2 : 1,
                 borderType: node.dataQuality < 90 ? "dashed" : "solid",
                 shadowBlur: selectedNodeId === node.id || node.id === "building-lab-a" ? 10 : 0,
@@ -248,7 +248,7 @@ export function EnergyFlowSankey({
   );
 
   return (
-    <div className="h-full min-h-[500px] overflow-auto rounded-lg bg-white">
+    <div className="energy-flow-sankey h-full min-h-[500px] overflow-auto rounded-lg bg-[#0b1d29]">
       <div
         className="h-full min-h-[500px] min-w-[900px] origin-center transition-transform duration-200"
         style={{ transform: `scale(${zoom})` }}
