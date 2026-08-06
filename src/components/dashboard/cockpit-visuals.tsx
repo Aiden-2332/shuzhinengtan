@@ -3,6 +3,7 @@
 import { useId, useMemo, type ReactNode } from "react";
 import {
   Area,
+  Bar,
   CartesianGrid,
   Cell,
   ComposedChart,
@@ -391,6 +392,68 @@ export interface TrendSeries {
   label: string;
   color: string;
   dashed?: boolean;
+  presentation?: "line" | "bar";
+}
+
+type TrendSeriesRole = "actual" | "benchmark" | "forecast" | "comparison";
+
+interface StyledTrendSeries extends TrendSeries {
+  displayColor: string;
+  role: TrendSeriesRole;
+  strokeDasharray?: string;
+  strokeWidth: number;
+}
+
+function styleTrendSeries(item: TrendSeries, areaKey?: string): StyledTrendSeries {
+  const key = item.key.toLowerCase();
+  const isArea = item.key === areaKey;
+  const isForecast = key.includes("forecast") || key.includes("predict");
+  const isBenchmark = key.includes("target") || key.includes("yesterday") || key.includes("limit");
+
+  if (isArea) {
+    return {
+      ...item,
+      displayColor: item.color,
+      role: "actual",
+      strokeWidth: 3,
+    };
+  }
+
+  if (isForecast) {
+    return {
+      ...item,
+      displayColor: "#ff7a68",
+      role: "forecast",
+      strokeDasharray: "9 4 2 4",
+      strokeWidth: 2.7,
+    };
+  }
+
+  if (isBenchmark) {
+    return {
+      ...item,
+      displayColor: "#f6c85f",
+      role: "benchmark",
+      strokeDasharray: "14 6",
+      strokeWidth: 2.6,
+    };
+  }
+
+  return {
+    ...item,
+    displayColor: item.color,
+    role: "comparison",
+    strokeDasharray: item.dashed ? "7 5" : undefined,
+    strokeWidth: item.dashed ? 2.3 : 2.6,
+  };
+}
+
+function trendLayer(series: StyledTrendSeries): number {
+  if (series.presentation === "bar") return -1;
+  if (series.role === "forecast") return 0;
+  if (series.role === "benchmark") return 1;
+  if (series.role === "comparison") return 2;
+  return 3;
 }
 
 export function AdaptiveTrendChart({
@@ -413,7 +476,11 @@ export function AdaptiveTrendChart({
   );
 
   if (!data.length || !validSeries.length) return <EmptyVisualization label="当前时间范围暂无趋势数据" />;
-  const areaSeries = areaKey ? validSeries.find((item) => item.key === areaKey) : undefined;
+  const styledSeries = validSeries.map((item) => styleTrendSeries(item, areaKey));
+  const renderedSeries = styledSeries.toSorted((a, b) => trendLayer(a) - trendLayer(b));
+  const areaSeries = areaKey ? styledSeries.find((item) => item.key === areaKey) : undefined;
+  const barSeries = renderedSeries.filter((item) => item.presentation === "bar");
+  const lineSeries = renderedSeries.filter((item) => item.presentation !== "bar");
 
   return (
     <div className="cockpit-trend" style={{ height }}>
@@ -422,9 +489,9 @@ export function AdaptiveTrendChart({
           {areaSeries ? (
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={areaSeries.color} stopOpacity={0.44} />
-                <stop offset="52%" stopColor={areaSeries.color} stopOpacity={0.2} />
-                <stop offset="100%" stopColor={areaSeries.color} stopOpacity={0.04} />
+                <stop offset="0%" stopColor={areaSeries.displayColor} stopOpacity={0.44} />
+                <stop offset="52%" stopColor={areaSeries.displayColor} stopOpacity={0.2} />
+                <stop offset="100%" stopColor={areaSeries.displayColor} stopOpacity={0.04} />
               </linearGradient>
             </defs>
           ) : null}
@@ -439,13 +506,30 @@ export function AdaptiveTrendChart({
           <Legend
             content={() => (
               <div className="cockpit-trend__legend" aria-label="趋势图例">
-                {validSeries.map((item) => (
+                {styledSeries.map((item) => (
                   <span key={item.key}>
-                    <i
-                      aria-hidden="true"
-                      data-dashed={item.dashed ? "true" : "false"}
-                      style={{ color: item.color }}
-                    />
+                    <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
+                      {item.presentation === "bar" ? (
+                        <rect x="3" y="1" width="16" height="8" rx="1" fill={item.displayColor} fillOpacity=".48" stroke={item.displayColor} strokeOpacity=".72" />
+                      ) : (
+                        <line
+                          x1="1"
+                          y1="5"
+                          x2="21"
+                          y2="5"
+                          stroke={item.displayColor}
+                          strokeWidth={item.role === "actual" ? 3 : 2.4}
+                          strokeDasharray={item.strokeDasharray}
+                          strokeLinecap="round"
+                        />
+                      )}
+                      {item.role === "benchmark" && item.presentation !== "bar" ? (
+                        <circle cx="11" cy="5" r="2.2" fill="rgba(6,23,31,.98)" stroke={item.displayColor} strokeWidth="1.3" />
+                      ) : null}
+                      {item.role === "forecast" && item.presentation !== "bar" ? (
+                        <rect x="9.2" y="3.2" width="3.6" height="3.6" rx="0.6" fill={item.displayColor} transform="rotate(45 11 5)" />
+                      ) : null}
+                    </svg>
                     {item.label}
                   </span>
                 ))}
@@ -453,6 +537,21 @@ export function AdaptiveTrendChart({
             )}
             wrapperStyle={{ color: "var(--theme-muted)", fontSize: 10, paddingTop: 4 }}
           />
+          {barSeries.map((item) => (
+            <Bar
+              key={item.key}
+              dataKey={item.key}
+              name={item.label}
+              fill={item.displayColor}
+              fillOpacity={0.46}
+              stroke={item.displayColor}
+              strokeOpacity={0.72}
+              strokeWidth={1}
+              radius={[2, 2, 0, 0]}
+              maxBarSize={28}
+              isAnimationActive={false}
+            />
+          ))}
           {areaSeries ? (
             <Area
               type="monotone"
@@ -466,17 +565,46 @@ export function AdaptiveTrendChart({
               isAnimationActive={false}
             />
           ) : null}
-          {validSeries.map((item) => (
+          {lineSeries.map((item) => (
+            <Line
+              key={`${item.key}-halo`}
+              type="monotone"
+              dataKey={item.key}
+              stroke={item.displayColor}
+              strokeWidth={item.strokeWidth + 5}
+              strokeDasharray={item.strokeDasharray}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeOpacity={item.role === "actual" ? 0.16 : 0.13}
+              dot={false}
+              activeDot={false}
+              legendType="none"
+              tooltipType="none"
+              connectNulls={false}
+              isAnimationActive={false}
+            />
+          ))}
+          {lineSeries.map((item) => (
             <Line
               key={item.key}
               type="monotone"
               dataKey={item.key}
               name={item.label}
-              stroke={item.color}
-              strokeWidth={item.dashed ? 1.4 : 2.2}
-              strokeDasharray={item.dashed ? "5 5" : undefined}
-              dot={data.length === 1 ? { r: 3 } : false}
-              activeDot={{ r: 3, strokeWidth: 0 }}
+              stroke={item.displayColor}
+              strokeWidth={item.strokeWidth}
+              strokeDasharray={item.strokeDasharray}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              dot={
+                data.length === 1
+                  ? { r: 3, fill: item.displayColor, strokeWidth: 0 }
+                  : data.length <= 16 && item.role === "benchmark"
+                    ? { r: 2.2, fill: "rgba(6,23,31,.98)", stroke: item.displayColor, strokeWidth: 1.3 }
+                    : data.length <= 16 && item.role === "forecast"
+                      ? { r: 2.1, fill: item.displayColor, stroke: "rgba(6,23,31,.98)", strokeWidth: 1 }
+                      : false
+              }
+              activeDot={{ r: 4.5, fill: item.displayColor, stroke: "rgba(6,23,31,.98)", strokeWidth: 2 }}
               connectNulls={false}
               isAnimationActive={false}
             />

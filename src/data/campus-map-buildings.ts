@@ -16,7 +16,10 @@ export interface CampusBuildingCarbonData {
   targetEmission: number;
   energyIntensity: number;
   department: string;
+  area: number;
+  floorCount: number;
   sourceLabel: string;
+  isEstimated: boolean;
 }
 
 export interface CampusMapBuilding {
@@ -27,7 +30,7 @@ export interface CampusMapBuilding {
   polygon: ImagePoint[];
   centroid: ImagePoint;
   anchor: ImagePoint;
-  carbon: CampusBuildingCarbonData | null;
+  carbon: CampusBuildingCarbonData;
 }
 
 interface ExtractedBuilding {
@@ -79,6 +82,10 @@ const carbonBuildingsByName = new Map(
   CAMPUS_DATA.buildings.map((building) => [building.name, building]),
 );
 
+const DORMITORY_PATTERN = /宿舍|公寓|斋/;
+const LABORATORY_PATTERN =
+  /实验|科技|材料|机电|冶金|化生|生态|智能|理化|土木|矿业|工程|研究|腐蚀/;
+
 function findCarbonBuilding(name: string) {
   const directName = CARBON_NAME_ALIASES[name] ?? name;
   const directMatch = carbonBuildingsByName.get(directName);
@@ -89,27 +96,97 @@ function findCarbonBuilding(name: string) {
   return carbonBuildingsByName.get(`${dormMatch[1]}号宿舍楼`) ?? null;
 }
 
-function getCarbonData(name: string): CampusBuildingCarbonData | null {
-  const systemBuilding = SYSTEM_BUILDINGS_BY_NAME.get(name);
+function stableBuildingHash(value: string): number {
+  let hash = 2_166_136_261;
+  for (const character of value) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return hash >>> 0;
+}
+
+function inferBuildingKind(building: ExtractedBuilding): Exclude<CampusLayerFilter, "all"> {
+  if (
+    building.category.includes("学生宿舍") ||
+    DORMITORY_PATTERN.test(building.name)
+  ) {
+    return "dormitory";
+  }
+
+  if (LABORATORY_PATTERN.test(building.name)) return "laboratory";
+
+  if (
+    building.category.includes("教学科研") ||
+    building.name.includes("教学") ||
+    building.name.includes("外语")
+  ) {
+    return "teaching";
+  }
+
+  return "services";
+}
+
+function getStableDemoCarbonData(building: ExtractedBuilding): CampusBuildingCarbonData {
+  const hash = stableBuildingHash(`${building.name}|${building.category}`);
+  const kind = inferBuildingKind(building);
+  const defaults = {
+    teaching: { floorMin: 5, floorRange: 5, areaMin: 1_450, areaRange: 900, intensityMin: 66, intensityRange: 26, department: "教务处" },
+    dormitory: { floorMin: 6, floorRange: 5, areaMin: 1_250, areaRange: 700, intensityMin: 62, intensityRange: 20, department: "学生公寓管理中心" },
+    laboratory: { floorMin: 4, floorRange: 7, areaMin: 1_650, areaRange: 1_050, intensityMin: 88, intensityRange: 38, department: "实验室与设备管理处" },
+    services: { floorMin: 2, floorRange: 7, areaMin: 1_100, areaRange: 1_100, intensityMin: 58, intensityRange: 34, department: "后勤服务集团" },
+  }[kind];
+  const floorCount = defaults.floorMin + (hash % defaults.floorRange);
+  const typicalFloorArea = defaults.areaMin + ((hash >>> 5) % defaults.areaRange);
+  const area = Math.round((floorCount * typicalFloorArea) / 100) * 100;
+  const energyIntensity = defaults.intensityMin + ((hash >>> 11) % defaults.intensityRange);
+  const annualEmission = Math.max(120, Math.round((area * energyIntensity * 0.62) / 1_000));
+  const relativeQuotaPercent = 88 + ((hash >>> 17) % 31);
+  const targetEmission = Math.max(100, Math.round(annualEmission / (relativeQuotaPercent / 100)));
+
+  return {
+    annualEmission,
+    targetEmission,
+    energyIntensity,
+    department: defaults.department,
+    area,
+    floorCount,
+    sourceLabel: "稳定 Demo 推演数据",
+    isEstimated: true,
+  };
+}
+
+function getCarbonData(building: ExtractedBuilding): CampusBuildingCarbonData {
+  const systemBuilding = SYSTEM_BUILDINGS_BY_NAME.get(building.name);
   if (systemBuilding) {
     return {
       annualEmission: systemBuilding.annualEmissionForecast,
       targetEmission: systemBuilding.annualEmissionTarget,
       energyIntensity: systemBuilding.energyIntensity,
       department: systemBuilding.department,
+      area: systemBuilding.area,
+      floorCount: systemBuilding.floorCount,
       sourceLabel: "校园统一监测场景",
+      isEstimated: false,
     };
   }
 
-  const building = findCarbonBuilding(name);
-  if (!building) return null;
+  const carbonBuilding = findCarbonBuilding(building.name);
+  if (!carbonBuilding) return getStableDemoCarbonData(building);
+
+  const area = Math.max(
+    1_000,
+    Math.round((carbonBuilding.width * carbonBuilding.depth * carbonBuilding.floors * 1.8) / 100) * 100,
+  );
 
   return {
-    annualEmission: building.emission,
-    targetEmission: building.targetEmission,
-    energyIntensity: building.energyIntensity,
-    department: building.dept,
+    annualEmission: carbonBuilding.emission,
+    targetEmission: carbonBuilding.targetEmission,
+    energyIntensity: carbonBuilding.energyIntensity,
+    department: carbonBuilding.dept,
+    area,
+    floorCount: carbonBuilding.floors,
     sourceLabel: "系统演示数据",
+    isEstimated: true,
   };
 }
 
@@ -118,7 +195,7 @@ function hydrateBuildings(map: CampusMapKind): CampusMapBuilding[] {
     .filter((building) => sharedBuildingNames.has(building.name))
     .map((building) => ({
       ...building,
-      carbon: getCarbonData(building.name),
+      carbon: getCarbonData(building),
     }));
 }
 
@@ -130,15 +207,29 @@ export const campusMapBuildingsByMap: Record<
   "2_5d": hydrateBuildings("2_5d"),
 };
 
+const campusMapBuildingIdsByName: Record<CampusMapKind, ReadonlyMap<string, string>> = {
+  "2d": new Map(campusMapBuildingsByMap["2d"].map((building) => [building.name, building.id])),
+  "2_5d": new Map(campusMapBuildingsByMap["2_5d"].map((building) => [building.name, building.id])),
+};
+
+/**
+ * Resolves a stable business identity (the canonical building name) to the
+ * map-specific overlay id. The 2D and 2.5D source files use different ids for
+ * several of the same buildings, so route construction must not reuse an id
+ * from the other map.
+ */
+export function getCampusMapBuildingId(
+  map: CampusMapKind,
+  buildingName: string,
+): string | null {
+  return campusMapBuildingIdsByName[map].get(buildingName) ?? null;
+}
+
 export function getCampusMapBuildings(
   map: CampusMapKind,
 ): CampusMapBuilding[] {
   return campusMapBuildingsByMap[map];
 }
-
-const DORMITORY_PATTERN = /宿舍|公寓|斋/;
-const LABORATORY_PATTERN =
-  /实验|科技|材料|机电|冶金|化生|生态|智能|理化|土木|矿业|工程|研究|腐蚀/;
 
 /**
  * Normalizes the source map's broad categories into the layer switches used
@@ -148,24 +239,5 @@ const LABORATORY_PATTERN =
 export function getCampusBuildingLayer(
   building: CampusMapBuilding,
 ): Exclude<CampusLayerFilter, "all"> {
-  if (
-    building.category.includes("学生宿舍") ||
-    DORMITORY_PATTERN.test(building.name)
-  ) {
-    return "dormitory";
-  }
-
-  if (LABORATORY_PATTERN.test(building.name)) {
-    return "laboratory";
-  }
-
-  if (
-    building.category.includes("教学科研") ||
-    building.name.includes("教学") ||
-    building.name.includes("外语")
-  ) {
-    return "teaching";
-  }
-
-  return "services";
+  return inferBuildingKind(building);
 }

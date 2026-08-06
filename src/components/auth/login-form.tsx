@@ -1,18 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LockKeyhole, UserRound } from "lucide-react";
 
 const DEMO_LINKS = [
-  { href: "/gateway", label: "门户" },
   { href: "/leader", label: "领导舱演示" },
   { href: "/operations", label: "后勤舱演示" },
   { href: "/portal", label: "PC端演示" },
 ] as const;
 
 export function LoginForm() {
-  const [notice, setNotice] = useState("");
+  const router = useRouter();
 
   return (
     <div className="w-full max-w-[420px]">
@@ -29,7 +28,7 @@ export function LoginForm() {
         className="space-y-5"
         onSubmit={(event) => {
           event.preventDefault();
-          setNotice("账号登录功能暂未接入，请使用下方演示入口。 ");
+          router.push("/gateway");
         }}
       >
         <div>
@@ -76,12 +75,8 @@ export function LoginForm() {
           type="submit"
           className="mt-1 flex h-12 w-full items-center justify-center rounded-xl bg-cyan-400 px-5 text-[15px] font-semibold text-cyan-950 shadow-[0_10px_28px_rgba(34,211,238,.2)] transition-[background-color,box-shadow,transform] hover:bg-cyan-300 hover:shadow-[0_14px_34px_rgba(34,211,238,.28)] active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#06141d]"
         >
-          登录系统
+          进入门户
         </button>
-
-        <p aria-live="polite" className="min-h-5 text-center text-xs leading-5 text-slate-400">
-          {notice}
-        </p>
       </form>
 
       <div className="mt-5 flex items-center gap-4" aria-hidden="true">

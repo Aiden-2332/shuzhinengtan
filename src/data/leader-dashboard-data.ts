@@ -2,7 +2,7 @@
  * 领导组驾驶舱 - 专用数据
  *
  * 涵盖：顶部KPI、经济控制分区、排放源构成、风险预警、
- *       月度累计趋势、资源消耗分析、三类组成、排放TOP 5
+ *       近12个月月度趋势、资源消耗分析、三类组成、排放TOP 5
  */
 
 import {
@@ -13,7 +13,7 @@ import {
   getCampusOperationalSnapshot,
   getSystemAnomalySnapshots,
   getSystemBuildingRanking,
-  getSystemMonthlyCarbon,
+  getSystemRollingMonthlyCarbon,
 } from "@/data/campus-system-data";
 
 // ============================================================
@@ -108,13 +108,14 @@ export const riskWarnings: RiskWarning[] = [
 
 export interface MonthlyTrendPoint {
   month: string;
+  monthKey: string;
   actual: number;
   target: number;
   forecast: number;
 }
 
 export function getMonthlyTrendData(now: Date): MonthlyTrendPoint[] {
-  return getSystemMonthlyCarbon(now).map(({ month, actual, target, forecast }) => ({ month, actual, target, forecast }));
+  return getSystemRollingMonthlyCarbon(now);
 }
 
 // ============================================================
@@ -194,13 +195,32 @@ export const emissionRankingData: EmissionRankingItem[] = [
 
 export function getLeaderKPIs(now = new Date()): LeaderKPI[] {
   const snapshot = getCampusOperationalSnapshot(now);
+  const forecastTargetGap = snapshot.annualForecast - CAMPUS_CARBON_TARGET;
+  const forecastTargetSummary = forecastTargetGap === 0
+    ? "符合年度目标"
+    : forecastTargetGap > 0
+      ? `较年度目标 +${forecastTargetGap.toLocaleString("zh-CN")}`
+      : `低于年度目标 ${Math.abs(forecastTargetGap).toLocaleString("zh-CN")}`;
+  const quotaGap = snapshot.annualForecast - snapshot.annualQuota;
+  const quotaSummary = quotaGap > 0
+    ? `年末预测缺口 ${quotaGap.toLocaleString("zh-CN")}`
+    : `年末预计余量 ${Math.abs(quotaGap).toLocaleString("zh-CN")}`;
   return [
     { label: "本年累计碳排放", value: snapshot.annualCarbon.toLocaleString("zh-CN"), unit: "tCO₂e", sub: `同比 ${snapshot.yoy}%` },
     { label: "年度配额使用率", value: snapshot.quotaUseRate.toFixed(1), unit: "%", sub: `已用 ${snapshot.annualCarbon.toLocaleString("zh-CN")} / ${snapshot.annualQuota.toLocaleString("zh-CN")}` },
-    { label: "剩余配额", value: snapshot.remainingQuota.toLocaleString("zh-CN"), unit: "tCO₂e", sub: `年末预测缺口 ${Math.max(0, snapshot.annualForecast - snapshot.annualQuota).toLocaleString("zh-CN")}` },
-    { label: "年末排放预测", value: snapshot.annualForecast.toLocaleString("zh-CN"), unit: "tCO₂e", sub: `较年度目标 +${(snapshot.annualForecast - CAMPUS_CARBON_TARGET).toLocaleString("zh-CN")}` },
+    { label: "剩余配额", value: snapshot.remainingQuota.toLocaleString("zh-CN"), unit: "tCO₂e", sub: quotaSummary },
+    { label: "年末排放预测", value: snapshot.annualForecast.toLocaleString("zh-CN"), unit: "tCO₂e", sub: forecastTargetSummary },
     { label: "数据完整率", value: snapshot.dataCompletenessRate.toFixed(1), unit: "%", sub: "仪表在线 175/186 台" },
   ];
+}
+
+export interface BuildingPriorityItem {
+  id: string;
+  name: string;
+  carbonIntensity: number;
+  targetGapPct: number;
+  emission: number;
+  level: "danger" | "warning" | "normal";
 }
 
 export function getEconomicZoneData(now = new Date()): EconomicZoneData {
@@ -242,8 +262,23 @@ export function getRiskWarnings(now = new Date()): RiskWarning[] {
   const anomalies = getSystemAnomalySnapshots(now).filter((item) => item.status !== "resolved");
   const abnormalBuildings = [...new Set(anomalies.map((item) => item.buildingName))];
   const forecastGap = snapshot.annualForecast - snapshot.annualQuota;
+  const forecastWarning: RiskWarning = forecastGap > 0
+    ? {
+      label: "年末配额缺口预估",
+      value: `+${forecastGap.toLocaleString("zh-CN")} tCO₂e`,
+      status: "danger",
+      desc: "按当前负荷与季节模型预测，年末将超过年度配额",
+    }
+    : {
+      label: "年末配额余量预估",
+      value: `${Math.abs(forecastGap).toLocaleString("zh-CN")} tCO₂e`,
+      status: "normal",
+      desc: forecastGap === 0
+        ? "按当前负荷与季节模型预测，年末与年度配额持平"
+        : `按当前负荷与季节模型预测，年末低于年度配额 ${Math.abs(forecastGap).toLocaleString("zh-CN")} tCO₂e`,
+    };
   return [
-    { label: "年末配额缺口预估", value: `+${forecastGap.toLocaleString("zh-CN")} tCO₂e`, status: "danger", desc: "按当前负荷与季节模型预测，年末将超过年度配额" },
+    forecastWarning,
     { label: "重点异常楼宇", value: `${abnormalBuildings.length} 栋`, status: "danger", desc: abnormalBuildings.slice(0, 4).join("、") },
     { label: "待闭环异常", value: `${anomalies.length} 项`, status: "warning", desc: "包含能耗、设备、环境与数据质量四类问题" },
     { label: "数据完整率", value: `${snapshot.dataCompletenessRate}%`, status: "warning", desc: "3斋水表离线导致最新分项数据需要估算补齐" },
@@ -272,6 +307,28 @@ export function getEmissionRankingData(now = new Date()): EmissionRankingItem[] 
     unit: "tCO₂e",
     color: colors[index],
   }));
+}
+
+export function getBuildingPriorityData(now = new Date()): BuildingPriorityItem[] {
+  return getSystemBuildingRanking(now, 10).map((building) => {
+    const carbonIntensity = building.area > 0
+      ? building.annualEmissionForecast * 1000 / building.area
+      : 0;
+    const level = building.overTargetPct >= 15 || carbonIntensity >= 95
+      ? "danger"
+      : building.overTargetPct >= 10 || carbonIntensity >= 75
+        ? "warning"
+        : "normal";
+
+    return {
+      id: building.id,
+      name: building.name,
+      carbonIntensity: Math.round(carbonIntensity * 10) / 10,
+      targetGapPct: building.overTargetPct,
+      emission: building.currentYearEmission,
+      level,
+    };
+  });
 }
 
 // ============================================================

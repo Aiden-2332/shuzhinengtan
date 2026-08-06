@@ -1,0 +1,146 @@
+.root {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: center;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  min-height: 176px;
+  max-height: 224px;
+  overflow: visible;
+}
+
+.trunk {
+  fill: none;
+  stroke: rgb(167 189 194 / 32%);
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.flow {
+  outline: none;
+}
+
+.halo,
+.band,
+.pulse {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
+.halo {
+  opacity: .11;
+}
+
+.band {
+  opacity: .72;
+}
+
+.pulse {
+  opacity: .82;
+  stroke-dasharray: 2 15;
+  animation: source-flow-pulse 2.8s linear infinite;
+}
+
+.flow:hover .band,
+.flow:focus-visible .band {
+  opacity: 1;
+  filter: brightness(1.18);
+}
+
+.flow:hover .halo,
+.flow:focus-visible .halo {
+  opacity: .22;
+}
+
+.endpoint-halo {
+  fill: none;
+  opacity: .22;
+  stroke-width: 1.2;
+}
+
+.endpoint {
+  stroke: rgb(6 23 31 / 90%);
+  stroke-width: 1;
+}
+
+.label {
+  fill: var(--theme-text);
+  font-size: 9.5px;
+  font-weight: 720;
+}
+
+.value {
+  fill: var(--theme-subtle);
+  font-size: 7.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.share {
+  fill: var(--theme-text);
+  font-size: 9.5px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+}
+
+.source-node rect {
+  fill: rgb(5 28 39 / 86%);
+  stroke: color-mix(in srgb, var(--theme-primary) 58%, white 12%);
+  stroke-width: 1;
+}
+
+.source-node path {
+  fill: none;
+  stroke: rgb(var(--theme-primary-rgb) / 42%);
+  stroke-width: 1;
+}
+
+.source-label {
+  fill: var(--theme-muted);
+  font-size: 8px;
+}
+
+.source-value {
+  fill: var(--theme-text);
+  font-size: 16px;
+  font-weight: 780;
+  font-variant-numeric: tabular-nums;
+}
+
+.source-unit {
+  fill: var(--theme-subtle);
+  font-size: 7px;
+}
+
+.source-signal {
+  fill: var(--theme-primary);
+  filter: drop-shadow(0 0 4px rgb(var(--theme-primary-rgb) / 48%));
+}
+
+.rail-track {
+  fill: rgb(167 189 194 / 12%);
+}
+
+.rail-segment {
+  opacity: .86;
+  stroke: rgb(5 20 28 / 82%);
+  stroke-width: .8;
+}
+
+.rail-caption {
+  fill: var(--theme-subtle);
+  font-size: 7px;
+}
+
+@keyframes source-flow-pulse {
+  to { stroke-dashoffset: -34; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; }
+}

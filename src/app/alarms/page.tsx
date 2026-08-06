@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import {
   Bell,
   AlertTriangle,
@@ -8,7 +9,7 @@ import {
   Info,
   Clock,
   MapPin,
-  User,
+  MapPinned,
   ChevronDown,
   ChevronUp,
   Search,
@@ -20,10 +21,9 @@ import {
   ArrowUpDown,
   ExternalLink,
   CheckCircle2,
-  CircleDot,
-  Loader2,
-  XCircle,
+  Sparkles,
 } from "lucide-react";
+import { AlarmWorkflowPanel } from "@/components/alarms/alarm-workflow";
 import { cn } from "@/lib/utils";
 import {
   getAllAlarms,
@@ -35,6 +35,7 @@ import {
   type AlarmStatus,
   type AlarmCategory,
 } from "@/data/alarm-data";
+import { getAlarmAiAnalysisHref } from "@/data/alarm-workflow-data";
 import { useRealtimeNow } from "@/hooks/use-realtime-now";
 import { formatCampusDateTime } from "@/lib/campus-realtime";
 
@@ -72,7 +73,57 @@ export default function AlarmsPage() {
   const [statusFilter, setStatusFilter] = useState<AlarmStatus | "all">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"time" | "severity">("time");
+  const lastScrolledAlarmIdRef = useRef<string | null>(null);
+  const deepLinkHandledRef = useRef(false);
   const allAlarms = useMemo(() => nowMs === null ? [] : getAllAlarms(new Date(nowMs)), [nowMs]);
+
+  useEffect(() => {
+    if (deepLinkHandledRef.current || nowMs === null) return;
+    deepLinkHandledRef.current = true;
+    const requestedAlarmId = new URLSearchParams(window.location.search).get("alarm");
+    const matchedAlarm = requestedAlarmId
+      ? allAlarms.find((alarm) => alarm.id === requestedAlarmId)
+      : null;
+    setExpandedId(matchedAlarm?.id ?? null);
+
+    if (requestedAlarmId && !matchedAlarm) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("alarm");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, [allAlarms, nowMs]);
+
+  const handleAlarmToggle = useCallback((alarmId: string, isExpanded: boolean) => {
+    const nextExpandedId = isExpanded ? null : alarmId;
+    setExpandedId(nextExpandedId);
+    const url = new URL(window.location.href);
+    if (nextExpandedId) {
+      url.searchParams.set("alarm", nextExpandedId);
+    } else {
+      url.searchParams.delete("alarm");
+    }
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
+
+  useEffect(() => {
+    if (!expandedId) {
+      lastScrolledAlarmIdRef.current = null;
+      return;
+    }
+    if (
+      lastScrolledAlarmIdRef.current === expandedId
+      || !allAlarms.some((alarm) => alarm.id === expandedId)
+    ) return;
+
+    lastScrolledAlarmIdRef.current = expandedId;
+    const frame = window.requestAnimationFrame(() => {
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth";
+      document.getElementById(`alarm-${expandedId}`)?.scrollIntoView({ behavior, block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [allAlarms, expandedId]);
 
   const filteredAlarms = useMemo(() => {
     const result = allAlarms.filter((alarm) => {
@@ -259,7 +310,7 @@ export default function AlarmsPage() {
         ) : (
           filteredAlarms.map((alarm) => {
             const isExpanded = expandedId === alarm.id;
-            return <AlarmCard key={alarm.id} alarm={alarm} isExpanded={isExpanded} onToggle={() => setExpandedId(isExpanded ? null : alarm.id)} />;
+            return <AlarmCard key={alarm.id} alarm={alarm} nowMs={nowMs ?? 0} isExpanded={isExpanded} onToggle={() => handleAlarmToggle(alarm.id, isExpanded)} />;
           })
         )}
       </div>
@@ -269,10 +320,12 @@ export default function AlarmsPage() {
 
 function AlarmCard({
   alarm,
+  nowMs,
   isExpanded,
   onToggle,
 }: {
   alarm: AlarmDetail;
+  nowMs: number;
   isExpanded: boolean;
   onToggle: () => void;
 }) {
@@ -281,6 +334,7 @@ function AlarmCard({
 
   return (
     <div
+      id={`alarm-${alarm.id}`}
       className={cn(
         "rounded-xl border bg-slate-900/60 overflow-hidden transition-all duration-200",
         alarm.severity === "danger" ? "border-red-500/20" : alarm.severity === "warning" ? "border-amber-500/20" : "border-gray-800/50",
@@ -410,63 +464,30 @@ function AlarmCard({
                 </div>
               </div>
 
-              {/* Assignment Info */}
-              <div>
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <User className="w-3 h-3" />
-                  处置信息
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/30 border border-gray-800/50">
-                    <span className="text-xs text-gray-500">责任组</span>
-                    <span className="text-xs text-gray-300 font-medium">{alarm.assigneeGroup}</span>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/30 border border-gray-800/50">
-                    <span className="text-xs text-gray-500">处理人</span>
-                    <span className="text-xs text-gray-300 font-medium">{alarm.assignee || "待分配"}</span>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/30 border border-gray-800/50">
-                    <span className="text-xs text-gray-500">工单号</span>
-                    <span className="text-xs text-cyan-400 font-medium font-mono">{alarm.workOrderId || alarm.id}</span>
-                  </div>
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/30 border border-gray-800/50">
-                    <span className="text-xs text-gray-500">超时升级</span>
-                    <span className={cn("text-xs font-medium", alarm.escalationLevel > 0 ? "text-red-400" : "text-gray-300")}>
-                      {alarm.escalationLevel > 0 ? `已升级至 Lv.${alarm.escalationLevel}` : "未触发"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Timeline */}
-              <div>
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">状态流转</h4>
-                <div className="flex items-center gap-1">
-                  <div className={cn("flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium", alarm.status === "pending" ? "bg-red-500/15 text-red-400" : "bg-gray-800/30 text-gray-500")}>
-                    <CircleDot className="w-3 h-3" />
-                    待处理
-                  </div>
-                  <div className="w-6 h-px bg-gray-700" />
-                  <div className={cn("flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium", alarm.status === "processing" ? "bg-amber-500/15 text-amber-400" : alarm.status === "resolved" || alarm.status === "closed" ? "bg-gray-800/30 text-gray-500" : "bg-gray-800/30 text-gray-600")}>
-                    <Loader2 className="w-3 h-3" />
-                    处理中
-                  </div>
-                  <div className="w-6 h-px bg-gray-700" />
-                  <div className={cn("flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium", alarm.status === "resolved" ? "bg-emerald-500/15 text-emerald-400" : "bg-gray-800/30 text-gray-600")}>
-                    <CheckCircle2 className="w-3 h-3" />
-                    已解决
-                  </div>
-                  <div className="w-6 h-px bg-gray-700" />
-                  <div className={cn("flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium", alarm.status === "closed" ? "bg-gray-500/15 text-gray-400" : "bg-gray-800/30 text-gray-600")}>
-                    <XCircle className="w-3 h-3" />
-                    已关闭
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
+          <AlarmWorkflowPanel alarm={alarm} nowMs={nowMs} aiSource="alarms" />
         </div>
       )}
+
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gray-800/50 px-5 py-2.5">
+        <Link
+          href={getAlarmAiAnalysisHref(alarm, "alarms")}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-400/20 bg-amber-400/8 px-3 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-400/12 hover:text-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+        >
+          <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
+          AI 根因分析
+          <ExternalLink aria-hidden="true" className="h-3 w-3" />
+        </Link>
+        <Link
+          href={`/operations?building=${encodeURIComponent(alarm.buildingId)}&alarm=${encodeURIComponent(alarm.id)}`}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-cyan-500/25 bg-cyan-500/10 px-3 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/15 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+        >
+          <MapPinned aria-hidden="true" className="h-3.5 w-3.5" />
+          定位到后勤驾驶舱
+          <ExternalLink aria-hidden="true" className="h-3 w-3" />
+        </Link>
+      </div>
     </div>
   );
 }

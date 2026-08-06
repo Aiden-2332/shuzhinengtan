@@ -12,6 +12,7 @@ import {
   startOfCampusHour,
 } from "@/lib/campus-realtime";
 import {
+  getCampusForecastLoadKw,
   getCampusOperationalSnapshot,
   getSystemAnomalySnapshots,
   getSystemBuildingRanking,
@@ -951,7 +952,7 @@ export function getRealtimeLoadData(now = new Date()): LoadCurvePoint[] {
       time: formatCampusTime(pointTime),
       realtime: getCampusLoadKw(pointTime, 1),
       yesterday: getCampusLoadKw(yesterdayTime, 2),
-      forecast: getCampusLoadKw(pointTime, 3),
+      forecast: getCampusForecastLoadKw(pointTime),
     };
   });
 }

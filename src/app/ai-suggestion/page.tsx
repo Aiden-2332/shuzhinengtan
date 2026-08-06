@@ -51,7 +51,7 @@ import {
   Radar,
   Legend,
 } from "recharts";
-import { getAISuggestion } from "@/data/mock-data";
+import type { AICenterBuildingContext } from "@/components/ai-center/AICenterDashboard";
 
 // ---- 类型定义 ----
 type PageStatus = "pending" | "adopted" | "rejected" | "adjusting";
@@ -180,7 +180,13 @@ const rejectReasons = [
   "实施周期影响正常教学秩序",
 ];
 
-export default function AISuggestionPage() {
+export default function AISuggestionPage({
+  buildingContext = null,
+  analysisFocus = null,
+}: {
+  buildingContext?: AICenterBuildingContext | null;
+  analysisFocus?: string | null;
+}) {
   // ---- 页面状态机 ----
   const [pageStatus, setPageStatus] = useState<PageStatus>("pending");
 
@@ -206,8 +212,32 @@ export default function AISuggestionPage() {
   const [selectedAdjustment, setSelectedAdjustment] = useState<string | null>(null);
   const [showAdjustmentPanel, setShowAdjustmentPanel] = useState(false);
 
-  // ---- 数据 ----
-  const suggestion = useMemo(() => getAISuggestion("anomaly-001"), []);
+  const focusedEvidence = useMemo(() => {
+    if (!buildingContext?.carbon || !buildingContext.benchmark) return null;
+    const quotaRatio = buildingContext.carbon.targetEmission > 0
+      ? (buildingContext.carbon.annualEmission / buildingContext.carbon.targetEmission) * 100
+      : null;
+    return [
+      {
+        icon: Target,
+        title: "年度限额偏差",
+        desc: `预计排放 ${buildingContext.carbon.annualEmission.toLocaleString("zh-CN")} tCO₂e，限额 ${buildingContext.carbon.targetEmission.toLocaleString("zh-CN")} tCO₂e`,
+        value: quotaRatio === null ? "待补充" : `${Math.round(quotaRatio)}%`,
+      },
+      {
+        icon: BarChart3,
+        title: "能耗强度对标",
+        desc: `同类中位 ${buildingContext.benchmark.energyMedian.toFixed(1)} kWh/㎡`,
+        value: `${buildingContext.benchmark.energyDelta >= 0 ? "+" : ""}${Math.round(buildingContext.benchmark.energyDelta)}%`,
+      },
+      {
+        icon: Wind,
+        title: "单位面积碳排",
+        desc: `同类高碳序位 ${buildingContext.benchmark.carbonRank}/${buildingContext.benchmark.peerCount}`,
+        value: `${buildingContext.benchmark.carbonDelta >= 0 ? "+" : ""}${Math.round(buildingContext.benchmark.carbonDelta)}%`,
+      },
+    ];
+  }, [buildingContext]);
 
   // ---- 计算选中措施的总效益 ----
   const selectedMeasuresData = useMemo(
@@ -357,7 +387,7 @@ export default function AISuggestionPage() {
         <div className="tech-card rounded-xl p-4">
           <h3 className="tech-title text-sm font-medium text-gray-300 mb-4">数据证据</h3>
           <div className="space-y-3">
-            {[
+            {(focusedEvidence ?? [
               {
                 icon: Thermometer,
                 title: "夜间负荷异常",
@@ -376,7 +406,7 @@ export default function AISuggestionPage() {
                 desc: "COP 低于设计值",
                 value: "-15%",
               },
-            ].map((evidence, index) => {
+            ]).map((evidence, index) => {
               const Icon = evidence.icon;
               return (
                 <div
@@ -1497,7 +1527,11 @@ export default function AISuggestionPage() {
             </button>
           )}
         </div>
-        <p className="text-gray-400 mt-1 text-sm">{headerInfo.subtitle}</p>
+        <p className="text-gray-400 mt-1 text-sm">
+          {buildingContext?.name && analysisFocus === "quota-overrun"
+            ? `${buildingContext.name} · 已定位“配额超限治理”内部板块，以楼宇数据生成治理方案`
+            : headerInfo.subtitle}
+        </p>
       </div>
 
       {/* 状态指示器 */}

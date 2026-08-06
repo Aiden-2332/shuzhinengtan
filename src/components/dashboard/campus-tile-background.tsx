@@ -10,27 +10,25 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
 import { Minus, Move, Plus, RotateCcw } from "lucide-react";
 import { CampusBuildingLayer } from "@/components/dashboard/campus-building-layer";
 import {
-  CAMPUS_MAP_HEADER_SLOT_ID,
-  CampusMapOverlayControls,
-} from "@/components/dashboard/campus-map-overlay-controls";
-import {
   getCampusBuildingLayer,
   getCampusMapBuildings,
+  type CampusMapBuilding,
   type CampusLayerFilter,
   type CampusMapKind,
 } from "@/data/campus-map-buildings";
+import { useCampusMapToolbarStore } from "@/stores/campus-map-toolbar-store";
 
 interface CampusTileBackgroundProps {
   map: CampusMapKind;
   className?: string;
-  /** Adds a dark dashboard tint above the map without blocking foreground UI. */
-  tone?: "leader" | "operations";
-  cockpit?: boolean;
+  initialBuildingId?: string | null;
+  onBuildingSelect?: (buildingId: string | null) => void;
+  renderBuildingPopup?: (building: CampusMapBuilding, onClose: () => void) => ReactNode;
 }
 
 interface ViewportSize {
@@ -585,11 +583,13 @@ function CampusMapEdgeFog({
 export function CampusTileBackground({
   map,
   className = "",
-  tone = "leader",
-  cockpit = false,
+  initialBuildingId = null,
+  onBuildingSelect,
+  renderBuildingPopup,
 }: CampusTileBackgroundProps) {
   const config = MAP_CONFIG[map];
   const initialTileZoom = selectTileZoom(config.initialScale, config);
+  const toolbarOwnerId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<ViewState | null>(null);
   const viewportRef = useRef<ViewportSize>({ width: 0, height: 0 });
@@ -601,16 +601,18 @@ export function CampusTileBackground({
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const dragRef = useRef<DragGesture | null>(null);
   const pinchRef = useRef<PinchGesture | null>(null);
+  const appliedInitialBuildingRef = useRef<string | null>(null);
+  const registerToolbar = useCampusMapToolbarStore((state) => state.registerToolbar);
+  const unregisterToolbar = useCampusMapToolbarStore((state) => state.unregisterToolbar);
 
   const [viewport, setViewport] = useState<ViewportSize>({ width: 0, height: 0 });
   const [view, setView] = useState<ViewState | null>(null);
   const [tileZoom, setTileZoom] = useState(initialTileZoom);
   const [isInteracting, setIsInteracting] = useState(false);
-  const [showBuildingLabels, setShowBuildingLabels] = useState(!cockpit);
+  const [showBuildingLabels, setShowBuildingLabels] = useState(true);
   const [showBuildingFrames, setShowBuildingFrames] = useState(false);
   const [activeLayer, setActiveLayer] = useState<CampusLayerFilter>("all");
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
-  const [headerToolbarSlot, setHeaderToolbarSlot] = useState<HTMLElement | null>(null);
 
   const mappedBuildings = getCampusMapBuildings(map);
   const visibleBuildings = useMemo(
@@ -622,10 +624,6 @@ export function CampusTileBackground({
           ),
     [activeLayer, mappedBuildings],
   );
-
-  useEffect(() => {
-    setHeaderToolbarSlot(document.getElementById(CAMPUS_MAP_HEADER_SLOT_ID));
-  }, []);
 
   const scheduleView = useCallback((candidate: ViewState) => {
     const constrained = constrainView(candidate, viewportRef.current, config);
@@ -703,14 +701,19 @@ export function CampusTileBackground({
     });
   }, [config, mappedBuildings, scheduleView]);
 
+  const updateSelectedBuilding = useCallback((buildingId: string | null) => {
+    setSelectedBuildingId(buildingId);
+    onBuildingSelect?.(buildingId);
+  }, [onBuildingSelect]);
+
   const selectFromSearch = useCallback((buildingId: string) => {
     const building = mappedBuildings.find((item) => item.id === buildingId);
     if (building && activeLayer !== "all") {
       setActiveLayer(getCampusBuildingLayer(building));
     }
-    setSelectedBuildingId(buildingId);
-    if (!cockpit) focusBuilding(buildingId);
-  }, [activeLayer, cockpit, focusBuilding, mappedBuildings]);
+    updateSelectedBuilding(buildingId);
+    focusBuilding(buildingId);
+  }, [activeLayer, focusBuilding, mappedBuildings, updateSelectedBuilding]);
 
   const changeLayer = useCallback((layer: CampusLayerFilter) => {
     setActiveLayer(layer);
@@ -723,14 +726,65 @@ export function CampusTileBackground({
       selectedBuilding &&
       getCampusBuildingLayer(selectedBuilding) !== layer
     ) {
-      setSelectedBuildingId(null);
+      updateSelectedBuilding(null);
     }
-  }, [mappedBuildings, selectedBuildingId]);
+  }, [mappedBuildings, selectedBuildingId, updateSelectedBuilding]);
 
   const selectBuilding = useCallback((buildingId: string | null) => {
-    setSelectedBuildingId(buildingId);
-    if (buildingId && !cockpit) focusBuilding(buildingId);
-  }, [cockpit, focusBuilding]);
+    updateSelectedBuilding(buildingId);
+    if (buildingId) focusBuilding(buildingId);
+  }, [focusBuilding, updateSelectedBuilding]);
+
+  useEffect(() => {
+    registerToolbar({
+      ownerId: toolbarOwnerId,
+      buildings: mappedBuildings,
+      selectedBuildingId,
+      showLabels: showBuildingLabels,
+      showBuildingFrames,
+      activeLayer,
+      onShowLabelsChange: setShowBuildingLabels,
+      onShowBuildingFramesChange: setShowBuildingFrames,
+      onLayerChange: changeLayer,
+      onBuildingSelect: selectFromSearch,
+    });
+  }, [
+    activeLayer,
+    changeLayer,
+    mappedBuildings,
+    registerToolbar,
+    selectFromSearch,
+    selectedBuildingId,
+    showBuildingFrames,
+    showBuildingLabels,
+    toolbarOwnerId,
+  ]);
+
+  useEffect(
+    () => () => unregisterToolbar(toolbarOwnerId),
+    [toolbarOwnerId, unregisterToolbar],
+  );
+
+  useEffect(() => {
+    if (
+      !initialBuildingId ||
+      !view ||
+      appliedInitialBuildingRef.current === initialBuildingId
+    ) return;
+    const building = mappedBuildings.find((item) => item.id === initialBuildingId);
+    if (!building) return;
+    appliedInitialBuildingRef.current = initialBuildingId;
+    if (activeLayer !== "all") setActiveLayer(getCampusBuildingLayer(building));
+    updateSelectedBuilding(initialBuildingId);
+    focusBuilding(initialBuildingId);
+  }, [
+    activeLayer,
+    focusBuilding,
+    initialBuildingId,
+    mappedBuildings,
+    updateSelectedBuilding,
+    view,
+  ]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -782,6 +836,10 @@ export function CampusTileBackground({
     if (!container) return;
 
     const handleWheel = (event: WheelEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-campus-building-popup-anchor]")) {
+        return;
+      }
       event.preventDefault();
       const current = viewRef.current;
       if (!current) return;
@@ -931,10 +989,10 @@ export function CampusTileBackground({
         completedDrag?.pointerId === event.pointerId &&
         !completedDrag.moved
       ) {
-        setSelectedBuildingId(null);
+        updateSelectedBuilding(null);
       }
     }
-  }, []);
+  }, [updateSelectedBuilding]);
 
   const handleDoubleClick = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const current = viewRef.current;
@@ -959,42 +1017,6 @@ export function CampusTileBackground({
   const fitScale = getFitScale(viewport, config);
   const canZoomOut = Boolean(view && view.scale > fitScale + 0.000_001);
   const canZoomIn = Boolean(view && view.scale < MAX_NATIVE_SCALE - 0.000_001);
-
-  const headerToolbar = useMemo(() => {
-    if (cockpit || !headerToolbarSlot) return null;
-    return createPortal(
-      <CampusMapOverlayControls
-        buildings={mappedBuildings}
-        selectedBuildingId={selectedBuildingId}
-        showLabels={showBuildingLabels}
-        showBuildingFrames={showBuildingFrames}
-        activeLayer={activeLayer}
-        onShowLabelsChange={setShowBuildingLabels}
-        onShowBuildingFramesChange={setShowBuildingFrames}
-        onLayerChange={changeLayer}
-        onBuildingSelect={selectFromSearch}
-      />,
-      headerToolbarSlot,
-    );
-  }, [
-    activeLayer,
-    changeLayer,
-    cockpit,
-    headerToolbarSlot,
-    mappedBuildings,
-    selectFromSearch,
-    selectedBuildingId,
-    showBuildingFrames,
-    showBuildingLabels,
-  ]);
-
-  const tint = tone === "leader"
-    ? cockpit
-      ? "radial-gradient(circle at 51% 43%, rgba(104,202,232,.04) 0%, rgba(13,69,97,.03) 48%, rgba(3,27,45,.16) 100%), linear-gradient(180deg, rgba(24,83,112,.04), rgba(3,25,42,.14))"
-      : "linear-gradient(180deg, rgba(8,16,40,0.16), rgba(8,16,40,0.38))"
-    : cockpit
-      ? "radial-gradient(circle at 50% 44%, rgba(104,202,232,.035) 0%, rgba(13,69,97,.025) 50%, rgba(3,27,45,.15) 100%), linear-gradient(180deg, rgba(24,83,112,.035), rgba(3,25,42,.13))"
-      : "linear-gradient(180deg, rgba(8,16,40,0.10), rgba(8,16,40,0.30))";
 
   return (
     <div
@@ -1030,7 +1052,7 @@ export function CampusTileBackground({
             zoom={config.minZoom}
             view={view}
             tiles={plan.overviewTiles}
-            className={cockpit ? "z-[1] brightness-[.94] saturate-[.94] contrast-[1.06] hue-rotate-[4deg]" : "z-[1]"}
+            className="z-[1]"
             animateTransform={!isInteracting}
           />
           {plan.zoom !== config.minZoom ? (
@@ -1039,7 +1061,7 @@ export function CampusTileBackground({
               zoom={plan.zoom}
               view={view}
               tiles={plan.tiles}
-              className={cockpit ? "z-[2] brightness-[.94] saturate-[.94] contrast-[1.06] hue-rotate-[4deg]" : "z-[2]"}
+              className="z-[2]"
               animateTransform={!isInteracting}
             />
           ) : null}
@@ -1052,15 +1074,6 @@ export function CampusTileBackground({
           view={view}
           viewport={viewport}
         />
-      ) : null}
-
-      <div className="pointer-events-none absolute inset-0 z-10" style={{ background: tint }} />
-      {cockpit ? (
-        <>
-          <div className="campus-night-blueprint pointer-events-none absolute inset-0 z-[9]" />
-          <div className="campus-night-lights pointer-events-none absolute inset-0 z-[11]" />
-          <div className="campus-night-vignette pointer-events-none absolute inset-0 z-[13]" />
-        </>
       ) : null}
 
       {view ? (
@@ -1076,59 +1089,56 @@ export function CampusTileBackground({
           selectedBuildingId={selectedBuildingId}
           animateTransform={!isInteracting}
           onSelect={selectBuilding}
+          renderPopup={renderBuildingPopup}
         />
       ) : null}
 
-      {!cockpit && headerToolbar}
-
-      {!cockpit && (
-        <div
-          className="absolute top-[calc(var(--cockpit-edge)+72px)] z-20 flex flex-col items-end gap-2"
-          style={{ right: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
-          onPointerDown={(event) => event.stopPropagation()}
-          onDoubleClick={(event) => event.stopPropagation()}
-        >
-          <div className="overflow-hidden rounded-lg border border-cyan-400/20 bg-[#07152f] shadow-lg">
-            <button
-              type="button"
-              aria-label="放大地图"
-              title="放大地图"
-              disabled={!canZoomIn}
-              onClick={() => zoomBy(BUTTON_ZOOM_FACTOR)}
-              className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-            <div className="h-px bg-cyan-400/15" />
-            <button
-              type="button"
-              aria-label="缩小地图"
-              title="缩小地图"
-              disabled={!canZoomOut}
-              onClick={() => zoomBy(1 / BUTTON_ZOOM_FACTOR)}
-              className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              <Minus className="h-4 w-4" />
-            </button>
-            <div className="h-px bg-cyan-400/15" />
-            <button
-              type="button"
-              aria-label="重置地图视图"
-              title="重置地图视图"
-              onClick={resetView}
-              className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-md border border-cyan-400/15 bg-[#07152f] px-2 py-1 text-[10px] text-cyan-50/80">
-            <Move className="h-3 w-3" />
-            <span>Z{plan?.zoom ?? 0}/{config.maxZoom}</span>
-            <span className="text-cyan-100/35">·</span>
-            <span>{view ? Math.round(view.scale * 100) : 0}%</span>
-          </div>
+      <div
+        className="absolute top-[calc(var(--cockpit-edge)+72px)] z-20 flex flex-col items-end gap-2"
+        style={{ right: "calc(var(--cockpit-side-panel-width, 0px) + 2rem)" }}
+        onPointerDown={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}
+      >
+        <div className="overflow-hidden rounded-lg border border-cyan-400/20 bg-[#07152f] shadow-lg">
+          <button
+            type="button"
+            aria-label="放大地图"
+            title="放大地图"
+            disabled={!canZoomIn}
+            onClick={() => zoomBy(BUTTON_ZOOM_FACTOR)}
+            className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <div className="h-px bg-cyan-400/15" />
+          <button
+            type="button"
+            aria-label="缩小地图"
+            title="缩小地图"
+            disabled={!canZoomOut}
+            onClick={() => zoomBy(1 / BUTTON_ZOOM_FACTOR)}
+            className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <div className="h-px bg-cyan-400/15" />
+          <button
+            type="button"
+            aria-label="重置地图视图"
+            title="重置地图视图"
+            onClick={resetView}
+            className="flex h-9 w-9 items-center justify-center text-cyan-100 transition-colors hover:bg-cyan-400/15"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
         </div>
-      )}
+        <div className="flex items-center gap-1.5 rounded-md border border-cyan-400/15 bg-[#07152f] px-2 py-1 text-[10px] text-cyan-50/80">
+          <Move className="h-3 w-3" />
+          <span>Z{plan?.zoom ?? 0}/{config.maxZoom}</span>
+          <span className="text-cyan-100/35">·</span>
+          <span>{view ? Math.round(view.scale * 100) : 0}%</span>
+        </div>
+      </div>
     </div>
   );
 }

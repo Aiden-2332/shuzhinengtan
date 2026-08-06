@@ -159,11 +159,24 @@ export function canonicalBuildingName(name: string): string {
 }
 
 const ANNUAL_WEIGHTS = [0.12, 0.105, 0.09, 0.075, 0.07, 0.085, 0.1, 0.105, 0.085, 0.065, 0.05, 0.05];
+// The forecast model deliberately shifts some load between months while keeping
+// the same full-year total. This makes the forecast useful as a comparator
+// instead of drawing directly on top of the target or observed series.
+const FORECAST_MONTHLY_WEIGHTS = [0.117, 0.111, 0.094, 0.08, 0.073, 0.089, 0.098, 0.108, 0.081, 0.061, 0.045, 0.043];
 
 export const CAMPUS_CARBON_QUOTA = 21_500;
 export const CAMPUS_CARBON_TARGET = 20_400;
-export const CAMPUS_CARBON_FORECAST = 22_180;
+
+// Keep the historical/actual series anchored to its original baseline while
+// the target-aligned forecast is updated independently below.
+export const CAMPUS_CARBON_BASELINE = 22_180;
+export const CAMPUS_CARBON_FORECAST = CAMPUS_CARBON_TARGET;
+export const CAMPUS_FORECAST_LOAD_SCALE = CAMPUS_CARBON_FORECAST / CAMPUS_CARBON_BASELINE;
 export const CAMPUS_ELECTRICITY_FACTOR = 0.5672;
+
+export function getCampusForecastLoadKw(date: Date): number {
+  return Math.round(getCampusLoadKw(date, 3) * CAMPUS_FORECAST_LOAD_SCALE);
+}
 
 function currentYearProgress(now: Date): number {
   const { year, month, day, hour, minute } = getCampusDateParts(now);
@@ -250,15 +263,64 @@ export function getSystemMonthlyCarbon(now = new Date()) {
       : 1;
     const seed = getCampusDateAt(year, month, 1).getTime();
     const actualFactor = 0.985 + deterministicNoise(seed, 41) * 0.025;
-    actual += CAMPUS_CARBON_FORECAST * weight * actualFactor * elapsed;
+    actual += CAMPUS_CARBON_BASELINE * weight * actualFactor * elapsed;
     target += CAMPUS_CARBON_TARGET * weight * elapsed;
-    forecast += CAMPUS_CARBON_FORECAST * weight * elapsed;
+    forecast += CAMPUS_CARBON_FORECAST * FORECAST_MONTHLY_WEIGHTS[index] * elapsed;
     return {
       month: `${month}月`,
       monthKey: `${year}-${String(month).padStart(2, "0")}`,
       actual: Math.round(actual),
       target: Math.round(target),
       forecast: Math.round(forecast),
+    };
+  });
+}
+
+export interface SystemRollingMonthlyCarbonPoint {
+  month: string;
+  monthKey: string;
+  actual: number;
+  target: number;
+  forecast: number;
+}
+
+/**
+ * Returns twelve comparable monthly emission values ending in the current
+ * campus month. Current-year actual and target values are derived from the
+ * canonical cumulative series, so their Jan-to-current-month sums reconcile
+ * exactly with the operational snapshot and its YTD target.
+ */
+export function getSystemRollingMonthlyCarbon(now = new Date()): SystemRollingMonthlyCarbonPoint[] {
+  const parts = getCampusDateParts(now);
+  const currentYearCumulative = getSystemMonthlyCarbon(now);
+  const cumulativeByMonth = new Map(currentYearCumulative.map((item) => [item.monthKey, item]));
+
+  return Array.from({ length: 12 }, (_, index) => {
+    const monthOffset = parts.month - 11 + index;
+    const zeroBasedMonth = monthOffset - 1;
+    const year = parts.year + Math.floor(zeroBasedMonth / 12);
+    const month = ((zeroBasedMonth % 12) + 12) % 12 + 1;
+    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+    const currentYearPoint = cumulativeByMonth.get(monthKey);
+    const previousMonthKey = `${year}-${String(month - 1).padStart(2, "0")}`;
+    const previousPoint = month === 1 ? undefined : cumulativeByMonth.get(previousMonthKey);
+    const isCurrentMonth = year === parts.year && month === parts.month;
+    const elapsed = isCurrentMonth
+      ? Math.min(1, (parts.day - 1 + (parts.hour + parts.minute / 60) / 24) / getCampusMonthDays(year, month))
+      : 1;
+    const seed = getCampusDateAt(year, month, 1).getTime();
+    const actualFactor = 0.985 + deterministicNoise(seed, 41) * 0.025;
+
+    return {
+      month: `${month}月`,
+      monthKey,
+      actual: currentYearPoint
+        ? currentYearPoint.actual - (previousPoint?.actual ?? 0)
+        : Math.round(CAMPUS_CARBON_BASELINE * ANNUAL_WEIGHTS[month - 1] * actualFactor),
+      target: currentYearPoint
+        ? currentYearPoint.target - (previousPoint?.target ?? 0)
+        : Math.round(CAMPUS_CARBON_TARGET * ANNUAL_WEIGHTS[month - 1]),
+      forecast: Math.round(CAMPUS_CARBON_FORECAST * FORECAST_MONTHLY_WEIGHTS[month - 1] * elapsed),
     };
   });
 }

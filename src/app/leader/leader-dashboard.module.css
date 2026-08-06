@@ -1,0 +1,25 @@
+.resource-panel {
+  flex-grow: .82;
+}
+
+.composition-panel {
+  flex-grow: .74;
+}
+
+.priority-panel {
+  flex-grow: 1.58;
+}
+
+@media (height <= 820px) {
+  .resource-panel {
+    flex-grow: .76;
+  }
+
+  .composition-panel {
+    flex-grow: .68;
+  }
+
+  .priority-panel {
+    flex-grow: 1.46;
+  }
+}
